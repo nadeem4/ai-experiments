@@ -1,0 +1,33 @@
+[project]
+name = "rerank"
+version = "0.1.0"
+description = "RAG re-ranking on BEIR NFCorpus, driven by a decision model (Laya), zero-shot"
+authors = [
+    { name = "Nadeem Khan", email = "nadeem4.nk13@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "huggingface-hub>=1.0",
+    "pyarrow>=21",
+    "rank-bm25>=0.2.2",
+    "pytrec-eval-terrier>=0.5.7",
+    "laya>=0.3.5",
+    "sentence-transformers>=5.0",
+    "torch>=2.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.17,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
