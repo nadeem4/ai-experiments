@@ -15,6 +15,7 @@ import json
 import statistics
 import subprocess
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -36,14 +37,15 @@ def pending(candidates, method, done):
 
 def rankings_from_records(candidates, records, method):
     """Records back into {query_id: [doc_id best first]}. A query that is only
-    half scored is left out rather than ranked on a hole."""
+    half scored is left out rather than ranked on a hole -- but a pair that was
+    scored and failed is not a hole: it is recorded, and its passage keeps the
+    BM25 position."""
     scores = {(r["query_id"], r["doc_id"]): r["score"] for r in records if r["method"] == method}
     rankings = {}
     for qid, docs in candidates.items():
-        values = [scores.get((qid, doc)) for doc in docs]
-        if any(v is None for v in values):
+        if any((qid, doc) not in scores for doc in docs):
             continue
-        rankings[qid] = rank_by_score(docs, values)
+        rankings[qid] = rank_by_score(docs, [scores[(qid, doc)] for doc in docs])
     return rankings
 
 
@@ -64,11 +66,55 @@ def score_method(reranker, candidates, queries, corpus, path, log=lambda *_: Non
     log(f"{reranker.name}: {len(todo)} pairs to score")
     for i, (qid, doc_id) in enumerate(todo, start=1):
         out = reranker.score(queries[qid], corpus[doc_id])
-        store.append(path, {"method": reranker.name, "query_id": qid, "doc_id": doc_id,
-                            "score": out["score"], "latency_ms": round(out["latency_ms"], 2),
-                            "request": out["request"], "response": out["response"]})
+        record = {"method": reranker.name, "query_id": qid, "doc_id": doc_id,
+                  "score": out["score"], "latency_ms": round(out["latency_ms"], 2),
+                  "request": out["request"], "response": out["response"]}
+        if out.get("retries"):
+            record["retries"] = out["retries"]
+        if out.get("failed"):
+            record["failed"] = True
+        store.append(path, record)
         if i % 100 == 0 or i == len(todo):
             log(f"{reranker.name}: {i}/{len(todo)}")
+
+
+def _input_tokens(record):
+    """Laya reports `input_tokens`, the AI Gateway reports `inputTokens`."""
+    usage = record["response"].get("usage") or {}
+    return usage.get("input_tokens") or usage.get("inputTokens") or 0
+
+
+def market_cost(record):
+    """What the gateway itself charged for this one call, in dollars.
+
+    Not a token count multiplied by a published rate: the AI Gateway puts the
+    price of the call on the call, and that is the number the run's cost is the
+    sum of. A local model has none, and neither does a call that failed."""
+    gateway = (record["response"].get("providerMetadata") or {}).get("gateway") or {}
+    try:
+        return float(gateway.get("marketCost") or 0.0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def ties(records):
+    """Passages sharing a score with another candidate for the same query.
+
+    A model that answers in coarse steps leaves passages tied, and a tie is not
+    an opinion: `rank_by_score` leaves those passages in the order BM25 gave
+    them. So the count that says what a distinct-value count means is how many
+    passages sit in a tie, and how big the worst one is."""
+    by_query = {}
+    for r in records:
+        if r["score"] is not None:
+            by_query.setdefault(r["query_id"], []).append(r["score"])
+    tied = largest = 0
+    for scores in by_query.values():
+        for size in Counter(scores).values():
+            if size > 1:
+                tied += size
+                largest = max(largest, size)
+    return {"tied": tied, "largest_group": largest}
 
 
 def summarize(method, records, qrels, rankings, floor=None):
@@ -80,7 +126,7 @@ def summarize(method, records, qrels, rankings, floor=None):
     question, and the per-query difference answers it far more sharply than two
     overlapping intervals do."""
     mine = [r for r in records if r["method"] == method]
-    values = [r["score"] for r in mine]
+    values = [r["score"] for r in mine if r["score"] is not None]
     run = build_run(rankings)
     out = {"method": method, **score_run(qrels, run)}
     scores = per_query(qrels, run)
@@ -96,12 +142,19 @@ def summarize(method, records, qrels, rankings, floor=None):
                                   "ci95": [round(low, 4), round(high, 4)] if low is not None else None,
                                   "better": sum(d > 0 for d in deltas), "worse": sum(d < 0 for d in deltas),
                                   "same": sum(d == 0 for d in deltas)}
-    out["latency"] = latency([r["latency_ms"] for r in mine])
-    out["scoring_wall_clock_s"] = round(sum(r["latency_ms"] for r in mine) / 1000, 1)
+    ok = [r for r in mine if not r.get("failed")]
+    out["latency"] = latency([r["latency_ms"] for r in ok])
+    out["scoring_wall_clock_s"] = round(sum(r["latency_ms"] for r in ok) / 1000, 1)
+    if any("retries" in r or r.get("failed") for r in mine):
+        out["calls"] = {"n": len(mine), "retries": sum(r.get("retries", 0) for r in mine),
+                        "failed": sum(bool(r.get("failed")) for r in mine),
+                        "input_tokens": sum(_input_tokens(r) for r in ok),
+                        "market_cost_usd": round(sum(market_cost(r) for r in mine), 6)}
     if values:
         out["scores"] = {"distinct": len(set(values)), "of": len(values),
                          "min": round(min(values), 4), "max": round(max(values), 4),
-                         "stdev": round(statistics.stdev(values), 4) if len(values) > 1 else 0.0}
+                         "stdev": round(statistics.stdev(values), 4) if len(values) > 1 else 0.0,
+                         **ties(mine)}
     return out
 
 
@@ -127,23 +180,26 @@ def _commit():
 
 
 def format_table(summaries):
-    head = (f"{'method':<14} {'nDCG@10':>8} {'ci95':>17} {'Recall@10':>10} {'MRR@10':>8} "
+    head = (f"{'method':<18} {'nDCG@10':>8} {'ci95':>17} {'Recall@10':>10} {'MRR@10':>8} "
             f"{'p50 ms':>8} {'p95 ms':>8} {'wall s':>8}  scores")
     rows = [head, "-" * len(head)]
     for s in summaries:
         lat, sc, ci = s["latency"], s.get("scores"), s.get("ndcg@10_ci95")
-        rows.append(f"{s['method']:<14} {s['ndcg@10']:>8.4f} "
+        rows.append(f"{s['method']:<18} {s['ndcg@10']:>8.4f} "
                     f"{(f'[{ci[0]:.4f}-{ci[1]:.4f}]' if ci else ''):>17} "
                     f"{s['recall@10']:>10.4f} {s['mrr@10']:>8.4f} "
                     f"{str(lat['p50_ms']):>8} {str(lat['p95_ms']):>8} {s['scoring_wall_clock_s']:>8} "
-                    + (f" {sc['distinct']} distinct of {sc['of']}, {sc['min']}..{sc['max']}" if sc else " (candidate order)"))
+                    + (f" {sc['distinct']} distinct of {sc['of']}, {sc['min']}..{sc['max']}, {sc['tied']} tied"
+                       if sc else " (candidate order)")
+                    + (f"; {s['calls']['retries']} retries, {s['calls']['failed']} failed, "
+                       f"${s['calls']['market_cost_usd']:.4f}" if s.get("calls") else ""))
     deltas = [s for s in summaries if s.get("ndcg@10_vs_bm25")]
     if deltas:
         rows += ["", "nDCG@10 against the BM25 floor, paired per query:"]
         for s in deltas:
             d = s["ndcg@10_vs_bm25"]
             ci = f" [{d['ci95'][0]:+.4f}, {d['ci95'][1]:+.4f}]" if d["ci95"] else ""
-            rows.append(f"  {s['method']:<14} {d['mean']:+.4f}{ci}   better on {d['better']}, "
+            rows.append(f"  {s['method']:<18} {d['mean']:+.4f}{ci}   better on {d['better']}, "
                         f"worse on {d['worse']}, unchanged on {d['same']} queries")
     return "\n".join(rows)
 
@@ -175,11 +231,15 @@ def run(limit, top_k, methods, out_dir, cache_dir=None, laya_path=None, split="t
 
     summaries = []
     for method in methods:
-        if method != "bm25":
+        # A method whose pairs are all in the store is summarized from those
+        # records; the model is not loaded and nothing is scored twice.
+        if method != "bm25" and pending(candidates, method, store.scored_keys(scores_path)):
             started = time.perf_counter()
             reranker = make_reranker(method, **({"path": laya_path} if laya_path and method.startswith("laya") else {}))
             log(f"{method}: loaded in {time.perf_counter() - started:.1f}s")
             score_method(reranker, candidates, queries, corpus, scores_path, log)
+        elif method != "bm25":
+            log(f"{method}: every pair is already in the store, reusing those records")
         records = store.load(scores_path)
         rankings = candidates if method == "bm25" else rankings_from_records(candidates, records, method)
         summary = summarize(method, records, qrels, rankings, floor)

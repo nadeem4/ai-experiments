@@ -7,8 +7,10 @@ one ranks better and the second pass is cheap:
          expected position on that scale (0 to 4 here)
   noul   no criteria at all, one probability back; rank by that probability
 
-The weights are the same English checkpoint arena uses (arena/models/laya), and
-they are loaded the same way.
+Both run against two checkpoints out of the same weights folder arena uses
+(arena/models/laya), loaded the same way: the base English one, and the
+`typed-decisions` fine-tune that Convai's model card says is where the
+capability on typed decisions actually comes from.
 """
 import time
 from pathlib import Path
@@ -36,7 +38,17 @@ NOUL_QUESTION = {
     }
 }
 
-QUESTIONS = {"laya-score": (SCORE_QUESTION, "score"), "laya-noul": (NOUL_QUESTION, "noul")}
+# (questions, field, checkpoint). Laya ships three checkpoints; the base English
+# one is `None`. Convai's own model card says the base checkpoints sit below the
+# majority-class baseline on typed decisions and that the capability comes from
+# fine-tuning, so `typed-decisions` is run on the identical candidates and the
+# identical questions -- the checkpoint is the only thing that differs.
+VARIANTS = {
+    "laya-score": (SCORE_QUESTION, "score", None),
+    "laya-noul": (NOUL_QUESTION, "noul", None),
+    "laya-typed-score": (SCORE_QUESTION, "score", "typed-decisions"),
+    "laya-typed-noul": (NOUL_QUESTION, "noul", "typed-decisions"),
+}
 
 # The English checkpoint reads 512 tokens, ~192 of them spent on the question, so
 # the state gets roughly 320. Long NFCorpus abstracts are cut here, where it is
@@ -80,8 +92,9 @@ def ensure_weights(path, download=None):
 
 
 def load(name, path=None, checkpoint=None, predict=None):
-    """Checkpoints: None (English, what step 1 uses), "multilingual", "typed-decisions"."""
-    questions, field = QUESTIONS[name]
+    """The variant picks the checkpoint; `checkpoint` overrides it by hand."""
+    questions, field, default_checkpoint = VARIANTS[name]
+    checkpoint = checkpoint or default_checkpoint
     if predict is None:
         path = path or "../arena/models/laya"
         ensure_weights(path)

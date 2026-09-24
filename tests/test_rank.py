@@ -33,3 +33,13 @@ def test_build_run_keys_every_query():
     run = build_run({"q1": ["a", "b"], "q2": ["c"]})
     assert set(run) == {"q1", "q2"}
     assert list(run["q1"]) == ["a", "b"]
+
+
+def test_a_failed_call_holds_its_bm25_position():
+    """A passage the model never scored keeps the slot BM25 gave it, and the
+    passages that were scored are sorted into the slots that are left."""
+    assert rank_by_score(["a", "b", "c"], [0.1, None, 0.9]) == ["c", "b", "a"]
+
+
+def test_every_call_failing_leaves_the_candidate_order_untouched():
+    assert rank_by_score(["a", "b", "c"], [None, None, None]) == ["a", "b", "c"]

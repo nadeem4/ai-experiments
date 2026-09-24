@@ -2,9 +2,11 @@
 
 A RAG re-ranker driven by a decision model, evaluated on a public retrieval benchmark.
 
-BM25 retrieves 50 candidate passages per query. Each candidate is then handed to a model as **one typed question** — query and passage in, one number out — and the candidates are re-sorted by that number. The question is whether the ranking gets better, and how much the re-ranking costs in wall clock.
+BM25 retrieves a fixed set of candidate passages per query. Each candidate is then handed to a model as **one typed question** — query and passage in, one number out — and the candidates are re-sorted by that number. The question is whether the ranking gets better, and how much the re-ranking costs in wall clock and in money.
 
-**Nothing is trained here.** This is step 1, and it is deliberately zero-shot: the number below is the baseline that makes a later fine-tune interpretable. Laya's own model card is blunt that its base checkpoints are near chance on typed decisions zero-shot, so a low number here is expected information, not a bug.
+**Nothing is trained here.** This is deliberately zero-shot: the numbers below are the baseline that makes a later fine-tune interpretable. Laya's own model card is blunt that its base checkpoints are near chance on typed decisions zero-shot, so a low number for Laya is expected information, not a bug.
+
+Four re-rankers are measured against the BM25 floor: **Jev** over HTTP, a **MS MARCO cross-encoder** locally, and **Laya** on two checkpoints — the base English one and the `typed-decisions` fine-tune. Jev and the cross-encoder both beat the floor; both Laya checkpoints lose to it.
 
 ## How it works
 
@@ -12,7 +14,7 @@ BM25 retrieves 50 candidate passages per query. Each candidate is then handed to
 %%{init: {'theme': 'neutral'}}%%
 flowchart LR
     Q[query] --> B[BM25 over 3,633 documents]
-    B --> C[top-50 candidates]
+    B --> C[top-k candidates]
     C --> R[reranker.score: query + passage]
     R --> S[one number per passage]
     S --> O[re-sorted ranking]
@@ -74,28 +76,72 @@ Nobody has published which typed question ranks better, and the second pass cost
 | `laya-score` | `score` | an ordered list of five rungs, "irrelevant" to "directly answers the query" | the expected position on that scale, 0 to 4 |
 | `laya-noul` | `noul` | no criteria at all | one probability that the passage answers the query |
 
-Both are in `rerank/rerankers/laya.py` and both go to the same English checkpoint, the weights already in `arena/models/laya`.
+Both are in `rerank/rerankers/laya.py`. `laya-typed-score` and `laya-typed-noul` ask the identical questions of the `typed-decisions` fine-tune instead of the base English checkpoint — the checkpoint is the only thing that differs. All four read the weights already in `arena/models/laya`.
+
+`rerank/rerankers/jev.py` asks Jev the same two questions over HTTP. Only the dialect is translated: Jev's v4 schema calls the criteria-free question `boolean` and answers it with `probability` rather than `noul`, so `jev-noul` sends `"type": "boolean"` and reads `probability`. The instructions and the state are word for word what Laya is handed, so the two models are asked the identical thing.
+
+The full-scale run skipped the `noul`/`boolean` variants. The pilot showed they were not better than `score` for either model, and repeating them at 323 queries would have doubled the cost of a question already answered.
+
+## Full-scale results
+
+**All 323 NFCorpus test queries, top 20 candidates each**, official qrels. 6,460 scoring calls per re-ranker, 25,840 in total. Laya and the cross-encoder ran locally on CPU — there is no usable GPU on this machine — so their latencies are CPU latencies and are not comparable to Laya's published 39.5 ms on a T4. Jev ran over the network, so its latency is a round trip and not a comparable quantity at all.
+
+| Ranking | nDCG@10 | Recall@10 | MRR@10 | nDCG@10 vs BM25, paired | p50 | p95 |
+|---|---|---|---|---|---|---|
+| Jev `score` | **0.3414** | **0.1571** | 0.5624 | **+0.0347** [+0.0218, +0.0476] | 331 ms | 677 ms |
+| cross-encoder MiniLM-L-6 | 0.3272 | 0.1499 | **0.5656** | **+0.0204** [+0.0092, +0.0317] | 38 ms | 76 ms |
+| BM25 (the floor) | 0.3067 | 0.1523 | 0.5092 | — | — | — |
+| Laya `score` | 0.2848 | 0.1409 | 0.4791 | **−0.0219** [−0.0368, −0.0070] | 935 ms | 1,251 ms |
+| Laya `typed-decisions` `score` | 0.2707 | 0.1389 | 0.4572 | **−0.0360** [−0.0522, −0.0197] | 916 ms | 1,111 ms |
+
+**Every interval now excludes zero, in both directions.** That is what this run was for. At 30 queries nothing but Laya's loss was separable from noise; at 323 the four results are all real:
+
+- **Jev re-ranks better than BM25**, +0.0347 nDCG@10, better on 117 queries and worse on 52.
+- **The cross-encoder also re-ranks better than BM25**, +0.0204, better on 97 and worse on 67. The pilot could only say it did not hurt; now it helps.
+- **Both Laya checkpoints re-rank worse than BM25.** Zero-shot, on this dataset, with these questions, re-ranking with Laya is worse than doing nothing.
+
+Jev is ahead of the cross-encoder by 0.0143 nDCG@10, but that pair was not compared directly here — each interval is against the BM25 floor, and two intervals that both exclude zero do not establish that one method beats the other.
+
+**The `typed-decisions` fine-tune ranks below the base checkpoint, and that is not a loading bug.** It was the first thing checked, because a fine-tune losing to its own base contradicts Convai's model card. The two checkpoints are different files (`model.safetensors`, 842,609,210 bytes vs 842,609,220, different SHA-256) with different configs (`model_name` `rl-agent` vs `laya-typed-decisions`, `max_len` 512 vs 1024), `laya.load(..., subfolder=...)` raises rather than falling back if the subfolder is missing, and **all 6,460 (query, passage) pairs scored differently between the two variants** — not one identical value. The fine-tune is genuinely loaded and genuinely worse.
+
+What it does instead is compress the scale: the base checkpoint spreads its answers over 0.082–3.548 (stdev 0.516), the fine-tune over 1.432–3.341 (stdev 0.332). It never uses the bottom third of the scale, so it separates candidates less, and a re-ranker that separates less ranks worse. The `RuntimeWarning: this checkpoint ships invalid temperatures` is a red herring: it names `choice:11+=0.1006 -> 0.5`, a bucket that is identical in **both** configs and belongs to a question type (`choice`) that this benchmark never asks. Both checkpoints emit it.
+
+**Jev answers in coarse steps.** The gateway rounds to two decimals (`rounding: {"scoreDecimals": 2}` comes back on every call), so a 0-to-4 score has at most 401 possible values and Jev used 389 of them across 6,147 successful calls. The consequence is ties, and a tie is not an opinion — `rank_by_score` leaves tied passages in the order BM25 gave them. **1,748 of the 6,147 scored passages (28%) sit in a tie**, a median of 4 of 20 per query, 10 or more of 20 on 74 queries, and 19 of 20 on the worst one. So Jev's +0.0347 is earned while roughly a quarter of the ranking is still BM25's. That cuts both ways and this run does not separate them: it may mean Jev is decisive exactly where it matters, or it may mean the measured gain comes from fewer decisions than the call count suggests. The cross-encoder, by contrast, emits a raw logit and tied only 136 of 6,460.
+
+**Jev's failures are real and were not smoothed over.** 313 of 6,460 calls (4.85%) never succeeded after five retries — 310 `HTTP 503`, 2 `HTTP 429`, 1 `HTTP 504` — against 14 of 1,500 (0.9%) in the pilot. Those 313 passages kept their BM25 position and touch 147 of the 323 queries, up to 7 in a single query. Nothing was invented for them. There were 6,414 retries across the run, and the exact cost from the gateway's own per-call `marketCost` was **$0.1533**, or $0.0237 per 1,000 calls.
+
+Two caveats on the timings. Jev's 3,118 s of scoring is the sum of the attempts that succeeded; real elapsed time was about 3 h 40 m, the difference being retry backoff. And both Laya passes ran while the Jev pass was in flight — Jev is network-bound and Laya is CPU-bound, so they do not contend, but the Laya latencies are slightly pessimistic for it and not strictly comparable to the pilot's. They remain comparable to *each other*, which is what the base-vs-fine-tune question needs.
+
+Raw numbers: `results/test-top20-q323-*.json`. All 25,840 scoring calls are in `runs/test-top20-q323/scores.jsonl`, request and response included.
 
 ## Pilot results
 
-30 queries, top 50 candidates each, NFCorpus **test** split with the official qrels. 1,500 scoring calls per re-ranker. **Laya and the cross-encoder both ran on CPU** — there is no usable GPU on this machine — so every latency below is a CPU latency and is not comparable to Laya's published 39.5 ms on a T4.
+30 queries, top 50 candidates each, NFCorpus **test** split with the official qrels. 1,500 scoring calls per re-ranker, seven re-rankers. **Laya and the cross-encoder both ran on CPU** — there is no usable GPU on this machine — so their latencies are CPU latencies and are not comparable to Laya's published 39.5 ms on a T4. Jev ran over the network throughout.
 
-| Ranking | nDCG@10 | Recall@10 | MRR@10 | nDCG@10 vs BM25, paired | p50 | p95 | wall clock |
-|---|---|---|---|---|---|---|---|
-| BM25 (the floor) | 0.2751 | 0.1280 | 0.5042 | — | — | — | 0.3 s index + 0.1 s search |
-| cross-encoder MiniLM-L-6 | **0.2930** | **0.1310** | **0.5500** | **+0.0180** [−0.0141, +0.0500] | 27 ms | 34 ms | 41 s |
-| Laya `score` | 0.2111 | 0.1036 | 0.3507 | **−0.0640** [−0.1155, −0.0125] | 846 ms | 1,034 ms | 21 min 30 s |
-| Laya `noul` | 0.2046 | 0.1094 | 0.3801 | **−0.0705** [−0.1226, −0.0183] | 743 ms | 1,089 ms | 19 min 35 s |
+These numbers are kept because they are what the full-scale run was designed to test, not because they agree with it. **They are not directly comparable**: the pilot used top-50 candidates and the full run top-20, and a shallower candidate pool is a cleaner one, which is why BM25's own floor moves from 0.2751 to 0.3067. The pilot also ran the `noul`/`boolean` variants, which the full run skipped — they were not better than `score` for either model, and at full scale they would have doubled the cost of a question already answered.
 
-**Zero-shot Laya is below the BM25 floor, and the gap is real.** Every method re-ranks the same candidates for the same queries, so the comparison is paired per query, and both Laya intervals sit entirely below zero: `score` loses 0.064 nDCG@10 and `noul` loses 0.071. On 30 queries `score` hurt 13 and helped 5; `noul` hurt 12 and helped 5. Re-ranking with this checkpoint, on this dataset, with these questions, makes retrieval worse than doing nothing. That is the result, and it is the baseline a fine-tune has to beat.
+Where the two disagree, the full-scale number is the one to believe. The pilot put Laya `score` 0.064 below the floor; at 323 queries and top-20 the loss is 0.022. The direction held, the magnitude did not.
 
-The cross-encoder's +0.018 is the expected direction but its interval still crosses zero at 30 queries, so the pilot establishes that it does not hurt, not that it helps.
+| Ranking | nDCG@10 | Recall@10 | MRR@10 | nDCG@10 vs BM25, paired | p50 | p95 |
+|---|---|---|---|---|---|---|
+| Jev `score` | **0.2998** | **0.1337** | 0.5228 | +0.0247 [−0.0067, +0.0561] | 354 ms | 557 ms |
+| cross-encoder MiniLM-L-6 | 0.2930 | 0.1310 | **0.5500** | +0.0180 [−0.0141, +0.0500] | 27 ms | 34 ms |
+| Jev `boolean` | 0.2885 | 0.1304 | 0.5207 | +0.0135 [−0.0171, +0.0441] | 343 ms | 552 ms |
+| BM25 (the floor) | 0.2751 | 0.1280 | 0.5042 | — | — | — |
+| Laya `score` | 0.2111 | 0.1036 | 0.3507 | **−0.0640** [−0.1155, −0.0125] | 846 ms | 1,034 ms |
+| Laya `noul` | 0.2046 | 0.1094 | 0.3801 | **−0.0705** [−0.1226, −0.0183] | 743 ms | 1,089 ms |
+| Laya `typed-decisions` `noul` | 0.1928 | 0.1022 | 0.3668 | **−0.0823** [−0.1481, −0.0165] | 789 ms | 4,062 ms |
+| Laya `typed-decisions` `score` | 0.1804 | 0.0994 | 0.3072 | **−0.0946** [−0.1617, −0.0276] | 934 ms | 7,073 ms |
 
-**Neither question formulation ranked better.** `score` minus `noul`, paired: **+0.0065** nDCG@10, 95% CI [−0.0384, +0.0514]. `score` won 6 queries, `noul` won 9, 15 tied. `score` takes the nDCG@10 headline by 0.0065 and `noul` takes Recall@10 and MRR@10; none of that survives the interval. Two things are worth noting about the raw numbers, though: `noul` came back under 0.5 on 1,398 of 1,500 passages (median 0.087), so it is answering "no, this does not answer the query" almost everywhere and ranking on the residue; and its 4-decimal rounding left only 1,041 distinct values across 1,500 pairs, against 1,413 for `score`. Neither collapsed to a constant — the failure mode that cost this project a week on Blackjack — and both were checked on 3 queries before the pilot ran.
+**Zero-shot Laya is below the BM25 floor, and the gap is real.** Every method re-ranks the same candidates for the same queries, so the comparison is paired per query, and all four Laya intervals sit entirely below zero. Re-ranking with these checkpoints, on this dataset, with these questions, makes retrieval worse than doing nothing.
 
-**The speed argument does not survive contact with a CPU.** Laya is 27 to 31 times *slower* per call than the MiniLM cross-encoder here (846 ms against 27 ms), and 1,500 passages take 20 minutes instead of 41 seconds. Laya's published 39.5 ms is a T4 number; this machine has no usable GPU, and the cross-encoder is a 6-layer 22M-parameter model against Laya's 421M, so it is a fair fight only on hardware both can use. What this pilot establishes is that on CPU there is no economic argument for the decision model here at all.
+**Nothing above the floor separated from noise at 30 queries.** Jev's +0.0247 and the cross-encoder's +0.0180 both crossed zero, so the pilot established only that they do not hurt. That is precisely why the full-scale run exists, and at 323 queries both gains became real.
 
-Raw numbers: `results/test-top50-q30-*.json`. Every one of the 4,500 scoring calls behind them is in `runs/test-top50-q30/scores.jsonl`, request and response included.
+**Neither question formulation ranked better**, for either model. `score` minus `noul`, paired on Laya: **+0.0065** nDCG@10, 95% CI [−0.0384, +0.0514]. The same held for Jev. That is why the full run carries `score` only.
+
+**The speed argument does not survive contact with a CPU.** Laya is 27 to 31 times *slower* per call than the MiniLM cross-encoder here (846 ms against 27 ms). Laya's published 39.5 ms is a T4 number; this machine has no usable GPU, and the cross-encoder is a 6-layer 22M-parameter model against Laya's 421M, so it is a fair fight only on hardware both can use. What this establishes is that on CPU there is no economic argument for the local decision model here at all.
+
+Raw numbers: `results/test-top50-q30-*.json`. Every one of the 10,500 scoring calls behind them is in `runs/test-top50-q30/scores.jsonl`, request and response included.
 
 ## Run it
 
@@ -104,9 +150,18 @@ uv sync
 uv run python -m rerank.evaluate --limit 30 --top-k 50
 ```
 
-`--limit 0` runs all 323 test queries. `--top-k` sets candidates per query. `--methods` picks a subset (`bm25`, `laya-score`, `laya-noul`, `cross-encoder`). Laya's weights are read from `../arena/models/laya`; `--laya-path` points elsewhere. The dataset lands in the Hugging Face cache, or in `--cache-dir`.
+The full-scale run above is:
+
+```
+uv run python -m rerank.evaluate --limit 0 --top-k 20 \
+    --methods bm25 laya-score laya-typed-score jev-score cross-encoder
+```
+
+`--limit 0` runs all 323 test queries. `--top-k` sets candidates per query. `--methods` picks a subset of `bm25`, `laya-score`, `laya-noul`, `laya-typed-score`, `laya-typed-noul`, `jev-score`, `jev-noul`, `cross-encoder`. Laya's weights are read from `../arena/models/laya`; `--laya-path` points elsewhere. Jev needs `TYPESAFE_API_KEY` or `AI_GATEWAY_API_KEY`, in the environment or in the repo-root `.env`. The dataset lands in the Hugging Face cache, or in `--cache-dir`.
 
 Results go to `results/<tag>-<timestamp>.json`; the raw wire log and the candidate set go to `runs/<tag>/` and are not committed.
+
+A method whose pairs are all already in the store is summarized from those records without loading the model, so re-running the command after an interruption resumes rather than restarts, and re-running it when everything is done just re-reports.
 
 ```
 uv run pytest
@@ -114,10 +169,12 @@ uv run pytest
 
 ## What this does not answer yet
 
-- **Whether fine-tuning closes a gap this large.** Zero-shot Laya is 0.064 nDCG@10 *below* a bag-of-words baseline, so a fine-tune has to recover that before it wins anything. That is step 2, and this is the number it has to beat.
-- **Whether the pilot's 30 queries generalise to all 323.** The full test split has not been run. The paired intervals are tight enough to call Laya's loss real at n=30; they are not tight enough to call the cross-encoder's +0.018 gain real.
+- **Whether fine-tuning closes a gap this large.** Zero-shot Laya is 0.022 nDCG@10 *below* a bag-of-words baseline, so a fine-tune has to recover that before it wins anything. The one fine-tune available, `typed-decisions`, made it worse rather than better.
+- **Why the `typed-decisions` fine-tune ranks below its own base.** It is genuinely the checkpoint being loaded and it genuinely uses a narrower slice of the scale, but nothing here explains why a model fine-tuned for typed decisions discriminates less on this task than the checkpoint it came from. Convai's model card says the opposite should happen.
+- **Whether Jev actually beats the cross-encoder.** Both beat BM25 with intervals clear of zero, and Jev is 0.0143 ahead, but that pair was never compared directly. Two intervals against a common floor do not settle it; the paired Jev-minus-cross-encoder difference would.
+- **What Jev's ties are worth.** 28% of its scored passages sit in a tie and hold BM25's order. Whether the gain comes from decisive judgements on the rest, or whether finer resolution would add more, is untested — the gateway's two-decimal rounding is not something this demo can turn off.
 - **Why Laya loses.** The scores vary and look sensible one at a time, but nothing here separates "the checkpoint cannot judge relevance" from "the question is wrong" from "1,000 characters of a medical abstract is not enough to judge on".
-- **How Jev compares.** The reranker interface is built for it; only the module is missing.
 - **Whether a better question helps.** Two formulations were tried, not twenty, and no prompt was tuned against the test split — doing so would make the number meaningless.
+- **Why 4.85% of Jev's calls failed.** Almost all were `HTTP 503` surviving five retries with exponential backoff, five times the pilot's rate. Whether that is load on the day, the sustained request rate, or something about these payloads is not established here.
 - **Whether the 1,000-character passage cut matters.** NFCorpus abstracts are longer than the English checkpoint's ~320-token state budget, so they are cut where it is visible in the recorded request. Nothing here measures what the tail would have added.
 - **What this costs on a GPU.** Every timing here is CPU-only.

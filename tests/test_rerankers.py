@@ -63,4 +63,25 @@ def test_the_exact_request_and_response_are_returned_for_the_record():
 
 def test_unknown_reranker_is_an_error():
     with pytest.raises(ValueError):
-        make_reranker("jev-score")
+        make_reranker("laya-typed")
+
+
+def test_the_typed_decisions_variants_ask_the_same_two_questions_as_the_base():
+    """Same questions, same passage cut, a different checkpoint -- so the two
+    checkpoints can be compared on the identical candidates."""
+    fake = lambda state, questions: {"answers": {"relevance": {"type": "score", "score": 3.0}}}
+    base, typed = make_reranker("laya-score", predict=fake), make_reranker("laya-typed-score", predict=fake)
+    assert typed.questions == base.questions
+    assert typed.field == base.field
+    assert typed.score("q", PASSAGE)["request"] == base.score("q", PASSAGE)["request"]
+
+    noul = make_reranker("laya-typed-noul", predict=lambda s, q: {"answers": {"relevance": {"noul": 0.2}}})
+    assert noul.field == "noul"
+    assert noul.score("q", PASSAGE)["score"] == 0.2
+
+
+def test_the_typed_decisions_variants_load_the_typed_decisions_subfolder():
+    from rerank.rerankers.laya import VARIANTS
+    assert VARIANTS["laya-typed-score"][2] == "typed-decisions"
+    assert VARIANTS["laya-typed-noul"][2] == "typed-decisions"
+    assert VARIANTS["laya-score"][2] is None

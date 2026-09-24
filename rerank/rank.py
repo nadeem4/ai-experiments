@@ -8,10 +8,19 @@ the order BM25 gave them, which makes "no opinion" mean "no change" instead of
 
 
 def rank_by_score(doc_ids, scores):
-    """Doc ids best-first. `doc_ids` is the candidate order; ties keep it."""
+    """Doc ids best-first. `doc_ids` is the candidate order; ties keep it.
+
+    A `None` score is a call that failed, not a low score. That passage holds the
+    slot BM25 gave it and the passages that were scored are sorted into the slots
+    that are left, so a failed call costs nothing and invents nothing."""
     if len(doc_ids) != len(scores):
         raise ValueError(f"{len(doc_ids)} candidates but {len(scores)} scores")
-    return [doc for _, doc in sorted(enumerate(doc_ids), key=lambda p: (-scores[p[0]], p[0]))]
+    slots = [i for i, s in enumerate(scores) if s is not None]
+    order = sorted(slots, key=lambda i: (-scores[i], i))
+    ranking = list(doc_ids)
+    for slot, i in zip(slots, order):
+        ranking[slot] = doc_ids[i]
+    return ranking
 
 
 def to_run(ranking):
