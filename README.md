@@ -2,7 +2,12 @@
 
 Measured experiments on AI models, each one carrying the raw wire it was measured from. **Published at [lab.codewithnk.com](https://lab.codewithnk.com).** A sibling repo runs the [Decision Arena](https://arena.codewithnk.com), where the same models play games.
 
-The first experiment is the whole of this repo so far.
+Two experiments live here, side by side:
+
+1. **Re-ranking retrieval with a decision model** — the repo root, written up below.
+2. **[Does Laya's Banking77 failure come from its token budget?](banking77/README.md)** — `banking77/`,
+   inference only: whether Laya's collapse on 77-option classification is explained by the shared
+   `head_max_len` option budget. Its own arms, results, tests and README.
 
 ---
 
