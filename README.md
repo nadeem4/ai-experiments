@@ -2,12 +2,16 @@
 
 Measured experiments on AI models, each one carrying the raw wire it was measured from. **Published at [lab.codewithnk.com](https://lab.codewithnk.com).** A sibling repo runs the [Decision Arena](https://arena.codewithnk.com), where the same models play games.
 
-Two experiments live here, side by side:
+Three experiments live here, side by side:
 
 1. **Re-ranking retrieval with a decision model** — the repo root, written up below.
 2. **[Does Laya's Banking77 failure come from its token budget?](banking77/README.md)** — `banking77/`,
    inference only: whether Laya's collapse on 77-option classification is explained by the shared
    `head_max_len` option budget. Its own arms, results, tests and README.
+3. **[What does one typed decision cost?](latency/README.md)** — `latency/`, the same decision asked
+   of a decision model and of one LLM per family, measured for latency, tokens, money and validity
+   over a 5-option task and a 77-option one. Model ids are resolved from the gateway's catalog
+   rather than written down. Pilot run; the full run has not been launched.
 
 ---
 
