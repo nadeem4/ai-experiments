@@ -8,6 +8,8 @@ __pycache__/
 .env
 /models/
 /runs/
+/banking77/runs/
+/banking77/.cache/
 *.log
 
 # Node / Next.js (site/)

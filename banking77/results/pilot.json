@@ -1,0 +1,79 @@
+{
+  "tag": "pilot",
+  "published_comparison": {
+    "source": "convaiinnovations/laya model card",
+    "laya_banking77_accuracy": 0.425,
+    "jev_banking77_accuracy": 0.87,
+    "note": "published, not measured here; Jev was scored on 72 labels, Laya on 77"
+  },
+  "arms": {
+    "A-default": {
+      "arm": "A-default",
+      "n_test": 200,
+      "n_options": 77,
+      "head_max_len": 256,
+      "max_len": 1024,
+      "checkpoint": "multilingual",
+      "accuracy": 0.435,
+      "accuracy_ci95": [
+        0.365,
+        0.505
+      ],
+      "top5_accuracy": 0.635,
+      "macro_f1": 0.3446354511289576,
+      "ece_raw": 0.33621300000000004,
+      "latency_ms_p50": 2093.132899957709,
+      "latency_ms_p95": 2843.3797950216103,
+      "latency_device": "cpu",
+      "temperature": 2.1682003767386444,
+      "n_val": 200,
+      "ece_after_temperature": 0.1204653405310428,
+      "accuracy_after_temperature": 0.435
+    }
+  },
+  "truncation_diagnostics": {
+    "A-default": {
+      "n_options": 77,
+      "mean_text_tokens_per_option": 2.74025974025974,
+      "min_text_tokens_per_option": 2,
+      "truncated_fraction": 0.35064935064935066,
+      "truncated_options": 27,
+      "distinct_options": 73,
+      "identical_pairs": 5,
+      "collided_options": 7,
+      "head_max_len": 256,
+      "max_len": 1024,
+      "sequence_tokens": 303,
+      "projected_tokens_per_option": 4,
+      "collisions": {
+        " balance not updated": [
+          "balance not updated after bank transfer",
+          "balance not updated after cheque or cash deposit"
+        ],
+        " lost or stolen": [
+          "lost or stolen card",
+          "lost or stolen phone"
+        ],
+        " top up by": [
+          "top up by bank transfer charge",
+          "top up by card charge",
+          "top up by cash or cheque"
+        ]
+      }
+    }
+  },
+  "option_count_sweep": [
+    {
+      "arm": "A-default",
+      "n_options": 77,
+      "tokens_per_option": 2.74025974025974,
+      "identical_pairs": 5,
+      "accuracy": 0.435,
+      "accuracy_ci95": [
+        0.365,
+        0.505
+      ]
+    }
+  ],
+  "mcnemar": []
+}
