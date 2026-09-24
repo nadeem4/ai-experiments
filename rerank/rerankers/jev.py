@@ -1,16 +1,14 @@
 """Jev as a reranker: the same two typed questions Laya gets, over HTTP.
 
-The transport is copied from `arena/arena/agents/jev.py` rather than imported --
-each demo in this repo stands alone -- and it keeps that module's two properties
-that matter for a benchmark:
+The transport is written out here rather than imported from a client library, and
+it keeps the two properties that matter for a benchmark:
 
-  * rate limits (429) and overload (529) are retried with exponential backoff,
-    because the arena measured 1,231 retries across 1,423 calls;
+  * rate limits (429) and overload (529) are retried with exponential backoff;
   * the reported latency covers only the attempt that succeeded, so waiting out
     a queue is never charged to the model's speed.
 
-Two routes to the same model, same as arena: TypeSafe directly when
-TYPESAFE_API_KEY is set (pinned version), otherwise the Vercel AI Gateway.
+Two routes to the same model: TypeSafe directly when TYPESAFE_API_KEY is set
+(pinned version), otherwise the Vercel AI Gateway.
 
 A call that never succeeds is recorded as failed with `score: None`. Nothing is
 invented for it: `rank_by_score` leaves that passage exactly where BM25 put it.
@@ -27,7 +25,7 @@ from .laya import NOUL_QUESTION, SCORE_QUESTION, build_state
 GATEWAY_URL = "https://ai-gateway.vercel.sh/v4/ai/evaluation-model"
 TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
 TYPESAFE_MODEL = "jev-1.13.0"  # pinned so benchmark runs are reproducible
-ROOT_ENV = Path(__file__).resolve().parents[3] / ".env"  # repo root, shared by all demos
+ROOT_ENV = Path(__file__).resolve().parents[2] / ".env"  # this repo's root
 
 # Jev's v4 schema accepts `choice`, `score` and `boolean`. `boolean` is the same
 # question Laya calls `noul` -- no criteria, one probability back -- under a

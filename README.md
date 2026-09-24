@@ -1,6 +1,24 @@
-# Rerank
+# AI Experiments
+
+Measured experiments on AI models, each one carrying the raw wire it was measured from. **Published at [lab.codewithnk.com](https://lab.codewithnk.com).** A sibling repo runs the [Decision Arena](https://arena.codewithnk.com), where the same models play games.
+
+The first experiment is the whole of this repo so far.
+
+---
+
+## Re-ranking retrieval with a decision model
 
 A RAG re-ranker driven by a decision model, evaluated on a public retrieval benchmark.
+
+### What a decision model is
+
+It does not write text. You hand it the situation in words and the options you will accept, and it hands back a number for every option — a probability, or a position on a scale you defined. There is nothing to parse, and it cannot answer with something that is not on the list.
+
+Two of them are measured here. **[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev)** is TypeSafe AI's hosted System One model, closed weights, reached over HTTP. **[Laya](https://github.com/NandhaKishorM/laya)** is Convai's open-weights alternative, 421M parameters, downloaded and run on your own machine. Both answer the same typed questions, so the same request can be sent to either.
+
+### What this experiment asked
+
+Does putting a decision model in front of a retrieval ranking make the ranking better, and what does it cost?
 
 BM25 retrieves a fixed set of candidate passages per query. Each candidate is then handed to a model as **one typed question** — query and passage in, one number out — and the candidates are re-sorted by that number. The question is whether the ranking gets better, and how much the re-ranking costs in wall clock and in money.
 
@@ -28,7 +46,7 @@ Every method re-ranks the **same** candidate list, so the comparison is fair and
 - **`rerank/bm25.py`** builds the candidates. The order it returns is both the BM25 ranking and the tie-break every other method falls back to.
 - **`rerank/rerankers/`** has one module per model, all with the same interface, `score(query, passage) -> {score, request, response, latency_ms}`. `make_reranker(name)` in `__init__.py` is the only place a reranker is chosen by name, so adding Jev is a new module and one line — the task does not change.
 - **`rerank/rank.py`** turns scores into a ranking. Ties keep the candidate order, so "no opinion" means "no change" rather than "shuffle".
-- **`rerank/metrics.py`** wraps `pytrec_eval` (the trec_eval C code). trec_eval has no MRR@10, so the run is cut to the top 10 before `recip_rank` is asked for. `mean_ci` is copied from `arena/arena/bench.py` rather than imported — each demo in this repo stands alone.
+- **`rerank/metrics.py`** wraps `pytrec_eval` (the trec_eval C code). trec_eval has no MRR@10, so the run is cut to the top 10 before `recip_rank` is asked for. `mean_ci` is a plain t interval written out rather than pulled from scipy, which would be a large dependency for twenty lines.
 - **`rerank/store.py`** is the append-and-flush JSONL log, which doubles as the resume point.
 - **`rerank/evaluate.py`** is the task and the CLI.
 
@@ -76,7 +94,7 @@ Nobody has published which typed question ranks better, and the second pass cost
 | `laya-score` | `score` | an ordered list of five rungs, "irrelevant" to "directly answers the query" | the expected position on that scale, 0 to 4 |
 | `laya-noul` | `noul` | no criteria at all | one probability that the passage answers the query |
 
-Both are in `rerank/rerankers/laya.py`. `laya-typed-score` and `laya-typed-noul` ask the identical questions of the `typed-decisions` fine-tune instead of the base English checkpoint — the checkpoint is the only thing that differs. All four read the weights already in `arena/models/laya`.
+Both are in `rerank/rerankers/laya.py`. `laya-typed-score` and `laya-typed-noul` ask the identical questions of the `typed-decisions` fine-tune instead of the base English checkpoint — the checkpoint is the only thing that differs. All four read one weights folder: `models/laya`, downloaded on first use, or wherever `LAYA_PATH` points.
 
 `rerank/rerankers/jev.py` asks Jev the same two questions over HTTP. Only the dialect is translated: Jev's v4 schema calls the criteria-free question `boolean` and answers it with `probability` rather than `noul`, so `jev-noul` sends `"type": "boolean"` and reads `probability`. The instructions and the state are word for word what Laya is handed, so the two models are asked the identical thing.
 
@@ -145,6 +163,31 @@ Raw numbers: `results/test-top50-q30-*.json`. Every one of the 10,500 scoring ca
 
 ## Run it
 
+Needs [uv](https://docs.astral.sh/uv/) and Python 3.12.
+
+### Laya's weights
+
+Laya needs no key. About 2.3 GB of weights download on first use into `models/laya`, which is not committed. If you already have them, point at that folder instead and nothing is downloaded:
+
+```
+export LAYA_PATH=/path/to/laya        # or pass --laya-path
+```
+
+If the weights are missing **and** the download fails, the run stops and says both of those things rather than half-loading a model.
+
+### Jev's key
+
+Jev is a hosted API and needs a key. Copy `.env.example` to `.env` in this repo's root:
+
+```
+AI_GATEWAY_API_KEY=your_key       # Vercel AI Gateway (typesafe-ai/jev)
+TYPESAFE_API_KEY=your_key         # optional: TypeSafe's API directly, preferred when set
+```
+
+Either variable also works straight from the environment; `TYPESAFE_API_KEY` wins when both are set, as it pins the model version. The Vercel account needs a credit card on file before AI Gateway will serve requests. Nothing but `jev-*` needs a key: BM25, the cross-encoder and both Laya checkpoints run entirely locally.
+
+### The run
+
 ```
 uv sync
 uv run python -m rerank.evaluate --limit 30 --top-k 50
@@ -157,7 +200,7 @@ uv run python -m rerank.evaluate --limit 0 --top-k 20 \
     --methods bm25 laya-score laya-typed-score jev-score cross-encoder
 ```
 
-`--limit 0` runs all 323 test queries. `--top-k` sets candidates per query. `--methods` picks a subset of `bm25`, `laya-score`, `laya-noul`, `laya-typed-score`, `laya-typed-noul`, `jev-score`, `jev-noul`, `cross-encoder`. Laya's weights are read from `../arena/models/laya`; `--laya-path` points elsewhere. Jev needs `TYPESAFE_API_KEY` or `AI_GATEWAY_API_KEY`, in the environment or in the repo-root `.env`. The dataset lands in the Hugging Face cache, or in `--cache-dir`.
+`--limit 0` runs all 323 test queries. `--top-k` sets candidates per query. `--methods` picks a subset of `bm25`, `laya-score`, `laya-noul`, `laya-typed-score`, `laya-typed-noul`, `jev-score`, `jev-noul`, `cross-encoder`. The dataset lands in the Hugging Face cache, or in `--cache-dir`.
 
 Results go to `results/<tag>-<timestamp>.json`; the raw wire log and the candidate set go to `runs/<tag>/` and are not committed.
 
@@ -165,6 +208,17 @@ A method whose pairs are all already in the store is summarized from those recor
 
 ```
 uv run pytest
+```
+
+## The site
+
+`site/` publishes this experiment at [lab.codewithnk.com](https://lab.codewithnk.com): the table over all 323 queries, one query walked through passage by passage against the BM25 floor, the exact request and response behind any passage, and the score distributions that explain why Laya loses and why a quarter of Jev's passages never moved.
+
+The table is the whole run. The browsable examples are **a curated subset of 24 queries** — the full wire is 25,840 records of roughly 3 KB and cannot be shipped to a browser — chosen by `rerank/examples.py` to span the outcomes, including the queries where Jev's calls failed. That selection is the only judgement call in the export, so it is a pure function with tests. The page says the same thing.
+
+```
+uv run python scripts/export_examples.py   # results + the curated wire -> site/
+cd site && npm install && npm run build    # static export to site/out/
 ```
 
 ## What this does not answer yet

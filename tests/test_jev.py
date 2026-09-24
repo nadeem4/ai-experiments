@@ -139,3 +139,12 @@ def test_a_reranker_with_no_key_is_an_error():
 def json_text(response):
     import json
     return json.dumps(response)
+
+
+def test_the_env_file_is_looked_for_at_this_repos_root():
+    """It used to be the parent repo's root. A path that walks out of this repo
+    would silently read nothing, so the depth is pinned."""
+    from pathlib import Path
+    from rerank.rerankers import jev
+    assert jev.ROOT_ENV.name == ".env"
+    assert (jev.ROOT_ENV.parent / "pyproject.toml").exists(), f"{jev.ROOT_ENV} is not this repo's root"

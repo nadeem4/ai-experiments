@@ -266,7 +266,7 @@ def main():
     p.add_argument("--split", default="test", choices=["test", "dev", "train"])
     p.add_argument("--out", default=".")
     p.add_argument("--cache-dir", default=None, help="where the dataset is cached (default: the HF cache)")
-    p.add_argument("--laya-path", default=None, help="Laya weights folder (default: ../arena/models/laya)")
+    p.add_argument("--laya-path", default=None, help="Laya weights folder (default: $LAYA_PATH, else models/laya, downloaded on first use)")
     args = p.parse_args()
 
     results = run(args.limit, args.top_k, args.methods, args.out, args.cache_dir, args.laya_path, args.split)

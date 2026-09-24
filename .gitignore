@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# The Jev key, and the weights and wire logs the runs produce
+.env
+/models/
+/runs/
+*.log
+
+# Node / Next.js (site/)
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+.vercel/

@@ -4,8 +4,8 @@ nDCG@10 is the headline; Recall@10 and MRR@10 are alongside it. trec_eval has no
 MRR@10 measure -- `recip_rank` runs over the whole ranking -- so the run is cut
 to the top k before it is asked for one.
 
-`mean_ci` is copied from arena/arena/bench.py rather than imported: each demo in
-this repo stands alone.
+`mean_ci` is a plain t interval written out here rather than pulled from scipy,
+which would be a large dependency for twenty lines.
 """
 import math
 import statistics

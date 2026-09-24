@@ -7,15 +7,19 @@ one ranks better and the second pass is cheap:
          expected position on that scale (0 to 4 here)
   noul   no criteria at all, one probability back; rank by that probability
 
-Both run against two checkpoints out of the same weights folder arena uses
-(arena/models/laya), loaded the same way: the base English one, and the
-`typed-decisions` fine-tune that Convai's model card says is where the
-capability on typed decisions actually comes from.
+Both run against two checkpoints out of one weights folder, loaded the same way:
+the base English one, and the `typed-decisions` fine-tune that Convai's model
+card says is where the capability on typed decisions actually comes from.
+
+The weights (about 2.3 GB) are downloaded on first use into `models/laya`.
+`LAYA_PATH`, or `--laya-path`, points at a folder you already have instead.
 """
+import os
 import time
 from pathlib import Path
 
 REPO = "convaiinnovations/laya"
+DEFAULT_WEIGHTS_DIR = "models/laya"
 
 SCORE_QUESTION = {
     "relevance": {
@@ -81,14 +85,30 @@ class LayaReranker:
         }
 
 
+def resolve_weights(path=None, env=None):
+    """An explicit path beats $LAYA_PATH, which beats this repo's models/laya."""
+    env = os.environ if env is None else env
+    return Path(path or env.get("LAYA_PATH") or DEFAULT_WEIGHTS_DIR)
+
+
 def ensure_weights(path, download=None):
-    """Same folder arena downloads into. Hugging Face's own cache uses symlinks,
-    which fail on Windows without Developer Mode, so weights go in a plain dir."""
+    """Downloads the weights on first use. Hugging Face's own cache uses symlinks,
+    which fail on Windows without Developer Mode, so they go in a plain dir.
+
+    No weights and no way to fetch them is the one case with no answer, so it
+    names both escape hatches rather than raising out of huggingface_hub."""
     path = Path(path)
     if not (path / "model.safetensors").exists():
         if download is None:
             from huggingface_hub import snapshot_download as download
-        download(repo_id=REPO, local_dir=str(path))
+        try:
+            download(repo_id=REPO, local_dir=str(path))
+        except Exception as e:
+            raise RuntimeError(
+                f"Laya's weights are not in {path}, and downloading {REPO} failed: {e}. "
+                f"Set LAYA_PATH (or pass --laya-path) to a folder holding model.safetensors."
+            ) from e
+    return path
 
 
 def load(name, path=None, checkpoint=None, predict=None):
@@ -96,7 +116,7 @@ def load(name, path=None, checkpoint=None, predict=None):
     questions, field, default_checkpoint = VARIANTS[name]
     checkpoint = checkpoint or default_checkpoint
     if predict is None:
-        path = path or "../arena/models/laya"
+        path = resolve_weights(path)
         ensure_weights(path)
         import laya  # heavy import (torch); only needed when Laya actually runs
         agent = laya.load(path, subfolder=checkpoint) if checkpoint else laya.load(path)

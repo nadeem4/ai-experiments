@@ -1,0 +1,247 @@
+{
+  "run": "test-top20-q323",
+  "queries_in_run": 323,
+  "records_in_run": 25840,
+  "exported": [
+    {
+      "query_id": "PLAIN-3292",
+      "query": "Are Multivitamins Good For You?",
+      "reason": "jev-failure",
+      "jev_delta": -0.095632,
+      "laya_delta": -0.136035,
+      "jev_failed": 7,
+      "relevant": 4,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-3342",
+      "query": "Is Coconut Milk Good For You?",
+      "reason": "jev-failure",
+      "jev_delta": 0.067479,
+      "laya_delta": -0.344361,
+      "jev_failed": 7,
+      "relevant": 2,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-3026",
+      "query": "Vitamin C-Enriched Bacon",
+      "reason": "jev-gain",
+      "jev_delta": 0.69897,
+      "laya_delta": 0.129647,
+      "jev_failed": 2,
+      "relevant": 1,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-1453",
+      "query": "junk food",
+      "reason": "jev-gain",
+      "jev_delta": 0.609622,
+      "laya_delta": 0.257875,
+      "jev_failed": 0,
+      "relevant": 10,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-23",
+      "query": "How to Reduce Exposure to Alkylphenols Through Your Diet",
+      "reason": "jev-gain",
+      "jev_delta": 0.508008,
+      "laya_delta": 0.246516,
+      "jev_failed": 0,
+      "relevant": 8,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-1635",
+      "query": "milk",
+      "reason": "jev-gain",
+      "jev_delta": 0.49829,
+      "laya_delta": 0.289996,
+      "jev_failed": 0,
+      "relevant": 13,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-3151",
+      "query": "Too Much Iodine Can Be as Bad as Too Little",
+      "reason": "jev-gain",
+      "jev_delta": 0.464958,
+      "laya_delta": 0.388968,
+      "jev_failed": 4,
+      "relevant": 4,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-3001",
+      "query": "EPIC Findings on Lymphoma",
+      "reason": "jev-gain",
+      "jev_delta": 0.408765,
+      "laya_delta": 0.408765,
+      "jev_failed": 2,
+      "relevant": 1,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-1537",
+      "query": "low-carb diets",
+      "reason": "jev-gain",
+      "jev_delta": 0.334051,
+      "laya_delta": 0.444097,
+      "jev_failed": 0,
+      "relevant": 3,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-977",
+      "query": "crib death",
+      "reason": "jev-gain",
+      "jev_delta": 0.328012,
+      "laya_delta": 0.025893,
+      "jev_failed": 0,
+      "relevant": 1,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-2081",
+      "query": "shelf life",
+      "reason": "laya-loss",
+      "jev_delta": 0.0,
+      "laya_delta": -1.0,
+      "jev_failed": 0,
+      "relevant": 1,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-1794",
+      "query": "Panama",
+      "reason": "laya-loss",
+      "jev_delta": 0.0,
+      "laya_delta": -0.578227,
+      "jev_failed": 0,
+      "relevant": 2,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-3362",
+      "query": "Kuna Indian Secret",
+      "reason": "laya-loss",
+      "jev_delta": 0.0,
+      "laya_delta": -0.5254,
+      "jev_failed": 6,
+      "relevant": 3,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-1088",
+      "query": "ECMO",
+      "reason": "laya-loss",
+      "jev_delta": 0.0,
+      "laya_delta": -0.440093,
+      "jev_failed": 0,
+      "relevant": 2,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-3074",
+      "query": "How to Help Prevent Abdominal Aortic Aneurysms",
+      "reason": "laya-loss",
+      "jev_delta": 0.0,
+      "laya_delta": -0.36907,
+      "jev_failed": 1,
+      "relevant": 1,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-499",
+      "query": "African-American",
+      "reason": "laya-loss",
+      "jev_delta": -0.289523,
+      "laya_delta": -0.358954,
+      "jev_failed": 0,
+      "relevant": 3,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-2291",
+      "query": "ultra-processed foods",
+      "reason": "laya-loss",
+      "jev_delta": -0.17564,
+      "laya_delta": -0.350116,
+      "jev_failed": 2,
+      "relevant": 2,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-741",
+      "query": "BPH",
+      "reason": "laya-loss",
+      "jev_delta": -0.022269,
+      "laya_delta": -0.346853,
+      "jev_failed": 0,
+      "relevant": 8,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-1008",
+      "query": "deafness",
+      "reason": "unchanged",
+      "jev_delta": 0.0,
+      "laya_delta": 0.0,
+      "jev_failed": 1,
+      "relevant": 0,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-1028",
+      "query": "dietary scoring",
+      "reason": "unchanged",
+      "jev_delta": 0.0,
+      "laya_delta": 0.0,
+      "jev_failed": 1,
+      "relevant": 0,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-1039",
+      "query": "domoic acid",
+      "reason": "unchanged",
+      "jev_delta": 0.0,
+      "laya_delta": 0.0,
+      "jev_failed": 2,
+      "relevant": 2,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-1066",
+      "query": "Dr. Walter Willett",
+      "reason": "unchanged",
+      "jev_delta": 0.0,
+      "laya_delta": 0.0,
+      "jev_failed": 0,
+      "relevant": 0,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-1098",
+      "query": "eggnog",
+      "reason": "unchanged",
+      "jev_delta": 0.0,
+      "laya_delta": 0.0,
+      "jev_failed": 0,
+      "relevant": 0,
+      "candidates": 20
+    },
+    {
+      "query_id": "PLAIN-1119",
+      "query": "energy drinks",
+      "reason": "unchanged",
+      "jev_delta": 0.0,
+      "laya_delta": 0.0,
+      "jev_failed": 3,
+      "relevant": 0,
+      "candidates": 20
+    }
+  ]
+}

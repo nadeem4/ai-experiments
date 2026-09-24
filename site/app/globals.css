@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+/* Highway signage, read as an instrument: one accent (sign green), asphalt for the
+   boards, marking yellow for the model's own piece, hazard red for danger. */
+:root {
+  --page: #E7E9E4;
+  --surface: #F2F3F0;
+  --surface-sunk: #DDE0DA;
+  --line: #C9CDC4;
+  --line-strong: #A9AFA4;
+  --ink: #171A1B;
+  --ink-soft: #5A615F;
+  --accent: #00674A;
+  --accent-ink: #F4F7F4;
+  --accent-wash: #00674A14;
+  --asphalt: #2B2E30;
+  --marking: #F2C230;
+  --danger: #B62D25;
+  --clear: #1B6E4E;
+  --traffic: #C9CDC6;
+
+  --step--1: 0.8125rem;
+  --step-0: 1rem;
+  --step-1: 1.1875rem;
+  --step-2: 1.5rem;
+  --step-3: 2rem;
+  --step-4: clamp(2.5rem, 1.9rem + 2.4vw, 3.5rem);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #131617;
+    --surface: #1B1F20;
+    --surface-sunk: #101314;
+    --line: #2E3435;
+    --line-strong: #454C4D;
+    --ink: #E8EBE6;
+    --ink-soft: #9BA29E;
+    --accent: #37A87E;
+    --accent-ink: #0C100F;
+    --accent-wash: #37A87E1F;
+    --asphalt: #212527;
+    --danger: #E9635A;
+    --clear: #58C296;
+  }
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-sunk: var(--surface-sunk);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-wash: var(--accent-wash);
+  --color-danger: var(--danger);
+  --color-clear: var(--clear);
+  --color-marking: var(--marking);
+  --font-sans: var(--font-overpass), system-ui, sans-serif;
+  --font-mono: var(--font-overpass-mono), ui-monospace, monospace;
+  --text-micro: var(--step--1);
+  --text-body: var(--step-0);
+  --text-lead: var(--step-1);
+  --text-h3: var(--step-2);
+  --text-h2: var(--step-3);
+  --text-h1: var(--step-4);
+}
+
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Numbers that must line up in tables and readouts. */
+.numeric { font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1; }
+
+/* One focus treatment everywhere. */
+:where(a, button, select, input, summary, label):focus-visible {
+  outline: 3px solid var(--marking);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
