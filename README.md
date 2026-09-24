@@ -212,14 +212,35 @@ uv run pytest
 
 ## The site
 
-`site/` publishes this experiment at [lab.codewithnk.com](https://lab.codewithnk.com): the table over all 323 queries, one query walked through passage by passage against the BM25 floor, the exact request and response behind any passage, and the score distributions that explain why Laya loses and why a quarter of Jev's passages never moved.
+`site/` publishes this experiment at [lab.codewithnk.com](https://lab.codewithnk.com), written as an experiment rather than a results dump: the question, why it is worth asking, **the prediction as it was made before the run**, the mechanism, the findings, the boundaries on them, and the conclusions.
 
-The table is the whole run. The browsable examples are **a curated subset of 24 queries** — the full wire is 25,840 records of roughly 3 KB and cannot be shipped to a browser — chosen by `rerank/examples.py` to span the outcomes, including the queries where Jev's calls failed. That selection is the only judgement call in the export, so it is a pure function with tests. The page says the same thing.
+Four hand-built SVG charts carry the argument, with no charting library:
+
+- **the strip plot** — all 323 queries as one dot each, four rows, positioned by their nDCG@10 change against BM25, with a vertical line at zero. It shows what the four means hide: the biggest single group of queries is the one where nothing moved. It is also the navigation, because clicking a dot opens that query below.
+- **the slope chart** — BM25's 20 positions on the left against the chosen re-ranker's on the right, judged-relevant passages emphasised from the qrels. Switching method animates the re-order, and honours `prefers-reduced-motion`.
+- **the quantisation rug** — every distinct value Jev and the cross-encoder returned, each on its own range plus a magnified sixteenth of it, which is where Jev's two-decimal grid becomes visible.
+- **the interval plot** — the four paired differences and their 95% intervals against one zero line, so "excludes zero" can be checked rather than believed.
+
+The table, the charts and the CSV are the whole run. The browsable examples are **a curated subset of 24 queries** — the full wire is 25,840 records of roughly 3 KB and cannot be shipped to a browser — chosen by `rerank/examples.py` to span the outcomes, including the queries where Jev's calls failed. That selection is the only judgement call in the export, so it is a pure function with tests. The page says the same thing.
+
+`scripts/export_examples.py` writes everything the site reads:
+
+| File | What it is |
+|---|---|
+| `site/data/results.json`, `site/data/pilot.json` | the two run files, copied unchanged |
+| `site/public/results.json` | the full-scale run file again, where a browser can download it |
+| `site/data/per-query.json` | one row per query: BM25's own nDCG@10 and each method's difference from it. The strip plot and the CSV download are both built from this |
+| `site/data/scores.json` | every distinct score Jev and the cross-encoder returned, for the rug |
+| `site/data/question.json` | one recorded call, so the page shows the real question rather than a retyped one |
+| `site/data/examples.json`, `site/public/examples/*.json` | the curated subset and its wire |
 
 ```
 uv run python scripts/export_examples.py   # results + the curated wire -> site/
 cd site && npm install && npm run build    # static export to site/out/
+cd site && npm test && npm run lint        # the chart geometry and the CSV are unit tested
 ```
+
+The site's own pure logic is tested in `site/lib/*.test.ts`: the strip-plot scale and stacking, the slope-chart position mapping, the rug bucketing, the CSV generation and the JSON tokeniser.
 
 ## What this does not answer yet
 

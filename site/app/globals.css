@@ -1,47 +1,49 @@
 @import "tailwindcss";
 
-/* Highway signage, read as an instrument: one accent (sign green), asphalt for the
-   boards, marking yellow for the model's own piece, hazard red for danger. */
+/* A lab notebook, not a road sign. The chrome is a cool neutral paper and the
+   only colour on the page encodes something: which side of the BM25 floor a
+   result landed on, and whether the official judgements call a passage relevant.
+   Cyan and rust are a colourblind-safe diverging pair and read as instrument
+   rather than verdict; violet is far enough from both that "judged relevant"
+   never competes with "above or below zero". Nothing else is allowed a hue. */
 :root {
-  --page: #E7E9E4;
-  --surface: #F2F3F0;
-  --surface-sunk: #DDE0DA;
-  --line: #C9CDC4;
-  --line-strong: #A9AFA4;
-  --ink: #171A1B;
-  --ink-soft: #5A615F;
-  --accent: #00674A;
-  --accent-ink: #F4F7F4;
-  --accent-wash: #00674A14;
-  --asphalt: #2B2E30;
-  --marking: #F2C230;
-  --danger: #B62D25;
-  --clear: #1B6E4E;
-  --traffic: #C9CDC6;
+  --page: #eef0f3;
+  --surface: #f9fafb;
+  --surface-sunk: #e2e6eb;
+  --line: #d0d6dd;
+  --line-strong: #a7b0ba;
+  --ink: #131820;
+  --ink-soft: #565f6b;
+
+  --up: #0b6e8f;
+  --down: #b2482a;
+  --mark: #7a47b5;
+  --up-wash: #0b6e8f14;
+  --mark-wash: #7a47b514;
 
   --step--1: 0.8125rem;
-  --step-0: 1rem;
-  --step-1: 1.1875rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.25rem;
   --step-2: 1.5rem;
   --step-3: 2rem;
-  --step-4: clamp(2.5rem, 1.9rem + 2.4vw, 3.5rem);
+  --step-4: clamp(2.5rem, 1.7rem + 3.1vw, 4rem);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --page: #131617;
-    --surface: #1B1F20;
-    --surface-sunk: #101314;
-    --line: #2E3435;
-    --line-strong: #454C4D;
-    --ink: #E8EBE6;
-    --ink-soft: #9BA29E;
-    --accent: #37A87E;
-    --accent-ink: #0C100F;
-    --accent-wash: #37A87E1F;
-    --asphalt: #212527;
-    --danger: #E9635A;
-    --clear: #58C296;
+    --page: #0e1114;
+    --surface: #161a1f;
+    --surface-sunk: #0a0c0f;
+    --line: #262c33;
+    --line-strong: #3c444d;
+    --ink: #e7ebef;
+    --ink-soft: #949ca6;
+
+    --up: #3faecb;
+    --down: #e1815b;
+    --mark: #a98be8;
+    --up-wash: #3faecb1f;
+    --mark-wash: #a98be81f;
   }
 }
 
@@ -53,14 +55,13 @@
   --color-line-strong: var(--line-strong);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
-  --color-accent: var(--accent);
-  --color-accent-ink: var(--accent-ink);
-  --color-accent-wash: var(--accent-wash);
-  --color-danger: var(--danger);
-  --color-clear: var(--clear);
-  --color-marking: var(--marking);
-  --font-sans: var(--font-overpass), system-ui, sans-serif;
-  --font-mono: var(--font-overpass-mono), ui-monospace, monospace;
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-mark: var(--mark);
+  --color-up-wash: var(--up-wash);
+  --color-mark-wash: var(--mark-wash);
+  --font-serif: var(--font-literata), Georgia, serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
   --text-micro: var(--step--1);
   --text-body: var(--step-0);
   --text-lead: var(--step-1);
@@ -72,20 +73,41 @@
 body {
   background: var(--page);
   color: var(--ink);
-  font-family: var(--font-sans);
-  font-variant-numeric: tabular-nums;
+  font-family: var(--font-serif);
+  line-height: 1.65;
 }
 
-/* Numbers that must line up in tables and readouts. */
-.numeric { font-variant-numeric: tabular-nums lining-nums; font-feature-settings: "tnum" 1; }
+/* Prose is the argument and is set in the serif; every number, name and axis
+   label is evidence and is set in the mono, which has true tabular figures. */
+.numeric {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: "tnum" 1;
+}
 
-/* One focus treatment everywhere. */
-:where(a, button, select, input, summary, label):focus-visible {
-  outline: 3px solid var(--marking);
+/* One focus treatment, in ink, so focus never borrows a colour that encodes. */
+:where(a, button, select, input, summary, label, [tabindex]):focus-visible {
+  outline: 2px solid var(--ink);
   outline-offset: 2px;
-  border-radius: 2px;
+}
+
+/* An outline around an SVG shape traces its bounding box and is easy to lose in
+   a dense plot, so focus there paints a ring that is part of the drawing. */
+svg :where([tabindex]):focus-visible {
+  outline: none;
+}
+
+svg :where([tabindex]):focus-visible .focus-ring {
+  stroke: var(--ink);
+  stroke-width: 2;
+  opacity: 1;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

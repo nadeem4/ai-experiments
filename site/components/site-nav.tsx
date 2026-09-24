@@ -8,11 +8,11 @@ const LINKS = [
 export function SiteNav() {
   return (
     <header className="border-b border-line bg-surface">
-      <nav aria-label="Site" className="mx-auto flex max-w-[1100px] flex-wrap items-baseline gap-x-6 gap-y-2 px-4 py-3 md:px-8">
-        <Link href="/" className="font-extrabold tracking-tight">
+      <nav aria-label="Site" className="mx-auto flex max-w-[1180px] flex-wrap items-baseline gap-x-6 gap-y-2 px-4 py-3 md:px-8">
+        <Link href="/" className="font-semibold tracking-tight">
           AI Experiments
         </Link>
-        <ul className="flex flex-wrap gap-x-5 gap-y-1 text-micro font-semibold text-ink-soft">
+        <ul className="numeric flex flex-wrap gap-x-5 gap-y-1 text-micro text-ink-soft">
           {LINKS.map(({ href, text }) => (
             <li key={href}>
               <Link href={href} className="hover:text-ink">{text}</Link>

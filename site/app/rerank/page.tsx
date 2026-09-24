@@ -1,141 +1,285 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import examplesIndex from "@/data/examples.json";
+import perQueryData from "@/data/per-query.json";
 import pilotData from "@/data/pilot.json";
+import questionData from "@/data/question.json";
 import resultsData from "@/data/results.json";
-import { Caveats } from "@/components/caveats";
-import { Mono, Section } from "@/components/chip";
-import { Distributions } from "@/components/distributions";
+import scoresData from "@/data/scores.json";
+import { Assumptions } from "@/components/assumptions";
+import { Mono, Prose, Section } from "@/components/chip";
+import { Code } from "@/components/code";
+import { Downloads } from "@/components/downloads";
+import { Explorer } from "@/components/explorer";
+import { IntervalPlot } from "@/components/interval-plot";
+import { QuantisationRug } from "@/components/quantisation-rug";
 import { ResultsTable } from "@/components/results-table";
-import { WorkedExample } from "@/components/worked-example";
 import type { ExamplesIndex } from "@/lib/example";
-import { byMethod, signed, type Results } from "@/lib/results";
+import type { PerQuery } from "@/lib/per-query";
+import { byMethod, pct, signed, tieShare, type Results } from "@/lib/results";
 
 const results = resultsData as Results;
 const pilot = pilotData as Results;
 const index = examplesIndex as ExamplesIndex;
+const perQuery = perQueryData as PerQuery;
+const scores = scoresData as Record<string, { of: number; values: number[] }>;
 
 const jev = byMethod(results, "jev-score")!;
+const ce = byMethod(results, "cross-encoder")!;
 const laya = byMethod(results, "laya-score")!;
+const tuned = byMethod(results, "laya-typed-score")!;
+
+const means = Object.fromEntries(
+  perQuery.methods.map((method) => [method, byMethod(results, method)!["ndcg@10_vs_bm25"]!.mean]),
+);
 
 const DESCRIPTION =
-  `Does a decision model re-rank retrieval better than BM25? On all ${results.queries} BEIR NFCorpus test ` +
-  `queries: Jev ${signed(jev["ndcg@10_vs_bm25"]!.mean)} nDCG@10, Laya ${signed(laya["ndcg@10_vs_bm25"]!.mean)}.`;
+  `Can a decision model re-rank retrieval better than BM25? On all ${results.queries} BEIR NFCorpus test ` +
+  `queries: Jev ${signed(jev["ndcg@10_vs_bm25"]!.mean)} nDCG@10, Laya ${signed(laya["ndcg@10_vs_bm25"]!.mean)}. ` +
+  `The prediction was the other way round.`;
+
+const TITLE = "Can a decision model re-rank retrieval better than BM25?";
 
 export const metadata: Metadata = {
-  title: "Re-ranking retrieval with a decision model",
+  title: TITLE,
   description: DESCRIPTION,
-  openGraph: { title: "Re-ranking retrieval with a decision model", description: DESCRIPTION },
+  openGraph: { title: TITLE, description: DESCRIPTION },
 };
 
 export default function Page() {
+  const unjudged = perQuery.rows.filter((row) => row.relevant === 0).length;
+
   return (
-    <main className="mx-auto max-w-[1100px] px-4 pb-24 pt-10 md:px-8">
-      <p className="text-micro font-semibold uppercase tracking-wide text-ink-soft">
-        Experiment 01 · {results.dataset} · {results.queries} queries
-      </p>
-      <h1 className="mt-2 max-w-[20ch] text-h1 font-extrabold leading-none tracking-tight">
-        Re-ranking retrieval with a decision model
-      </h1>
-      <p className="mt-4 max-w-[64ch] text-lead leading-relaxed text-ink-soft">
-        BM25 retrieves {results.top_k} candidate passages per query. Each candidate is handed to a model as one
-        typed question — query and passage in, one number out — and the candidates are re-sorted by that number.
-        Does the ranking get better?
-      </p>
-      <p className="mt-4 max-w-[64ch] text-body leading-relaxed">
-        Nothing is trained here. This is deliberately zero-shot, which is the baseline that would make a later
-        fine-tune interpretable. Four re-rankers were measured against the same BM25 floor:{" "}
-        <b>Jev</b> over HTTP, a <b>MS MARCO cross-encoder</b> locally, and <b>Laya</b> on two checkpoints.
-      </p>
-      <p className="mt-4 max-w-[64ch] border-l-2 border-line-strong pl-4 text-body leading-relaxed">
-        <b>Everything on this page comes from the run&apos;s own output.</b> The table below is all{" "}
-        {results.queries} queries. The browsable examples further down are a curated subset of{" "}
-        {index.exported.length} of them — the full wire is {index.records_in_run.toLocaleString()} recorded
-        calls, far too much to send to a browser. The examples are a subset; the numbers are not.
+    <main className="mx-auto max-w-[1180px] px-4 pb-28 pt-12 md:px-8">
+      <h1 className="max-w-[17ch] text-h1 font-semibold leading-[1.05] tracking-tight">{TITLE}</h1>
+      <p className="numeric mt-6 max-w-[62ch] text-micro text-ink-soft">
+        {results.dataset}, all {results.queries} test queries, top {results.top_k} candidates,{" "}
+        {index.records_in_run.toLocaleString()} recorded calls, nothing trained.
       </p>
 
       <Section
-        id="finding"
-        n={1}
-        title="The finding"
-        standfirst={
-          <>
-            Jev and the cross-encoder re-rank better than BM25. Both Laya checkpoints re-rank{" "}
-            <b className="text-ink">worse</b> than doing nothing at all.
-          </>
-        }
+        id="why"
+        title="Why it is worth asking"
+        standfirst="Re-ranking is a real stage in a real pipeline, and today it is served either by a cross-encoder or by a language model call per passage."
       >
+        <Prose>
+          <p>
+            A decision model does not write text. You hand it the situation in words and the answers you will
+            accept, and it hands back a number: a probability, or a position on a scale you defined. There is
+            nothing to parse and it cannot answer off the list. If one can judge relevance in tens of
+            milliseconds, it is cheaper to operate than a cross-encoder and far cheaper than a language model
+            call per candidate. That is the case worth testing.
+          </p>
+          <p>
+            There is also a prior. An{" "}
+            <a
+              href="https://arena.codewithnk.com"
+              className="underline decoration-line-strong underline-offset-4 hover:decoration-ink"
+            >
+              earlier experiment
+            </a>{" "}
+            put the same two models in front of games, and Laya, the open-weights one, failed badly at them.
+            Games are a long way outside what a relevance model was built for, so that result proved little
+            about the model. Retrieval relevance is its home domain. If it is going to work anywhere, it is
+            here, which makes this the fair test rather than the easy one.
+          </p>
+        </Prose>
+      </Section>
+
+      <Section
+        id="expected"
+        title="What we expected, written down first"
+        standfirst="This is the part most write-ups leave out, and it is the part that makes the rest an experiment instead of a report."
+      >
+        <div className="max-w-[62ch] border border-line bg-surface p-5">
+          <p className="numeric text-micro text-ink-soft">The prediction, before the run</p>
+          <p className="mt-3 text-lead italic leading-snug">
+            Laya will re-rank well here, and better than Jev, because Convai&apos;s published benchmarks put it
+            ahead of Jev on text relevance tasks, and this task is text relevance.
+          </p>
+        </div>
+        <Prose>
+          <p>
+            It was wrong in both halves. Laya did not re-rank well: both of its checkpoints left the ranking
+            worse than doing nothing. And it was not ahead of Jev, which turned out to be the method that moved
+            the ranking furthest in the run.
+          </p>
+          <p>
+            Laya&apos;s own model card does say its base checkpoints sit near chance on typed decisions
+            zero-shot, so the size of the loss is expected information rather than a defect. The prediction was
+            still made, from the published benchmarks, and it stays on the page as it was made. A prediction
+            edited after the result is not a prediction.
+          </p>
+        </Prose>
+      </Section>
+
+      <Section
+        id="did"
+        title="What we did"
+        standfirst={`BM25 retrieves ${results.top_k} candidate passages per query. Each candidate becomes one typed question, and the candidates are re-sorted by the number that comes back.`}
+      >
+        <Prose>
+          <p>
+            Every method re-ranks the same candidate list, so the difference is paired per query and BM25 is
+            the floor rather than a rival. Four re-rankers were measured against it: <b>Jev</b>, TypeSafe&apos;s
+            hosted decision model, over HTTP; a <b>MS MARCO cross-encoder</b> locally; and <b>Laya</b>,
+            Convai&apos;s open-weights alternative, on its base checkpoint and on its{" "}
+            <Mono>typed-decisions</Mono> fine-tune. Ties keep BM25&apos;s order, so a model with no opinion
+            changes nothing rather than shuffling.
+          </p>
+          <p>
+            This is the question, exactly as it went out {index.records_in_run.toLocaleString()} times. It is
+            one line of the run log, cut only where the passage runs on.
+          </p>
+        </Prose>
+        <div className="min-w-0 max-w-[78ch]">
+          <Code value={questionData.request} className="max-h-none" />
+        </div>
+        <Prose>
+          <p>
+            Back comes one number between 0 and 4, and the candidates are sorted by it. Nothing is trained, and
+            no prompt was tuned against the test split, which would have made the number meaningless. Zero-shot
+            is the baseline that would make a later fine-tune interpretable.
+          </p>
+        </Prose>
+      </Section>
+
+      <Section
+        id="happened"
+        title="What happened"
+        standfirst="Jev and the cross-encoder re-rank better than BM25. Both Laya checkpoints re-rank worse than doing nothing at all."
+      >
+        <Explorer
+          perQuery={perQuery}
+          methods={perQuery.methods}
+          means={means}
+          records={index.records_in_run}
+        />
+
         <ResultsTable results={results} />
-        <ul className="grid max-w-[70ch] gap-3 text-body leading-relaxed">
-          <li className="border-l-2 border-line pl-4">
-            <b>Jev re-ranks better than BM25</b>, {signed(jev["ndcg@10_vs_bm25"]!.mean)} nDCG@10, better on{" "}
-            {jev["ndcg@10_vs_bm25"]!.better} queries and worse on {jev["ndcg@10_vs_bm25"]!.worse}. The gateway
-            charged ${jev.calls!.market_cost_usd.toFixed(4)} for the whole pass.
-          </li>
-          <li className="border-l-2 border-line pl-4">
-            <b>Both Laya checkpoints re-rank worse than BM25.</b> Zero-shot, on this dataset, with these
-            questions, re-ranking with Laya is worse than leaving the BM25 order alone. Laya&apos;s own model
-            card says its base checkpoints are near chance on typed decisions zero-shot, so this is expected
-            information rather than a bug — but it is still a loss, and the <Mono>typed-decisions</Mono>{" "}
-            fine-tune is the worse of the two.
-          </li>
-        </ul>
+
+        <div className="grid min-w-0 gap-4">
+          <h3 className="text-body font-semibold">Four differences, one floor</h3>
+          <Prose>
+            <p>
+              A mean is a result only when the interval around it stays on one side of zero. All four do, in
+              both directions, which is what a {results.queries}-query run was for: at the {pilot.queries}-query
+              pilot, only Laya&apos;s loss was separable from noise.
+            </p>
+          </Prose>
+          <IntervalPlot results={results} />
+        </div>
       </Section>
 
       <Section
-        id="worked"
-        n={2}
-        title="One query, worked through"
-        standfirst={
-          <>
-            BM25&apos;s ordering of its {results.top_k} candidates stays on the left on every view, because it
-            is the floor everything is measured against. Pick a method to put beside it, and click any passage
-            in the right-hand column for the exact call behind it.
-          </>
-        }
+        id="assumed"
+        title="What we assumed"
+        standfirst="Six boundaries on the result. They are here rather than in a footnote because each one changes what the numbers above are allowed to mean."
       >
-        <WorkedExample index={index} />
+        <Assumptions results={results} pilot={pilot} perQuery={perQuery} records={index.records_in_run} />
       </Section>
 
       <Section
-        id="distribution"
-        n={3}
-        title="What the scores look like"
-        standfirst="Two of the findings are easier to see in the shape of the scores than in the ranking metric."
+        id="understood"
+        title="What we understood"
+        standfirst="The answer, and the two things in the run that nobody predicted, including us."
       >
-        <Distributions results={results} />
+        <Prose>
+          <p>
+            <b>A decision model can re-rank retrieval better than BM25.</b> Jev moved nDCG@10 by{" "}
+            {signed(jev["ndcg@10_vs_bm25"]!.mean)} over all {results.queries} queries, better on{" "}
+            {jev["ndcg@10_vs_bm25"]!.better} of them and worse on {jev["ndcg@10_vs_bm25"]!.worse}, and the
+            gateway charged ${jev.calls!.market_cost_usd.toFixed(4)} for the whole pass. The cross-encoder
+            moved it {signed(ce["ndcg@10_vs_bm25"]!.mean)}. Which of those two is better is not something this
+            run can say.
+          </p>
+          <p>
+            <b>The open-weights model made retrieval worse.</b> Laya&apos;s base checkpoint cost{" "}
+            {signed(laya["ndcg@10_vs_bm25"]!.mean)} nDCG@10 and its fine-tune cost{" "}
+            {signed(tuned["ndcg@10_vs_bm25"]!.mean)}. On this dataset, with these questions, zero-shot, the
+            ranking is better if you do not call it. That is the answer the prior set up, and it is the
+            opposite of the prediction.
+          </p>
+        </Prose>
+
+        <div className="grid min-w-0 gap-4">
+          <h3 className="text-body font-semibold">
+            The first surprise: the fine-tune ranks below the checkpoint it came from
+          </h3>
+          <Prose>
+            <p>
+              <Mono>typed-decisions</Mono> is fine-tuned for exactly this kind of question, and it ranks below
+              its own base, which contradicts its model card. It is genuinely the checkpoint being loaded:
+              different file, different config, and all {laya.scores!.of.toLocaleString()} pairs scored
+              differently between the two, not one identical value. What it does instead is use less of the
+              scale. The base checkpoint spreads its answers from {laya.scores!.min} to {laya.scores!.max},
+              standard deviation {laya.scores!.stdev}; the fine-tune from {tuned.scores!.min} to{" "}
+              {tuned.scores!.max}, standard deviation {tuned.scores!.stdev}, never touching the bottom third. A
+              re-ranker that separates candidates less ranks them worse. Why fine-tuning did that is not
+              answered here.
+            </p>
+          </Prose>
+        </div>
+
+        <div className="grid min-w-0 gap-4">
+          <h3 className="text-body font-semibold">
+            The second surprise: {pct(tieShare(jev.scores))} of Jev&apos;s passages are ties, and a tie is
+            BM25&apos;s answer
+          </h3>
+          <Prose>
+            <p>
+              The gateway returns Jev&apos;s answers rounded to two decimals, so a 0-to-4 score has at most 401
+              places to land, and Jev used {jev.scores!.distinct} of them across{" "}
+              {jev.scores!.of.toLocaleString()} successful calls. The cross-encoder emits a raw logit and
+              returned {ce.scores!.distinct.toLocaleString()} distinct values across{" "}
+              {ce.scores!.of.toLocaleString()}. Coarse steps mean ties, and tied passages keep the order BM25
+              gave them, so {jev.scores!.tied.toLocaleString()} of Jev&apos;s{" "}
+              {jev.scores!.of.toLocaleString()} scored passages are holding BM25&apos;s ranking rather than
+              expressing one. Its largest single tie was {jev.scores!.largest_group} of {results.top_k}{" "}
+              candidates in one query.
+            </p>
+          </Prose>
+          <QuantisationRug
+            strips={[
+              { method: "jev-score", scores: jev.scores!, values: scores["jev-score"].values },
+              { method: "cross-encoder", scores: ce.scores!, values: scores["cross-encoder"].values },
+            ]}
+          />
+          <Prose>
+            <p>
+              So Jev&apos;s {signed(jev["ndcg@10_vs_bm25"]!.mean)} is earned while roughly a quarter of its
+              ranking is still BM25&apos;s. That cuts both ways, and this run does not separate them: it may
+              mean Jev is decisive exactly where it matters, or it may mean the gain comes from fewer decisions
+              than the call count suggests. The rounding is not something a client can switch off.
+            </p>
+            <p>
+              What would settle the most from here is the comparison that was not run: Jev against the
+              cross-encoder, paired, on the same {results.queries} queries. After that, whether finer
+              resolution buys anything, and whether {unjudged} queries with nothing relevant in the candidate
+              pool are telling us more about NFCorpus than about re-ranking.
+            </p>
+          </Prose>
+        </div>
       </Section>
 
       <Section
-        id="caveats"
-        n={4}
-        title="What this does not establish"
-        standfirst="Four things the run leaves open, stated here rather than in a footnote."
+        id="downloads"
+        title="The files behind the page"
+        standfirst="Everything above was read out of these. Nothing on this site is illustrative."
       >
-        <Caveats results={results} pilot={pilot} />
-        <p className="max-w-[70ch] text-body leading-relaxed text-ink-soft">
-          The repository&apos;s README carries the rest: why the fine-tune loses, whether a better question
-          helps, whether the 1,000-character passage cut matters, and what any of this costs on a GPU.
-        </p>
+        <Downloads perQuery={perQuery} records={index.records_in_run} />
       </Section>
 
-      <p className="mt-16 border-t border-line pt-4 text-micro text-ink-soft">
-        <Link href="/" className="underline decoration-accent decoration-2 underline-offset-4">
+      <p className="numeric mt-20 border-t border-line pt-5 text-micro text-ink-soft">
+        <Link href="/" className="underline decoration-line-strong underline-offset-4 hover:decoration-ink">
           All experiments
         </Link>{" "}
         ·{" "}
         <a
           href="https://github.com/nadeem4/ai-experiments"
-          className="underline decoration-accent decoration-2 underline-offset-4"
+          className="underline decoration-line-strong underline-offset-4 hover:decoration-ink"
         >
           The code, the results files and the tests
-        </a>{" "}
-        ·{" "}
-        <a
-          href="https://arena.codewithnk.com"
-          className="underline decoration-accent decoration-2 underline-offset-4"
-        >
-          Decision Arena, the sibling experiment
         </a>
       </p>
     </main>

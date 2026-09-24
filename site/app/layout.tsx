@@ -1,13 +1,26 @@
 import type { Metadata } from "next";
-import { Overpass, Overpass_Mono } from "next/font/google";
+import { IBM_Plex_Mono, Literata } from "next/font/google";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteNav } from "@/components/site-nav";
 import "./globals.css";
 
-// Overpass is an open-source take on Highway Gothic, the lettering on US road
-// signs: the same face the Decision Arena uses, because this is its sibling.
-const overpass = Overpass({ variable: "--font-overpass", subsets: ["latin"], weight: ["400", "600", "800"] });
-const overpassMono = Overpass_Mono({ variable: "--font-overpass-mono", subsets: ["latin"], weight: ["400", "600"] });
+// Two faces with two jobs. Literata is a screen serif built for long reading and
+// carries the prose; IBM Plex Mono has true tabular figures, so every number,
+// axis label and doc id lines up in a column. The Decision Arena's highway
+// lettering is deliberately not here: that site shows driving games, this one
+// shows a retrieval benchmark, and the language should not be borrowed.
+// Literata is variable, so asking for no particular weight ships one file per
+// style instead of one per weight.
+const literata = Literata({
+  variable: "--font-literata",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+});
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["400", "500"],
+});
 
 const DESCRIPTION =
   "Measured experiments on AI models, each one carrying the raw wire it was measured from. First: does a decision model re-rank retrieval better than BM25?";
@@ -28,7 +41,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${overpass.variable} ${overpassMono.variable} antialiased`}>
+    <html lang="en" className={`${literata.variable} ${plexMono.variable} antialiased`}>
       <body className="flex min-h-[100dvh] flex-col overflow-x-hidden">
         <SiteNav />
         <div className="flex-1">{children}</div>

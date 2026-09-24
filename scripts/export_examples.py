@@ -12,6 +12,15 @@ the examples are a subset and the numbers are not.
 Nothing is summarised or rewritten on the way out. Each exported query carries
 BM25's candidate order, every method's re-ordering of it, the official judgements,
 and the exact request and response for every passage, byte for byte as recorded.
+
+Two whole-run files go out alongside the subset, because the page draws charts
+over every query rather than over the 24 that are browsable:
+
+  * `per-query.json` -- one row per query with BM25's own nDCG@10 and each
+    method's difference from it, the numbers behind the strip plot and the CSV;
+  * `scores.json` -- every distinct score each of the two continuous-looking
+    methods returned, which is what shows Jev's answers landing on a
+    two-decimal grid while the cross-encoder's do not.
 """
 import argparse
 import json
@@ -66,6 +75,33 @@ def query_rows(candidates, by_pair, qrels):
     return rows, d
 
 
+def per_query_rows(candidates, qrels, queries, d, browsable):
+    """One row per query: BM25's own nDCG@10, every method's difference from it,
+    and whether that query's full wire was exported. This is what the strip plot
+    plots and what the CSV download is written from, so it covers all 323 rather
+    than the 24 that are browsable."""
+    floor = {qid: s["ndcg@10"] for qid, s in per_query(qrels, build_run(candidates)).items()}
+    return [{"id": qid,
+             "query": queries[qid],
+             "bm25": round(floor.get(qid, 0.0), 6),
+             "deltas": {method: d[method].get(qid, 0.0) for method in METHODS},
+             "relevant": sum(1 for doc in candidates[qid] if qrels.get(qid, {}).get(doc, 0) > 0),
+             "example": qid in browsable}
+            for qid in sorted(candidates)]
+
+
+def score_values(records, methods):
+    """Every distinct score each method returned, sorted. Jev's answers come back
+    rounded to two decimals by the gateway, so they land on a grid; the
+    cross-encoder emits a raw logit and does not. Plotted, that is the whole
+    explanation for Jev's ties."""
+    out = {}
+    for method in methods:
+        scored = [r["score"] for r in records if r["method"] == method and r.get("score") is not None]
+        out[method] = {"of": len(scored), "values": sorted(set(scored))}
+    return out
+
+
 def export_query(qid, reason, candidates, by_pair, corpus, queries, qrels, d):
     docs = candidates[qid]
     judged = {doc: grade for doc, grade in qrels.get(qid, {}).items() if doc in docs}
@@ -104,6 +140,9 @@ def main():
 
     shutil.copyfile(ROOT / "results" / FULL_RESULTS, data / "results.json")
     shutil.copyfile(ROOT / "results" / PILOT_RESULTS, data / "pilot.json")
+    # The same file again where the browser can download it, so the file the page
+    # offers is the file the page's own numbers come from.
+    shutil.copyfile(ROOT / "results" / FULL_RESULTS, site / "public" / "results.json")
     print(f"results {FULL_RESULTS} and pilot {PILOT_RESULTS} -> {data}")
 
     corpus, queries, qrels = load_nfcorpus(args.cache_dir)
@@ -129,6 +168,24 @@ def main():
         "run": RUN_TAG, "queries_in_run": len(candidates), "records_in_run": len(records),
         "exported": index,
     }, indent=2), encoding="utf-8")
+
+    browsable = {pick["query_id"] for pick in picked}
+    (data / "per-query.json").write_text(json.dumps({
+        "run": RUN_TAG, "queries": len(candidates), "methods": METHODS,
+        "rows": per_query_rows(candidates, qrels, queries, d, browsable),
+    }), encoding="utf-8")
+    (data / "scores.json").write_text(json.dumps(
+        score_values(records, ["jev-score", "cross-encoder"])), encoding="utf-8")
+    # One recorded call, so the page can show the question every method was asked
+    # without anybody retyping it. The passage is cut to keep the block readable;
+    # the full one is in the example bundles.
+    asked = next(r for r in records if r["method"] == "jev-score" and not r.get("failed"))
+    request = json.loads(json.dumps(asked["request"]))
+    request["state"]["passage"] = request["state"]["passage"][:180] + " ..."
+    (data / "question.json").write_text(json.dumps(
+        {"query_id": asked["query_id"], "doc_id": asked["doc_id"], "request": request,
+         "response": asked["response"]}, indent=2), encoding="utf-8")
+    print(f"per-query.json over {len(candidates)} queries, scores.json -> {data}")
 
     total = sum(f.stat().st_size for f in public.glob("*.json"))
     print(f"{len(index)} queries exported, {total / 1e6:.1f} MB in {public}")
