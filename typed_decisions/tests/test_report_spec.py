@@ -320,3 +320,56 @@ class TestWhereTheResultsAreWritten:
 
     def test_the_subset_name_does_not_depend_on_the_order_they_were_typed(self):
         assert report.results_name("pilot", ["laya", "jev"]) ==                report.results_name("pilot", ["jev", "laya"])
+
+
+class TestAFailedCallIsNotAWrongAnswer:
+    """A call that never returned cannot be scored. Recording it as correct=0
+    conflates "the model was wrong" with "we got no answer", which understates
+    accuracy by the failure rate and inflates the paired-comparison denominator.
+    The store already holds such records, so the reader must exclude them."""
+
+    def _rows(self):
+        base = {"task": "t", "arm": "main", "spec_hash": "h", "pass": 0}
+        return [
+            {**base, "model": "m", "example_id": "1", "validity": "valid", "correct": 1},
+            {**base, "model": "m", "example_id": "2", "validity": "valid", "correct": 0},
+            {**base, "model": "m", "example_id": "3", "validity": "api_error", "correct": 0},
+        ]
+
+    def test_accuracy_is_over_answered_calls_only(self):
+        from typed_decisions import report
+        scored = report.correctness(self._rows(), "m", "t")
+        assert scored == {"1": 1, "2": 0}, "the api_error row must not be scored"
+
+    def test_an_unusable_answer_is_still_scored_wrong(self):
+        """The model answered, just not usably. Dropping it would pay it for failing."""
+        from typed_decisions import report
+        base = {"task": "t", "arm": "main", "spec_hash": "h", "pass": 0, "model": "m"}
+        rows = [{**base, "example_id": "1", "validity": "unparseable", "correct": 0}]
+        assert report.correctness(rows, "m", "t") == {"1": 0}
+
+    def test_the_failed_call_does_not_enter_a_paired_comparison(self):
+        from typed_decisions import report
+        assert len(report.correctness(self._rows(), "m", "t")) == 2
+
+
+class TestGoldPlacementExcludesFailedCalls:
+    """A call that never returned is not evidence about where the gold option sat.
+
+    `correct` is stored as 0 for a failed call, so appending it raw makes an
+    outage look like a position effect -- and the gold-placement spread is the
+    one number this experiment exists to measure.
+    """
+
+    def test_an_api_error_is_not_scored_as_a_miss_at_that_placement(self):
+        records = [
+            _rec(model="qwen", task="clinc150", arm="gold:first", example="e1", correct=1),
+            _rec(model="qwen", task="clinc150", arm="gold:first", example="e2",
+                 validity="api_error", choice=None, correct=0),
+            _rec(model="qwen", task="clinc150", arm="gold:middle", example="e1", correct=1),
+            _rec(model="qwen", task="clinc150", arm="gold:last", example="e1", correct=1),
+        ]
+        gold = report.position_bias(records)["qwen/clinc150"]["gold"]
+        assert gold["accuracy"]["first"] == 1.0, "the failed call must not count as a miss"
+        assert gold["n"]["first"] == 1, "and must not inflate the denominator"
+        assert gold["spread"] == 0.0

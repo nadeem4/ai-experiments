@@ -1,6 +1,6 @@
 {
   "tag": "full",
-  "written_at": "2026-09-25T11:52:29",
+  "written_at": "2026-09-25T12:54:53",
   "spec_hashes": {
     "ag_news": "ad7affdc7ebdc55f7b6558da2bb099f96379d58ccca7691cd21261e1d9cad8ac",
     "clinc150": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc"
@@ -247,7 +247,7 @@
       "cost_usd": 0.01998878,
       "cost_per_call_usd": 6.662926666666667e-05,
       "cost_per_1k_usd": 0.06662926666666667,
-      "cost_per_correct_usd": 7.430773234200744e-05,
+      "cost_per_correct_usd": 7.406003990086742e-05,
       "spec_hash": "ad7affdc7ebdc55f7b6558da2bb099f96379d58ccca7691cd21261e1d9cad8ac",
       "returns_probability": false,
       "declares_probability": false,
@@ -257,10 +257,10 @@
       },
       "valid": 299,
       "valid_rate": 0.9966666666666667,
-      "accuracy": 0.8966666666666666,
+      "accuracy": 0.8996655518394648,
       "accuracy_ci": [
-        0.86,
-        0.9333333333333333
+        0.862876254180602,
+        0.9331103678929766
       ],
       "retries": 2,
       "failed": 0
@@ -476,7 +476,7 @@
       "cost_usd": 0.071465807,
       "cost_per_call_usd": 0.00023821935666666668,
       "cost_per_1k_usd": 0.2382193566666667,
-      "cost_per_correct_usd": 0.0002707038143939394,
+      "cost_per_correct_usd": 0.0002688991222979798,
       "spec_hash": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc",
       "returns_probability": false,
       "declares_probability": false,
@@ -487,10 +487,10 @@
       },
       "valid": 297,
       "valid_rate": 0.99,
-      "accuracy": 0.88,
+      "accuracy": 0.8859060402684564,
       "accuracy_ci": [
-        0.84,
-        0.9166666666666666
+        0.8489932885906041,
+        0.9194630872483222
       ],
       "retries": 0,
       "failed": 0
@@ -554,7 +554,7 @@
       "cost_usd": 0.068043688,
       "cost_per_call_usd": 0.00022681229333333335,
       "cost_per_1k_usd": 0.22681229333333336,
-      "cost_per_correct_usd": 0.0002847016234309624,
+      "cost_per_correct_usd": 0.0002619254935564854,
       "spec_hash": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc",
       "returns_probability": false,
       "declares_probability": false,
@@ -564,10 +564,10 @@
       },
       "valid": 276,
       "valid_rate": 0.92,
-      "accuracy": 0.7966666666666666,
+      "accuracy": 0.8659420289855072,
       "accuracy_ci": [
-        0.75,
-        0.8433333333333334
+        0.822463768115942,
+        0.9057971014492754
       ],
       "retries": 25,
       "failed": 0
@@ -593,7 +593,7 @@
       "cost_usd": 0.058231325,
       "cost_per_call_usd": 0.00019410441666666667,
       "cost_per_1k_usd": 0.19410441666666667,
-      "cost_per_correct_usd": 0.0002148757380073801,
+      "cost_per_correct_usd": 0.0002141594855473555,
       "spec_hash": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc",
       "returns_probability": false,
       "declares_probability": false,
@@ -603,10 +603,10 @@
       },
       "valid": 299,
       "valid_rate": 0.9966666666666667,
-      "accuracy": 0.9033333333333333,
+      "accuracy": 0.9063545150501672,
       "accuracy_ci": [
-        0.8666666666666667,
-        0.9366666666666666
+        0.8729096989966555,
+        0.939799331103679
       ],
       "retries": 66,
       "failed": 1
@@ -717,11 +717,8 @@
       },
       "valid": 0,
       "valid_rate": 0.0,
-      "accuracy": 0.0,
-      "accuracy_ci": [
-        0.0,
-        0.0
-      ],
+      "accuracy": null,
+      "accuracy_ci": null,
       "retries": 0,
       "failed": 300
     }
@@ -738,7 +735,8 @@
         "rate": 0.075,
         "n": 40,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
@@ -782,7 +780,8 @@
         "rate": 0.05,
         "n": 40,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
@@ -826,7 +825,8 @@
         "rate": 0.025,
         "n": 40,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
@@ -870,18 +870,19 @@
         "rate": 0.0,
         "n": 40,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
           "first": 0.95,
-          "middle": 0.95,
+          "middle": 0.9743589743589743,
           "last": 0.975
         },
         "spread": 0.025000000000000022,
         "n": {
           "first": 40,
-          "middle": 40,
+          "middle": 39,
           "last": 40
         }
       },
@@ -911,10 +912,11 @@
       "n_calls": 240,
       "n_valid": 238,
       "flip": {
-        "rate": 0.125,
-        "n": 40,
+        "rate": 0.07894736842105263,
+        "n": 38,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 2
       },
       "gold": {
         "accuracy": {
@@ -958,18 +960,19 @@
         "rate": 0.025,
         "n": 40,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
-          "first": 0.95,
-          "middle": 0.95,
+          "first": 0.9743589743589743,
+          "middle": 0.9743589743589743,
           "last": 0.95
         },
-        "spread": 0.0,
+        "spread": 0.024358974358974383,
         "n": {
-          "first": 40,
-          "middle": 40,
+          "first": 39,
+          "middle": 39,
           "last": 40
         }
       },
@@ -1002,7 +1005,8 @@
         "rate": 0.025,
         "n": 40,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
@@ -1046,7 +1050,8 @@
         "rate": 0.0,
         "n": 40,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
@@ -1084,39 +1089,40 @@
       "task": "clinc150",
       "n_options": 151,
       "n_examples": 40,
-      "n_calls": 80,
-      "n_valid": 80,
+      "n_calls": 240,
+      "n_valid": 240,
       "flip": {
-        "rate": 0.125,
+        "rate": 0.15,
         "n": 40,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
-          "first": null,
-          "middle": null,
-          "last": null
+          "first": 0.775,
+          "middle": 0.725,
+          "last": 0.75
         },
-        "spread": null,
+        "spread": 0.050000000000000044,
         "n": {
-          "first": 0,
-          "middle": 0,
-          "last": 0
+          "first": 40,
+          "middle": 40,
+          "last": 40
         }
       },
       "positions": {
         "shares": [
-          0.125,
-          0.15,
-          0.025,
-          0.125,
-          0.1,
-          0.0625,
-          0.0875,
-          0.125,
+          0.20833333333333334,
+          0.08333333333333333,
+          0.05416666666666667,
+          0.058333333333333334,
+          0.1625,
+          0.041666666666666664,
           0.075,
-          0.125
+          0.07083333333333333,
+          0.05416666666666667,
+          0.19166666666666668
         ],
         "edges": [
           0.0,
@@ -1131,8 +1137,8 @@
           135.9,
           151.0
         ],
-        "mean_normalised": 0.49583333333333335,
-        "n": 80
+        "mean_normalised": 0.4895,
+        "n": 240
       }
     },
     "phi/clinc150": {
@@ -1140,206 +1146,39 @@
       "task": "clinc150",
       "n_options": 151,
       "n_examples": 40,
-      "n_calls": 73,
-      "n_valid": 73,
+      "n_calls": 240,
+      "n_valid": 240,
       "flip": {
-        "rate": 0.3333333333333333,
-        "n": 33,
-        "n_incomplete": 7,
-        "n_unusable": 0
-      },
-      "gold": {
-        "accuracy": {
-          "first": null,
-          "middle": null,
-          "last": null
-        },
-        "spread": null,
-        "n": {
-          "first": 0,
-          "middle": 0,
-          "last": 0
-        }
-      },
-      "positions": {
-        "shares": [
-          0.1506849315068493,
-          0.1643835616438356,
-          0.0547945205479452,
-          0.1506849315068493,
-          0.0547945205479452,
-          0.0821917808219178,
-          0.0821917808219178,
-          0.136986301369863,
-          0.0410958904109589,
-          0.0821917808219178
-        ],
-        "edges": [
-          0.0,
-          15.1,
-          30.2,
-          45.3,
-          60.4,
-          75.5,
-          90.6,
-          105.7,
-          120.8,
-          135.9,
-          151.0
-        ],
-        "mean_normalised": 0.44127853881278534,
-        "n": 73
-      }
-    },
-    "gemma/clinc150": {
-      "model": "gemma",
-      "task": "clinc150",
-      "n_options": 151,
-      "n_examples": 40,
-      "n_calls": 40,
-      "n_valid": 40,
-      "flip": {
-        "rate": 0.0,
+        "rate": 0.325,
         "n": 40,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
-          "first": null,
-          "middle": null,
-          "last": null
+          "first": 0.725,
+          "middle": 0.75,
+          "last": 0.5
         },
-        "spread": null,
+        "spread": 0.25,
         "n": {
-          "first": 0,
-          "middle": 0,
-          "last": 0
+          "first": 40,
+          "middle": 40,
+          "last": 40
         }
       },
       "positions": {
         "shares": [
-          0.1,
-          0.15,
-          0.025,
-          0.15,
-          0.075,
-          0.075,
-          0.125,
-          0.075,
-          0.075,
-          0.15
-        ],
-        "edges": [
-          0.0,
-          15.1,
-          30.2,
-          45.3,
-          60.4,
-          75.5,
-          90.6,
-          105.7,
-          120.8,
-          135.9,
-          151.0
-        ],
-        "mean_normalised": 0.5058333333333334,
-        "n": 40
-      }
-    },
-    "deepseek/clinc150": {
-      "model": "deepseek",
-      "task": "clinc150",
-      "n_options": 151,
-      "n_examples": 40,
-      "n_calls": 40,
-      "n_valid": 39,
-      "flip": {
-        "rate": 0.0,
-        "n": 39,
-        "n_incomplete": 0,
-        "n_unusable": 1
-      },
-      "gold": {
-        "accuracy": {
-          "first": null,
-          "middle": null,
-          "last": null
-        },
-        "spread": null,
-        "n": {
-          "first": 0,
-          "middle": 0,
-          "last": 0
-        }
-      },
-      "positions": {
-        "shares": [
-          0.10256410256410256,
-          0.1282051282051282,
-          0.0,
-          0.15384615384615385,
-          0.07692307692307693,
-          0.07692307692307693,
-          0.1282051282051282,
-          0.10256410256410256,
-          0.07692307692307693,
-          0.15384615384615385
-        ],
-        "edges": [
-          0.0,
-          15.1,
-          30.2,
-          45.3,
-          60.4,
-          75.5,
-          90.6,
-          105.7,
-          120.8,
-          135.9,
-          151.0
-        ],
-        "mean_normalised": 0.5244444444444445,
-        "n": 39
-      }
-    },
-    "llama/clinc150": {
-      "model": "llama",
-      "task": "clinc150",
-      "n_options": 151,
-      "n_examples": 40,
-      "n_calls": 40,
-      "n_valid": 40,
-      "flip": {
-        "rate": 0.0,
-        "n": 40,
-        "n_incomplete": 0,
-        "n_unusable": 0
-      },
-      "gold": {
-        "accuracy": {
-          "first": null,
-          "middle": null,
-          "last": null
-        },
-        "spread": null,
-        "n": {
-          "first": 0,
-          "middle": 0,
-          "last": 0
-        }
-      },
-      "positions": {
-        "shares": [
-          0.125,
-          0.175,
-          0.0,
-          0.175,
-          0.075,
-          0.075,
-          0.125,
+          0.2375,
+          0.10416666666666667,
+          0.058333333333333334,
+          0.07083333333333333,
+          0.17083333333333334,
           0.05,
-          0.075,
+          0.07916666666666666,
+          0.0625,
+          0.041666666666666664,
           0.125
         ],
         "edges": [
@@ -1355,8 +1194,179 @@
           135.9,
           151.0
         ],
-        "mean_normalised": 0.4716666666666667,
-        "n": 40
+        "mean_normalised": 0.42969444444444443,
+        "n": 240
+      }
+    },
+    "gemma/clinc150": {
+      "model": "gemma",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip": {
+        "rate": 0.15,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0,
+        "n_failed_call": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.875,
+          "middle": 0.875,
+          "last": 0.85
+        },
+        "spread": 0.025000000000000022,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": [
+          0.2375,
+          0.07916666666666666,
+          0.04583333333333333,
+          0.0625,
+          0.17916666666666667,
+          0.05416666666666667,
+          0.058333333333333334,
+          0.05,
+          0.05,
+          0.18333333333333332
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.46688888888888885,
+        "n": 240
+      }
+    },
+    "deepseek/clinc150": {
+      "model": "deepseek",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 234,
+      "flip": {
+        "rate": 0.08108108108108109,
+        "n": 37,
+        "n_incomplete": 0,
+        "n_unusable": 0,
+        "n_failed_call": 3
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.85,
+          "middle": 0.825,
+          "last": 0.875
+        },
+        "spread": 0.050000000000000044,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": [
+          0.2264957264957265,
+          0.07692307692307693,
+          0.042735042735042736,
+          0.07264957264957266,
+          0.1794871794871795,
+          0.03418803418803419,
+          0.05555555555555555,
+          0.05982905982905983,
+          0.05555555555555555,
+          0.19658119658119658
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.4805982905982906,
+        "n": 234
+      }
+    },
+    "llama/clinc150": {
+      "model": "llama",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip": {
+        "rate": 0.225,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0,
+        "n_failed_call": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.725,
+          "middle": 0.725,
+          "last": 0.7
+        },
+        "spread": 0.025000000000000022,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": [
+          0.26666666666666666,
+          0.11666666666666667,
+          0.0625,
+          0.0625,
+          0.1625,
+          0.05,
+          0.04583333333333333,
+          0.041666666666666664,
+          0.0375,
+          0.15416666666666667
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.4165833333333333,
+        "n": 240
       }
     },
     "qwen/clinc150": {
@@ -1364,39 +1374,40 @@
       "task": "clinc150",
       "n_options": 151,
       "n_examples": 40,
-      "n_calls": 40,
-      "n_valid": 33,
+      "n_calls": 240,
+      "n_valid": 205,
       "flip": {
-        "rate": 0.0,
-        "n": 33,
+        "rate": 0.03571428571428571,
+        "n": 28,
         "n_incomplete": 0,
-        "n_unusable": 7
+        "n_unusable": 1,
+        "n_failed_call": 11
       },
       "gold": {
         "accuracy": {
-          "first": null,
-          "middle": null,
-          "last": null
+          "first": 0.78125,
+          "middle": 0.8055555555555556,
+          "last": 0.8055555555555556
         },
-        "spread": null,
+        "spread": 0.02430555555555558,
         "n": {
-          "first": 0,
-          "middle": 0,
-          "last": 0
+          "first": 32,
+          "middle": 36,
+          "last": 36
         }
       },
       "positions": {
         "shares": [
-          0.09090909090909091,
-          0.15151515151515152,
-          0.0,
-          0.18181818181818182,
-          0.09090909090909091,
-          0.06060606060606061,
-          0.09090909090909091,
-          0.09090909090909091,
-          0.12121212121212122,
-          0.12121212121212122
+          0.2097560975609756,
+          0.08292682926829269,
+          0.04390243902439024,
+          0.06341463414634146,
+          0.18536585365853658,
+          0.03902439024390244,
+          0.05853658536585366,
+          0.05365853658536585,
+          0.06341463414634146,
+          0.2
         ],
         "edges": [
           0.0,
@@ -1411,8 +1422,8 @@
           135.9,
           151.0
         ],
-        "mean_normalised": 0.5135353535353535,
-        "n": 33
+        "mean_normalised": 0.49209756097560975,
+        "n": 205
       }
     },
     "gpt/clinc150": {
@@ -1420,39 +1431,40 @@
       "task": "clinc150",
       "n_options": 151,
       "n_examples": 40,
-      "n_calls": 40,
-      "n_valid": 40,
+      "n_calls": 240,
+      "n_valid": 240,
       "flip": {
-        "rate": 0.0,
+        "rate": 0.05,
         "n": 40,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
-          "first": null,
-          "middle": null,
-          "last": null
+          "first": 0.85,
+          "middle": 0.85,
+          "last": 0.825
         },
-        "spread": null,
+        "spread": 0.025000000000000022,
         "n": {
-          "first": 0,
-          "middle": 0,
-          "last": 0
+          "first": 40,
+          "middle": 40,
+          "last": 40
         }
       },
       "positions": {
         "shares": [
-          0.1,
-          0.175,
-          0.0,
-          0.15,
-          0.075,
-          0.075,
-          0.125,
-          0.05,
-          0.1,
-          0.15
+          0.22083333333333333,
+          0.0875,
+          0.041666666666666664,
+          0.0625,
+          0.17916666666666667,
+          0.04583333333333333,
+          0.058333333333333334,
+          0.05416666666666667,
+          0.058333333333333334,
+          0.19166666666666668
         ],
         "edges": [
           0.0,
@@ -1467,8 +1479,8 @@
           135.9,
           151.0
         ],
-        "mean_normalised": 0.5053333333333333,
-        "n": 40
+        "mean_normalised": 0.48008333333333336,
+        "n": 240
       }
     },
     "laya/ag_news": {
@@ -1482,7 +1494,8 @@
         "rate": 0.025,
         "n": 40,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
@@ -1520,38 +1533,39 @@
       "task": "clinc150",
       "n_options": 151,
       "n_examples": 40,
-      "n_calls": 40,
-      "n_valid": 40,
+      "n_calls": 240,
+      "n_valid": 240,
       "flip": {
-        "rate": 0.0,
+        "rate": 0.05,
         "n": 40,
         "n_incomplete": 0,
-        "n_unusable": 0
+        "n_unusable": 0,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
-          "first": null,
-          "middle": null,
-          "last": null
+          "first": 0.825,
+          "middle": 0.825,
+          "last": 0.85
         },
-        "spread": null,
+        "spread": 0.025000000000000022,
         "n": {
-          "first": 0,
-          "middle": 0,
-          "last": 0
+          "first": 40,
+          "middle": 40,
+          "last": 40
         }
       },
       "positions": {
         "shares": [
-          0.1,
-          0.125,
-          0.0,
-          0.15,
+          0.20833333333333334,
           0.075,
-          0.075,
-          0.125,
+          0.041666666666666664,
+          0.0625,
+          0.18333333333333332,
+          0.04583333333333333,
           0.05,
-          0.1,
+          0.0625,
+          0.07083333333333333,
           0.2
         ],
         "edges": [
@@ -1567,8 +1581,8 @@
           135.9,
           151.0
         ],
-        "mean_normalised": 0.5458333333333333,
-        "n": 40
+        "mean_normalised": 0.49872222222222223,
+        "n": 240
       }
     },
     "laya/clinc150": {
@@ -1582,19 +1596,20 @@
         "rate": null,
         "n": 0,
         "n_incomplete": 0,
-        "n_unusable": 40
+        "n_unusable": 40,
+        "n_failed_call": 0
       },
       "gold": {
         "accuracy": {
-          "first": 0.0,
-          "middle": 0.0,
-          "last": 0.0
+          "first": null,
+          "middle": null,
+          "last": null
         },
-        "spread": 0.0,
+        "spread": null,
         "n": {
-          "first": 40,
-          "middle": 40,
-          "last": 40
+          "first": 0,
+          "middle": 0,
+          "last": 0
         }
       },
       "positions": {
@@ -1652,14 +1667,14 @@
       }
     },
     "jev/clinc150": {
-      "temperature": null,
+      "temperature": 2.758,
       "ece_raw": 0.06740000000000011,
-      "ece_scaled": null,
-      "n_validation": 0,
+      "ece_scaled": 0.08355286386267465,
+      "n_validation": 100,
       "n_test": 300,
       "n_bins": 15,
       "min_validation": 30,
-      "fit_refused": true,
+      "fit_refused": false,
       "model": "jev",
       "task": "clinc150",
       "reliability": {
@@ -1760,7 +1775,7 @@
       "prompt_tokens_without_options": 104,
       "option_tokens": 12,
       "output_tokens": 8,
-      "cost_one_call": 1.819e-05
+      "cost_one_call": 5.74e-06
     },
     "phi/ag_news": {
       "model_id": "microsoft/phi-4",
@@ -1774,20 +1789,20 @@
     "gemma/ag_news": {
       "model_id": "google/gemma-4-26b-a4b-it",
       "n_options": 4,
-      "prompt_tokens_with_options": 118,
-      "prompt_tokens_without_options": 105,
-      "option_tokens": 13,
-      "output_tokens": 7,
-      "cost_one_call": 1.39e-05
+      "prompt_tokens_with_options": 211,
+      "prompt_tokens_without_options": 186,
+      "option_tokens": 25,
+      "output_tokens": 6,
+      "cost_one_call": 1.0182e-05
     },
     "deepseek/ag_news": {
       "model_id": "deepseek/deepseek-v4.1-flash",
       "n_options": 4,
-      "prompt_tokens_with_options": 136,
+      "prompt_tokens_with_options": 110,
       "prompt_tokens_without_options": 173,
-      "option_tokens": -37,
-      "output_tokens": 31,
-      "cost_one_call": 7.8e-05
+      "option_tokens": -63,
+      "output_tokens": 7,
+      "cost_one_call": 1.834e-05
     },
     "llama/ag_news": {
       "model_id": "meta-llama/llama-4-scout",
@@ -1799,13 +1814,13 @@
       "cost_one_call": 1.35e-05
     },
     "qwen/ag_news": {
-      "model_id": "qwen/qwen3.8-27b",
+      "model_id": "qwen/qwen3.8-flash",
       "n_options": 4,
-      "prompt_tokens_with_options": null,
-      "prompt_tokens_without_options": null,
-      "option_tokens": null,
-      "output_tokens": null,
-      "cost_one_call": null
+      "prompt_tokens_with_options": 171,
+      "prompt_tokens_without_options": 158,
+      "option_tokens": 13,
+      "output_tokens": 79,
+      "cost_one_call": 6.278e-05
     },
     "gpt/ag_news": {
       "model_id": "openai/gpt-6-luna",
@@ -1819,11 +1834,11 @@
     "jev/ag_news": {
       "model_id": "typesafe/jev-1.13-20260917",
       "n_options": 4,
-      "prompt_tokens_with_options": null,
+      "prompt_tokens_with_options": 369,
       "prompt_tokens_without_options": null,
       "option_tokens": null,
-      "output_tokens": null,
-      "cost_one_call": null
+      "output_tokens": 47,
+      "cost_one_call": 1.5498e-05
     },
     "laya/ag_news": {
       "model_id": "laya (C:\\projects\\jev_demo\\arena\\models\\laya)",
@@ -1841,7 +1856,7 @@
       "prompt_tokens_without_options": 68,
       "option_tokens": 860,
       "output_tokens": 9,
-      "cost_one_call": 4.386e-05
+      "cost_one_call": 0.0001437
     },
     "phi/clinc150": {
       "model_id": "microsoft/phi-4",
@@ -1859,16 +1874,16 @@
       "prompt_tokens_without_options": 150,
       "option_tokens": 890,
       "output_tokens": 9,
-      "cost_one_call": 0.0001492
+      "cost_one_call": 9.63e-05
     },
     "deepseek/clinc150": {
       "model_id": "deepseek/deepseek-v4.1-flash",
       "n_options": 151,
-      "prompt_tokens_with_options": 1011,
-      "prompt_tokens_without_options": 59,
-      "option_tokens": 952,
+      "prompt_tokens_with_options": 1822,
+      "prompt_tokens_without_options": 134,
+      "option_tokens": 1688,
       "output_tokens": 9,
-      "cost_one_call": 2.36432e-05
+      "cost_one_call": 7.638e-06
     },
     "llama/clinc150": {
       "model_id": "meta-llama/llama-4-scout",
@@ -1880,13 +1895,13 @@
       "cost_one_call": 9.71e-05
     },
     "qwen/clinc150": {
-      "model_id": "qwen/qwen3.8-27b",
+      "model_id": "qwen/qwen3.8-flash",
       "n_options": 151,
-      "prompt_tokens_with_options": null,
-      "prompt_tokens_without_options": null,
-      "option_tokens": null,
-      "output_tokens": null,
-      "cost_one_call": null
+      "prompt_tokens_with_options": 984,
+      "prompt_tokens_without_options": 121,
+      "option_tokens": 863,
+      "output_tokens": 71,
+      "cost_one_call": 0.00018097
     },
     "gpt/clinc150": {
       "model_id": "openai/gpt-6-luna",
@@ -1900,11 +1915,11 @@
     "jev/clinc150": {
       "model_id": "typesafe/jev-1.13-20260917",
       "n_options": 151,
-      "prompt_tokens_with_options": null,
+      "prompt_tokens_with_options": 2259,
       "prompt_tokens_without_options": null,
       "option_tokens": null,
-      "output_tokens": null,
-      "cost_one_call": null
+      "output_tokens": 1301,
+      "cost_one_call": 9.4878e-05
     },
     "laya/clinc150": {
       "model_id": "laya (C:\\projects\\jev_demo\\arena\\models\\laya)",
@@ -1944,442 +1959,447 @@
   },
   "model_resolution": {
     "glm": {
-      "model_id": null,
+      "model_id": "z-ai/glm-5.3-flash",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": 0,
+      "reasoning_effort": "minimal",
+      "returns_probability": false,
+      "generation": "2026-08",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "z-ai/glm-5.3-flash",
+        "canonical_slug": "z-ai/glm-5.3-flash-20260826",
+        "name": "Z.ai: GLM 5.3 Flash",
+        "created": 1787752741,
+        "released": "2026-08",
+        "context_length": 1310720,
+        "knowledge_cutoff": null,
+        "pricing": {
+          "prompt": "0.000000045",
+          "completion": "0.00000014",
+          "input_cache_read": "0.00000001"
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "include_reasoning",
+          "logit_bias",
+          "logprobs",
+          "max_tokens",
+          "min_p",
+          "parallel_tool_calls",
+          "presence_penalty",
+          "reasoning",
+          "reasoning_effort",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_logprobs",
+          "top_p"
+        ]
+      },
       "tried": [
         [
           "z-ai/glm-5.3-flash",
-          false
-        ],
-        [
-          "z-ai/glm-5.3",
-          false
-        ],
-        [
-          "z-ai/glm-5.2",
-          false
-        ],
-        [
-          "z-ai/glm-5.1",
-          false
-        ],
-        [
-          "z-ai/glm-5",
-          false
-        ],
-        [
-          "z-ai/glm-4.7-flash",
-          false
-        ],
-        [
-          "z-ai/glm-4.7",
-          false
-        ],
-        [
-          "z-ai/glm-4.6",
-          false
+          true
         ]
-      ],
-      "unavailable": "no model in this family is reachable by this account"
+      ]
     },
     "phi": {
-      "model_id": null,
+      "model_id": "microsoft/phi-4",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": 0,
+      "reasoning_effort": null,
+      "returns_probability": false,
+      "generation": "2025-01",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "microsoft/phi-4",
+        "canonical_slug": "microsoft/phi-4",
+        "name": "Microsoft: Phi 4",
+        "created": 1736489872,
+        "released": "2025-01",
+        "context_length": 16384,
+        "knowledge_cutoff": "2024-06-30",
+        "pricing": {
+          "prompt": "0.00000007",
+          "completion": "0.00000014"
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "logit_bias",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "top_k",
+          "top_p"
+        ]
+      },
       "tried": [
         [
           "microsoft/phi-4",
-          false
+          true
         ]
-      ],
-      "unavailable": "no model in this family is reachable by this account"
+      ]
     },
     "gemma": {
-      "model_id": null,
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": 0,
+      "reasoning_effort": null,
+      "returns_probability": false,
+      "generation": "2026-04",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "google/gemma-4-26b-a4b-it",
+        "canonical_slug": "google/gemma-4-26b-a4b-it-20260403",
+        "name": "Google: Gemma 4 26B A4B ",
+        "created": 1775227989,
+        "released": "2026-04",
+        "context_length": 262144,
+        "knowledge_cutoff": null,
+        "pricing": {
+          "prompt": "0.00000009",
+          "completion": "0.0000003",
+          "input_cache_read": "0.00000005"
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "include_reasoning",
+          "logit_bias",
+          "logprobs",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "reasoning",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_logprobs",
+          "top_p"
+        ]
+      },
       "tried": [
         [
           "google/gemma-4-26b-a4b-it",
-          false
-        ],
-        [
-          "google/gemma-4-31b-it",
-          false
-        ],
-        [
-          "google/gemma-3-12b-it",
-          false
-        ],
-        [
-          "google/gemma-3-4b-it",
-          false
-        ],
-        [
-          "google/gemma-3-27b-it",
-          false
-        ],
-        [
-          "google/gemma-2-27b-it",
-          false
+          true
         ]
-      ],
-      "unavailable": "no model in this family is reachable by this account"
+      ]
     },
     "deepseek": {
-      "model_id": null,
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": 0,
+      "reasoning_effort": "minimal",
+      "returns_probability": false,
+      "generation": "2026-09",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "deepseek/deepseek-v4.1-flash",
+        "canonical_slug": "deepseek/deepseek-v4.1-flash-20260910",
+        "name": "DeepSeek: DeepSeek V4.1 Flash",
+        "created": 1789021285,
+        "released": "2026-09",
+        "context_length": 1048576,
+        "knowledge_cutoff": null,
+        "pricing": {
+          "prompt": "0.00000015",
+          "completion": "0.0000006",
+          "input_cache_read": "0.000000003",
+          "overrides": [
+            {
+              "utc_days": [
+                "saturday",
+                "sunday"
+              ],
+              "prompt": "0.00000015",
+              "completion": "0.0000006",
+              "input_cache_read": "0.000000003"
+            },
+            {
+              "utc_days": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday"
+              ],
+              "utc_start": 0,
+              "utc_end": 100,
+              "prompt": "0.00000015",
+              "completion": "0.0000006",
+              "input_cache_read": "0.000000003"
+            },
+            {
+              "utc_days": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday"
+              ],
+              "utc_start": 100,
+              "utc_end": 400,
+              "prompt": "0.0000003",
+              "completion": "0.0000012",
+              "input_cache_read": "0.000000006"
+            },
+            {
+              "utc_days": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday"
+              ],
+              "utc_start": 400,
+              "utc_end": 600,
+              "prompt": "0.00000015",
+              "completion": "0.0000006",
+              "input_cache_read": "0.000000003"
+            },
+            {
+              "utc_days": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday"
+              ],
+              "utc_start": 600,
+              "utc_end": 1000,
+              "prompt": "0.0000003",
+              "completion": "0.0000012",
+              "input_cache_read": "0.000000006"
+            },
+            {
+              "utc_days": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday"
+              ],
+              "utc_start": 1000,
+              "utc_end": 0,
+              "prompt": "0.00000015",
+              "completion": "0.0000006",
+              "input_cache_read": "0.000000003"
+            }
+          ]
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "include_reasoning",
+          "logit_bias",
+          "logprobs",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "reasoning",
+          "reasoning_effort",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_logprobs",
+          "top_p"
+        ]
+      },
       "tried": [
         [
           "deepseek/deepseek-v4.1-flash",
-          false
-        ],
-        [
-          "deepseek/deepseek-v4-flash-vision-exp",
-          false
-        ],
-        [
-          "deepseek/deepseek-v4-flash-0731",
-          false
-        ],
-        [
-          "deepseek/deepseek-v4-flash",
-          false
-        ],
-        [
-          "deepseek/deepseek-v3.2",
-          false
-        ],
-        [
-          "deepseek/deepseek-v3.1-terminus",
-          false
-        ],
-        [
-          "deepseek/deepseek-v3.2-exp",
-          false
-        ],
-        [
-          "deepseek/deepseek-chat-v3.1",
-          false
-        ],
-        [
-          "deepseek/deepseek-r1-0528",
-          false
-        ],
-        [
-          "deepseek/deepseek-chat-v3-0324",
-          false
-        ],
-        [
-          "deepseek/deepseek-chat",
-          false
+          true
         ]
-      ],
-      "unavailable": "no model in this family is reachable by this account"
+      ]
     },
     "llama": {
-      "model_id": null,
+      "model_id": "meta-llama/llama-4-scout",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": 0,
+      "reasoning_effort": null,
+      "returns_probability": false,
+      "generation": "2025-04",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "meta-llama/llama-4-scout",
+        "canonical_slug": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "name": "Meta: Llama 4 Scout",
+        "created": 1743881519,
+        "released": "2025-04",
+        "context_length": 1310720,
+        "knowledge_cutoff": "2024-08-31",
+        "pricing": {
+          "prompt": "0.0000001",
+          "completion": "0.0000003"
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "logit_bias",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_p"
+        ]
+      },
       "tried": [
         [
           "meta-llama/llama-4-scout",
-          false
-        ],
-        [
-          "meta-llama/llama-4-maverick",
-          false
-        ],
-        [
-          "meta-llama/llama-3.3-70b-instruct",
-          false
-        ],
-        [
-          "meta-llama/llama-3.2-3b-instruct",
-          false
-        ],
-        [
-          "meta-llama/llama-3.1-8b-instruct",
-          false
-        ],
-        [
-          "meta-llama/llama-3.1-70b-instruct",
-          false
+          true
         ]
-      ],
-      "unavailable": "no model in this family is reachable by this account"
+      ]
     },
     "qwen": {
-      "model_id": null,
+      "model_id": "qwen/qwen3.8-flash",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": 0,
+      "reasoning_effort": null,
+      "returns_probability": false,
+      "generation": "2026-08",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "qwen/qwen3.8-flash",
+        "canonical_slug": "qwen/qwen3.8-flash-20260826",
+        "name": "Qwen: Qwen3.8 Flash",
+        "created": 1787773060,
+        "released": "2026-08",
+        "context_length": 1000000,
+        "knowledge_cutoff": null,
+        "pricing": {
+          "prompt": "0.00000015",
+          "completion": "0.00000047",
+          "input_cache_read": "0.000000016",
+          "input_cache_write": "0.0000002"
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "include_reasoning",
+          "logprobs",
+          "max_tokens",
+          "presence_penalty",
+          "reasoning",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_logprobs",
+          "top_p"
+        ]
+      },
       "tried": [
         [
           "qwen/qwen3.8-flash",
-          false
-        ],
-        [
-          "qwen/qwen3.8-27b",
-          false
-        ],
-        [
-          "qwen/qwen3.8-2.4t-a95b",
-          false
-        ],
-        [
-          "qwen/qwen3.7-plus",
-          false
-        ],
-        [
-          "qwen/qwen3.6-35b-a3b",
-          false
-        ],
-        [
-          "qwen/qwen3.6-flash",
-          false
-        ],
-        [
-          "qwen/qwen3.5-plus-20260420",
-          false
-        ],
-        [
-          "qwen/qwen3.6-27b",
-          false
-        ],
-        [
-          "qwen/qwen3.6-plus",
-          false
-        ],
-        [
-          "qwen/qwen3.5-9b",
-          false
-        ],
-        [
-          "qwen/qwen3.5-flash-02-23",
-          false
-        ],
-        [
-          "qwen/qwen3-coder-next",
-          false
-        ],
-        [
-          "qwen/qwen3.5-27b",
-          false
-        ],
-        [
-          "qwen/qwen3.5-122b-a10b",
-          false
-        ],
-        [
-          "qwen/qwen3.5-plus-02-15",
-          false
-        ],
-        [
-          "qwen/qwen3.5-35b-a3b",
-          false
-        ],
-        [
-          "qwen/qwen3.5-397b-a17b",
-          false
-        ],
-        [
-          "qwen/qwen3-vl-32b-instruct",
-          false
-        ],
-        [
-          "qwen/qwen3-vl-8b-instruct",
-          false
-        ],
-        [
-          "qwen/qwen3-vl-30b-a3b-instruct",
-          false
-        ],
-        [
-          "qwen/qwen3-next-80b-a3b-instruct",
-          false
-        ],
-        [
-          "qwen/qwen3-vl-235b-a22b-instruct",
-          false
-        ],
-        [
-          "qwen/qwen-plus-2025-07-28",
-          false
-        ],
-        [
-          "qwen/qwen3-coder-plus",
-          false
-        ],
-        [
-          "qwen/qwen3-coder-30b-a3b-instruct",
-          false
-        ],
-        [
-          "qwen/qwen3-235b-a22b-2507",
-          false
-        ],
-        [
-          "qwen/qwen3-30b-a3b-instruct-2507",
-          false
-        ],
-        [
-          "qwen/qwen3-coder",
-          false
-        ],
-        [
-          "qwen/qwen3-32b",
-          false
-        ],
-        [
-          "qwen/qwen3-14b",
-          false
-        ],
-        [
-          "qwen/qwen3-30b-a3b",
-          false
-        ],
-        [
-          "qwen/qwen-plus",
-          false
-        ],
-        [
-          "qwen/qwen2.5-vl-72b-instruct",
-          false
-        ],
-        [
-          "qwen/qwen-2.5-7b-instruct",
-          false
-        ],
-        [
-          "qwen/qwen-2.5-72b-instruct",
-          false
+          true
         ]
-      ],
-      "unavailable": "no model in this family is reachable by this account"
+      ]
     },
     "gpt": {
-      "model_id": null,
+      "model_id": "openai/gpt-6-luna",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": null,
+      "reasoning_effort": "minimal",
+      "returns_probability": false,
+      "generation": "2026-09",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "openai/gpt-6-luna",
+        "canonical_slug": "openai/gpt-6-luna-20260922",
+        "name": "OpenAI: GPT-6 Luna",
+        "created": 1790100786,
+        "released": "2026-09",
+        "context_length": 1050000,
+        "knowledge_cutoff": null,
+        "pricing": {
+          "prompt": "0.0000001",
+          "completion": "0.0000005",
+          "web_search": "0.01",
+          "input_cache_read": "0.00000001",
+          "input_cache_write": "0.000000125",
+          "overrides": [
+            {
+              "min_prompt_tokens": 272000,
+              "prompt": "0.0000002",
+              "completion": "0.00000075",
+              "input_cache_read": "0.00000002",
+              "input_cache_write": "0.00000025"
+            }
+          ]
+        },
+        "supported_parameters": [
+          "include_reasoning",
+          "max_completion_tokens",
+          "max_tokens",
+          "reasoning",
+          "reasoning_effort",
+          "response_format",
+          "seed",
+          "structured_outputs",
+          "tool_choice",
+          "tools"
+        ]
+      },
       "tried": [
         [
           "openai/gpt-6-luna",
-          false
-        ],
-        [
-          "openai/gpt-6-sol",
-          false
-        ],
-        [
-          "openai/gpt-6-astra",
-          false
-        ],
-        [
-          "openai/gpt-5.6-luna",
-          false
-        ],
-        [
-          "openai/gpt-5.6-sol",
-          false
-        ],
-        [
-          "openai/gpt-5.6-terra",
-          false
-        ],
-        [
-          "openai/gpt-chat-latest",
-          false
-        ],
-        [
-          "openai/gpt-5.5",
-          false
-        ],
-        [
-          "openai/gpt-5.4-nano",
-          false
-        ],
-        [
-          "openai/gpt-5.4-mini",
-          false
-        ],
-        [
-          "openai/gpt-5.4",
-          false
-        ],
-        [
-          "openai/gpt-5.2",
-          false
-        ],
-        [
-          "openai/gpt-5.2-chat",
-          false
-        ],
-        [
-          "openai/gpt-5.1",
-          false
-        ],
-        [
-          "openai/gpt-5-nano",
-          false
-        ],
-        [
-          "openai/gpt-5-mini",
-          false
-        ],
-        [
-          "openai/gpt-5",
-          false
-        ],
-        [
-          "openai/gpt-4.1-nano",
-          false
-        ],
-        [
-          "openai/gpt-4.1-mini",
-          false
-        ],
-        [
-          "openai/gpt-4.1",
-          false
-        ],
-        [
-          "openai/gpt-4o-2024-11-20",
-          false
-        ],
-        [
-          "openai/gpt-4o-2024-08-06",
-          false
-        ],
-        [
-          "openai/gpt-4o-mini",
-          false
-        ],
-        [
-          "openai/gpt-4o-mini-2024-07-18",
-          false
-        ],
-        [
-          "openai/gpt-4o",
-          false
-        ],
-        [
-          "openai/gpt-4o-2024-05-13",
-          false
-        ],
-        [
-          "openai/gpt-4-turbo",
-          false
-        ],
-        [
-          "openai/gpt-3.5-turbo-0613",
-          false
-        ],
-        [
-          "openai/gpt-3.5-turbo-instruct",
-          false
-        ],
-        [
-          "openai/gpt-3.5-turbo-16k",
-          false
-        ],
-        [
-          "openai/gpt-3.5-turbo",
-          false
-        ],
-        [
-          "openai/gpt-4",
-          false
+          true
         ]
-      ],
-      "unavailable": "no model in this family is reachable by this account"
+      ]
     },
     "jev": {
       "model_id": "typesafe/jev-1.13-20260917",
@@ -2417,6 +2437,6 @@
       }
     }
   },
-  "total_recorded_spend_usd": 0.503142692,
-  "n_calls": 8493
+  "total_recorded_spend_usd": 0.7245369964,
+  "n_calls": 10120
 }

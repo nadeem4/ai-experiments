@@ -175,7 +175,10 @@ def summarise(records, models=None):
         for r in rows:
             validity[r["validity"]] += 1
         costs = [r["cost"] for r in rows if r.get("cost") is not None]
-        correct = [r["correct"] for r in rows if r["correct"] is not None]
+        # Same rule as correctness(): an unusable answer is wrong, but a call
+        # that never returned is the transport and cannot be scored at all.
+        correct = [r["correct"] for r in rows
+                   if r["validity"] != "api_error" and r["correct"] is not None]
         tokens_in = [r["input_tokens"] for r in rows if r["input_tokens"] is not None]
         p50, p95 = stats.percentile(timed, 50), stats.percentile(timed, 95)
         accuracy = (sum(correct) / len(correct)) if correct else None
@@ -287,7 +290,13 @@ def position_bias(records, models=None):
             if kind == spec_module.RANDOM_PREFIX:
                 random_answers[r["example_id"]].append(r["choice"])
             elif which in placements:
-                placements[which].append(r["correct"])
+                # Same rule as correctness(): an unusable answer is the model
+                # failing and scores wrong, but a call that never returned says
+                # nothing about where the gold option sat. `correct` is stored as
+                # 0 for those, so pass None and let accuracy_by_position drop it
+                # rather than let an outage read as a position effect.
+                placements[which].append(
+                    None if r["validity"] == "api_error" else r["correct"])
             shown = r.get("options_shown")
             if shown:
                 positions.append(stats.chosen_position(r["choice"], shown))
@@ -316,9 +325,17 @@ def position_bias(records, models=None):
 
 
 def correctness(records, model, task):
-    """{example: 0/1} over the main arm, for one model on one task."""
+    """{example: 0/1} over the main arm, for one model on one task.
+
+    A model that answers unusably -- unparseable, not an option, a refusal --
+    is scored wrong, because that is the model failing and dropping it would pay
+    it for failing. A call that never returned at all is different: `api_error`
+    is the transport, not the model's judgement, and scoring it wrong both
+    understates accuracy by the failure rate and inflates the paired-comparison
+    denominator. Those are excluded, and the validity column reports them."""
     return {r["example_id"]: r["correct"] for r in _measured(records)
-            if r["model"] == model and r["task"] == task and r["correct"] is not None}
+            if r["model"] == model and r["task"] == task
+            and r["validity"] != "api_error" and r["correct"] is not None}
 
 
 def paired_accuracy(records, a, b, task):

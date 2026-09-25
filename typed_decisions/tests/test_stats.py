@@ -119,7 +119,7 @@ class TestFlipRate:
     def test_a_model_that_never_changes_its_answer_has_a_flip_rate_of_zero(self):
         answers = {"a": ["World", "World", "World"], "b": ["Sports", "Sports", "Sports"]}
         assert stats.flip_rate(answers) == {"rate": 0.0, "n": 2, "n_incomplete": 0,
-                                            "n_unusable": 0}
+                                            "n_unusable": 0, "n_failed_call": 0}
 
     def test_a_model_that_always_changes_its_answer_has_a_flip_rate_of_one(self):
         answers = {"a": ["World", "Sports", "Business"]}
@@ -137,7 +137,7 @@ class TestFlipRate:
         It is reported as excluded rather than silently helping or hurting."""
         answers = {"a": ["World", "World"], "b": ["Sports"] * 3}
         assert stats.flip_rate(answers, n_orders=3) == {"rate": 0.0, "n": 1, "n_incomplete": 1,
-                                                        "n_unusable": 0}
+                                                        "n_unusable": 0, "n_failed_call": 0}
 
     def test_an_example_the_model_never_answered_is_excluded_and_counted(self):
         """Three Nones is three failures. It is not a model agreeing with itself,
@@ -146,13 +146,21 @@ class TestFlipRate:
         cause. Laya on a 151-option list does exactly this."""
         answers = {"a": [None, None, None], "b": ["World"] * 3}
         assert stats.flip_rate(answers) == {"rate": 0.0, "n": 1, "n_incomplete": 0,
-                                            "n_unusable": 1}
+                                            "n_unusable": 1, "n_failed_call": 0}
 
-    def test_a_partly_unusable_example_is_still_a_flip(self):
-        """Answering under two orders and failing under the third IS the answer
-        changing with the order."""
-        answers = {"a": ["World", "World", None]}
-        assert stats.flip_rate(answers)["rate"] == 1.0
+    def test_an_example_whose_call_failed_is_excluded_not_counted_as_a_flip(self):
+        """A null from a failed call is not evidence that the ORDER changed the
+        answer, which is the only thing this rate measures. Excluded and counted,
+        the same treatment an all-failed example already gets, and for the same
+        reason."""
+        answers = {"a": ["World", "World", None], "b": ["Sports"] * 3}
+        assert stats.flip_rate(answers) == {"rate": 0.0, "n": 1, "n_incomplete": 0,
+                                            "n_unusable": 0, "n_failed_call": 1}
+
+    def test_a_failed_call_does_not_hide_a_real_flip_elsewhere(self):
+        answers = {"a": ["World", "Sports", "World"], "b": ["Sports", "Sports", None]}
+        out = stats.flip_rate(answers)
+        assert out["rate"] == 1.0 and out["n"] == 1 and out["n_failed_call"] == 1
 
     def test_a_model_that_answered_nothing_at_all_has_no_flip_rate(self):
         assert stats.flip_rate({"a": [None] * 3})["rate"] is None

@@ -102,23 +102,26 @@ def flip_rate(answers_by_example, n_orders=3):
         bias table that the order did not cause. Laya on a 151-option list does
         exactly this: every call fails on its option budget, and a 100% flip rate
         would be a lie about why.
-
-    An example answered under two orders and failed under the third **is** a
-    flip: the answer did change with the order."""
-    complete, incomplete, unusable = [], 0, 0
+      * *failed call* -- the model answered under some orders and failed under
+        another. The answer did change, but a null from a failed call is not
+        evidence that the ORDER caused it, which is the only thing this rate
+        measures. An earlier version scored these as flips and reported 12.5%
+        for a model whose real rate over its answered examples was 7.9%."""
+    complete, incomplete, unusable, failed_call = [], 0, 0, 0
     for answers in answers_by_example.values():
         if len(answers) != n_orders:
             incomplete += 1
-            continue
-        if all(a is None for a in answers):
+        elif all(a is None for a in answers):
             unusable += 1
-            continue
-        complete.append(answers)
+        elif any(a is None for a in answers):
+            failed_call += 1
+        else:
+            complete.append(answers)
+    counts = {"n_incomplete": incomplete, "n_unusable": unusable, "n_failed_call": failed_call}
     if not complete:
-        return {"rate": None, "n": 0, "n_incomplete": incomplete, "n_unusable": unusable}
+        return {"rate": None, "n": 0, **counts}
     flipped = sum(1 for a in complete if len(set(a)) > 1)
-    return {"rate": flipped / len(complete), "n": len(complete),
-            "n_incomplete": incomplete, "n_unusable": unusable}
+    return {"rate": flipped / len(complete), "n": len(complete), **counts}
 
 
 def accuracy_by_position(correct_by_placement):
