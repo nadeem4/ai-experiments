@@ -1,15 +1,22 @@
 """What one typed decision costs, across model families. The task and the CLI.
 
-    python -m latency.run --tasks highway --limit 10 --tag pilot
+    python -m decision_cost.run --tasks highway --limit 10 --tag pilot
 
 Every (model, task, example) appends one line to `<run-dir>/calls.jsonl` holding
 the exact request, the exact response and the provider's own usage block, and a
 restarted run skips whatever is already there.
 
-Nothing here hardcodes a model id: the gateway is asked what it hosts, the catalog
-is ranked cheapest-first per family, and the ranked candidates are probed with one
-tiny call until one answers, because the catalog lists far more models than an
-account is entitled to call. Whatever answered goes into `config.json`.
+Nothing here hardcodes a model id: OpenRouter is asked what it hosts, the catalog
+is ranked current-generation-first per family, and the ranked candidates are probed
+with one tiny call until one answers, because the catalog lists far more models
+than an account is entitled to call. Whatever answered goes into `config.json`,
+together with every id that was refused -- so a family that could only be reached
+at an older generation says so rather than passing as a current comparison.
+
+`--repeat N` asks the first N examples of each task a second time. Both answers
+stay in the log, keyed by pass, and the report turns them into a disagreement rate
+per model: a decision model should be exactly reproducible, an LLM at temperature
+zero often is not.
 """
 import argparse
 import json
@@ -18,9 +25,9 @@ import platform
 import time
 from pathlib import Path
 
-from . import catalog, gateway, laya_local, parse, prompts, stats, store, tasks
+from . import catalog, laya_local, openrouter, parse, prompts, stats, store, tasks
 
-RUN_DIR = Path("latency/runs")
+RUN_DIR = Path("decision_cost/runs")
 ROOT_ENV = Path(__file__).resolve().parents[1] / ".env"
 WARMUP_CALLS = 20
 SPEND_THRESHOLD_USD = 1.00  # above this, the run needs --yes-spend
@@ -28,10 +35,12 @@ ARMS = ("gpt", "claude", "gemini", "gemma", "jev", "laya")
 
 
 def api_key():
-    if key := os.environ.get("AI_GATEWAY_API_KEY"):
+    """Read through code, never printed and never copied anywhere."""
+    if key := os.environ.get("OPENROUTER_API_KEY"):
         return key
     lines = ROOT_ENV.read_text().splitlines() if ROOT_ENV.exists() else []
-    return next((l.split("=", 1)[1].strip() for l in lines if l.startswith("AI_GATEWAY_API_KEY=")), None)
+    return next((l.split("=", 1)[1].strip() for l in lines
+                 if l.startswith("OPENROUTER_API_KEY=")), None)
 
 
 def prober(key):
@@ -39,8 +48,11 @@ def prober(key):
     403, which is the only way to tell entitlement from listing."""
     def probe(model_id):
         try:
-            gateway._http_post(gateway.CHAT_URL, {"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-                               {"model": model_id, "max_tokens": 16, "messages": [{"role": "user", "content": "hi"}]})
+            openrouter._http_post(
+                openrouter.CHAT_URL,
+                {"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                {"model": model_id, "max_tokens": 16,
+                 "messages": [{"role": "user", "content": "hi"}]})
             return True
         except Exception:
             return False
@@ -65,41 +77,63 @@ def build_models(arms, key, verbose=True):
     """-> ({name: model}, resolution) -- the resolution records every id that was
     tried and whether the account could reach it."""
     listing = catalog.fetch(key)
+    # The decision models are absent from the default listing and appear only
+    # under ?output_modalities=decisions, so Jev is looked up in its own catalog.
+    decisions = catalog.fetch_decisions(key)
     probe = prober(key)
     models, resolution = {}, {}
     for name, pinned in arms.items():
         if name == "laya":
             models[name] = laya_local.LayaModel()
             resolution[name] = {"model_id": models[name].model_id, "route": "local (cpu)",
+                                "transport": laya_local.TRANSPORT,
                                 "structured_mode": "typed", "tried": []}
             continue
         if name == "jev":
-            entry = catalog.find(listing, catalog.JEV_ID)
+            jev_id = pinned or catalog.JEV_ID
+            entry = catalog.find(decisions, jev_id) or catalog.find(decisions, "typesafe/jev-1.13")
             if entry is None:
-                resolution[name] = {"model_id": None, "unavailable": "not in the gateway catalog"}
+                resolution[name] = {"model_id": None,
+                                    "unavailable": "no decision model in the OpenRouter catalog"}
                 continue
-            models[name] = gateway.JevModel(name, catalog.JEV_ID, api_key=key)
-            resolution[name] = {"model_id": catalog.JEV_ID, "route": "v4 evaluation-model",
-                                "structured_mode": "typed", "version": catalog.version(entry), "tried": []}
+            models[name] = openrouter.JevModel(name, jev_id, api_key=key)
+            resolution[name] = {"model_id": jev_id, "route": "POST /api/v1/systemone",
+                                "transport": openrouter.TRANSPORT,
+                                "structured_mode": "typed", "generation": catalog.version(entry).get("released"),
+                                "version": catalog.version(entry), "tried": []}
             continue
         if pinned:
             entry, tried = catalog.find(listing, pinned), [(pinned, True)]
             if entry is None:
-                raise SystemExit(f"{pinned} is not in the gateway catalog")
+                raise SystemExit(f"{pinned} is not in the OpenRouter catalog")
         else:
             entry, tried = catalog.resolve(listing, catalog.FAMILIES[name], probe)
         if verbose:
             for model_id, ok in tried:
-                print(f"  {name}: {model_id} {'reachable' if ok else 'REFUSED by the gateway'}")
+                print(f"  {name}: {model_id} {'reachable' if ok else 'REFUSED by this account'}")
         if entry is None:
             resolution[name] = {"model_id": None, "tried": tried,
                                 "unavailable": "no model in this family is reachable by this account"}
             continue
-        temperature = 0 if entry.get("temperature") else None
-        models[name] = gateway.ChatModel(name, entry["id"], api_key=key, temperature=temperature)
-        resolution[name] = {"model_id": entry["id"], "route": "v1 chat completions",
+        # Sent only where the catalog says the model accepts it, recorded either
+        # way. The current GPT and Claude tiers take neither.
+        temperature = 0 if catalog.accepts_temperature(entry) else None
+        reasoning_effort = "minimal" if catalog.accepts_reasoning_effort(entry) else None
+        models[name] = openrouter.ChatModel(name, entry["id"], api_key=key,
+                                            temperature=temperature,
+                                            reasoning_effort=reasoning_effort)
+        version = catalog.version(entry)
+        # The whole ladder, so a family reached only at an older generation is
+        # visible as such rather than passing as a current comparison.
+        refused = [m for m, ok in tried if not ok]
+        resolution[name] = {"model_id": entry["id"], "route": "POST /api/v1/chat/completions",
+                            "transport": openrouter.TRANSPORT,
                             "structured_mode": "json_schema (strict)", "temperature": temperature,
-                            "version": catalog.version(entry), "tried": tried}
+                            "reasoning_effort": reasoning_effort,
+                            "generation": version.get("released"),
+                            "current_generation": not refused,
+                            "refused_above_it": refused,
+                            "version": version, "tried": tried}
     return models, resolution
 
 
@@ -117,14 +151,14 @@ def overhead_probe(model, task):
     which some providers bill as a tool definition."""
     example = task["examples"][0]
     with_options = model.decide(example["state"], task["instructions"], task["criteria"])
-    if isinstance(model, gateway.ChatModel):
+    if isinstance(model, openrouter.ChatModel):
         body = dict(with_options["request"])
         body["messages"] = [{"role": "user", "content":
                              prompts.render(task["instructions"], example["state"], task["criteria"],
                                             with_options=False)}]
         if "response_format" in body:
             body["response_format"] = prompts.schema(task["criteria"], with_enum=False)
-        bare = model._call(gateway.CHAT_URL, body)
+        bare = model._call(openrouter.CHAT_URL, body)
         bare_tokens = ((bare["response"] or {}).get("usage") or {}).get("prompt_tokens")
     else:
         bare_tokens = None
@@ -136,40 +170,46 @@ def overhead_probe(model, task):
         "prompt_tokens_without_options": bare_tokens,
         "option_tokens": (full - bare_tokens) if (full is not None and bare_tokens is not None) else None,
         "output_tokens": with_options["output_tokens"],
-        "market_cost_one_call": with_options["market_cost"],
+        "cost_one_call": with_options["cost"],
     }
 
 
 def plan_run(jobs, warmup, probes):
     """The spend estimate, from measured tokens and the catalog's price. Only the
-    estimate uses a price list; every cost that gets *reported* is the gateway's own
-    per-call marketCost."""
+    estimate uses a price list; every cost that gets *reported* is OpenRouter's own
+    per-call `cost`."""
     plan = []
     for (name, task_name), pending in jobs.items():
         probe = probes.get((name, task_name)) or {}
-        per_call = probe.get("market_cost_one_call")
+        per_call = probe.get("cost_one_call")
         plan.append({"model": f"{name}/{task_name}", "calls": pending, "warmup": warmup if pending else 0,
                      "cost_per_call": per_call or 0.0,
                      "measured": per_call is not None})
     return plan
 
 
-def run_pair(model, name, task, path, warmup):
-    examples = task["examples"]
+def run_pair(model, name, task, path, warmup, repeat=0):
+    """One pass over a task. `repeat=0` is the measured run; `repeat=1` is the
+    determinism probe over the first `--repeat` examples, recorded under its own
+    key so both answers survive and neither overwrites the other."""
+    examples = task["examples"] if not repeat else task["examples"][:task["repeat_n"]]
     done = store.done_keys(path)
-    todo = store.pending(examples, name, task["name"], done)
-    print(f"\n{name} x {task['name']}: {len(examples)} examples, "
+    todo = store.pending(examples, name, task["name"], done, repeat=repeat)
+    label = f"{name} x {task['name']}" + (f" (repeat pass {repeat})" if repeat else "")
+    print(f"\n{label}: {len(examples)} examples, "
           f"{len(examples) - len(todo)} already recorded, {len(todo)} to run")
     if not todo:
         return
     # Warm-ups come from outside the measured window where there are examples to
     # spare, so that provider-side prompt caching cannot make a measured call look
-    # faster or cheaper than a cold one.
-    warm = task["warmup_pool"][:warmup] or examples[:warmup]
-    print(f"  warming up ({len(warm)} calls, not recorded"
-          f"{', reusing measured examples' if not task['warmup_pool'] else ''})")
-    for row in warm:
-        model.decide(row["state"], task["instructions"], task["criteria"])
+    # faster or cheaper than a cold one. The repeat pass is deliberately not warmed
+    # again: it is measuring reproducibility, not speed.
+    if not repeat:
+        warm = task["warmup_pool"][:warmup] or examples[:warmup]
+        print(f"  warming up ({len(warm)} calls, not recorded"
+              f"{', reusing measured examples' if not task['warmup_pool'] else ''})")
+        for row in warm:
+            model.decide(row["state"], task["instructions"], task["criteria"])
 
     started = time.perf_counter()
     for i, row in enumerate(todo, start=1):
@@ -198,12 +238,18 @@ def run_pair(model, name, task, path, warmup):
             "wall_ms": out["wall_ms"],
             "input_tokens": out["input_tokens"],
             "output_tokens": out["output_tokens"],
-            "market_cost": out["market_cost"],
+            "reasoning_tokens": out.get("reasoning_tokens"),
+            "cost": out["cost"],
             "retries": out["retries"],
             "failed": out["failed"],
             "error": out["error"],
             "structured": out["structured"],
             "temperature": out["temperature"],
+            "reasoning_effort": out.get("reasoning_effort"),
+            # The transport is on every record, so OpenRouter numbers and the
+            # older Vercel-gateway ones can never be averaged together.
+            "transport": out["transport"],
+            "repeat": repeat,
             "probabilities": out.get("probabilities"),
             "request": out["request"],
             "response": out["response"],
@@ -220,28 +266,43 @@ def write_config(path, resolution, probes, args, models):
     import numpy
 
     path = Path(path)
+    # A --probe-only run records no calls, so nothing else has created the run
+    # directory yet: this writer cannot assume the store ran first.
+    path.parent.mkdir(parents=True, exist_ok=True)
     previous = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     payload = {
         "experiment": "what one typed decision costs, across model families",
         "written_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "transport": openrouter.TRANSPORT,
+        "transport_note": "every hosted call in this run went over OpenRouter. Earlier runs of "
+                          "this experiment went over the Vercel AI Gateway and their numbers are "
+                          "not comparable: different provider, route and models. The transport is "
+                          "on every call record and in the report's grouping key.",
+        "routes": {"llm": openrouter.CHAT_URL, "decision": openrouter.SYSTEMONE_URL},
         "seed": args.seed,
         "warmup_calls": args.warmup,
+        "repeat": args.repeat,
         # A run can be assembled over several invocations; `models` and
         # `option_overhead` accumulate, these are the last command that touched it.
         "last_invocation": {"tasks": args.tasks, "limit": args.limit, "models": args.models,
-                            "probe_only": args.probe_only},
+                            "probe_only": args.probe_only, "repeat": args.repeat},
         "models": {**(previous.get("models") or {}), **resolution},
         "option_overhead": {**(previous.get("option_overhead") or {}),
                             **{f"{m}/{t}": v for (m, t), v in probes.items()}},
         "answer_directive": prompts.ANSWER_DIRECTIVE,
-        "question_id": gateway.QUESTION_ID,
-        "max_tokens": gateway.MAX_TOKENS,
+        "question_id": openrouter.QUESTION_ID,
+        "max_tokens": openrouter.MAX_TOKENS,
         "fairness": {
-            "structured_mode": "json_schema with a strict enum of the option keys, where the "
-                               "gateway exposes it; recorded per model",
+            "structured_mode": "json_schema with a strict enum of the option keys; "
+                               "recorded per model",
             "temperature": "0 where the model accepts one, null where it does not, recorded per model",
+            "reasoning_effort": "'minimal' where the model advertises the parameter, null where it "
+                                "does not; the current tiers are reasoning models and their "
+                                "thinking tokens can exhaust a small answer budget",
             "retries": "transport only (429/5xx); an unparseable answer is never re-asked",
             "latency": "the successful attempt only; wall_ms carries the backoff",
+            "model_choice": "current generation first, cheapest tier within it; every id refused "
+                            "above the one that answered is recorded per model",
         },
         "versions": {
             "numpy": numpy.__version__,
@@ -267,20 +328,35 @@ def main(argv=None):
     p.add_argument("--models", default="all", help="comma-separated arms, optionally name=model-id")
     p.add_argument("--tasks", default="highway", help=f"comma-separated: {', '.join(tasks.NAMES)}")
     p.add_argument("--limit", type=int, default=0, help="first N examples per task (0 = all)")
-    p.add_argument("--tag", default="pilot", help="run directory under latency/runs")
+    p.add_argument("--tag", default="pilot", help="run directory under decision_cost/runs")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--warmup", type=int, default=WARMUP_CALLS)
     p.add_argument("--threshold", type=float, default=SPEND_THRESHOLD_USD)
     p.add_argument("--yes-spend", action="store_true", help="confirm a run estimated above --threshold")
     p.add_argument("--probe-only", action="store_true",
                    help="measure the option-token overhead and price the run, then stop")
+    p.add_argument("--repeat", type=int, default=0,
+                   help="ask the first N examples of each task a second time, to measure "
+                        "determinism; both answers are kept and the report gives a "
+                        "disagreement rate over that subset")
     args = p.parse_args(argv)
 
     key = api_key()
     if not key:
-        raise SystemExit("no AI_GATEWAY_API_KEY in the environment or the repo-root .env")
+        raise SystemExit("no OPENROUTER_API_KEY in the environment or the repo-root .env")
     run_dir = RUN_DIR / args.tag
     path = run_dir / "calls.jsonl"
+
+    # The account is capped monthly; a run that would run into the cap should not
+    # start. Never printed as anything but a total.
+    try:
+        account = openrouter.balance(key)
+        remaining = account.get("limit_remaining")
+        print(f"account: ${remaining:.4f} left of a ${account.get('limit')} monthly cap"
+              if remaining is not None else "account: no cap reported")
+    except Exception as e:
+        remaining = None
+        print(f"account: could not read the balance ({type(e).__name__})")
 
     print("resolving each family against what this account can actually call:")
     models, resolution = build_models(parse_arms(args.models), key)
@@ -293,6 +369,7 @@ def main(argv=None):
         cut = args.limit or len(task["examples"])
         task["warmup_pool"] = task["examples"][cut:]
         task["examples"] = task["examples"][:cut]
+        task["repeat_n"] = min(args.repeat, len(task["examples"]))
 
     print("\nmeasuring the option-token overhead (two calls per model per task):")
     config_path = run_dir / "config.json"
@@ -331,9 +408,22 @@ def main(argv=None):
         raise SystemExit(f"\nestimated ${estimate['total_usd']:.2f} is over the ${args.threshold:.2f} "
                          f"threshold: re-run with --yes-spend to confirm")
 
+    if remaining is not None and estimate["total_usd"] > remaining:
+        raise SystemExit(f"\nestimated ${estimate['total_usd']:.2f} is more than the "
+                         f"${remaining:.2f} left on the account's monthly cap")
+
     for task_name, task in loaded.items():
         for name, model in models.items():
             run_pair(model, name, task, path, args.warmup)
+
+    # The repeat pass runs only after every first pass is done, so no model is
+    # asked the same example twice back to back off a warm cache.
+    if args.repeat:
+        print(f"\n--- repeat pass: the first {args.repeat} examples of each task, again, "
+              f"to measure determinism ---")
+        for task_name, task in loaded.items():
+            for name, model in models.items():
+                run_pair(model, name, task, path, args.warmup, repeat=1)
 
     write_config(config_path, resolution, probes, args, models)
     print(f"\nwrote {path} and {config_path}")

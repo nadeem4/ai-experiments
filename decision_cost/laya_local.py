@@ -6,11 +6,16 @@ latency** with no network in it at all. It is included because it is the only ar
 that shows what a typed decision costs when nobody is charging for it.
 
 Laya reports no token counts, so `input_tokens` and `output_tokens` are None rather
-than estimated, and there is no per-call price, so `market_cost` is 0.
+than estimated, and there is no per-call price, so `cost` is 0.
+
+Its `transport` is `local-cpu`, which is what keeps it out of every hosted table:
+the transport is part of the report's grouping key, so a local CPU number can
+never be averaged with a network round trip.
 """
 import os
 import time
 
+TRANSPORT = "local-cpu"
 WEIGHTS = os.environ.get("LAYA_PATH", r"C:\projects\jev_demo\arena\models\laya")
 QUESTION_ID = "decision"
 
@@ -44,7 +49,8 @@ class LayaModel:
                     "content": None, "choice": None, "probabilities": None, "structured": "typed",
                     "temperature": None, "latency_ms": None, "wall_ms": elapsed, "retries": 0,
                     "failed": True, "error": f"{type(e).__name__}: {e}",
-                    "input_tokens": None, "output_tokens": None, "market_cost": 0.0, "usage": {}}
+                    "input_tokens": None, "output_tokens": None, "cost": 0.0, "usage": {}, "transport": TRANSPORT,
+                    "reasoning_effort": None, "reasoning_tokens": None}
         elapsed = (time.perf_counter() - started) * 1000
         answer = response["answers"][QUESTION_ID]
         return {
@@ -62,6 +68,9 @@ class LayaModel:
             "error": None,
             "input_tokens": None,  # laya reports none; not estimated
             "output_tokens": None,
-            "market_cost": 0.0,  # local: no per-call price
+            "cost": 0.0,  # local: no per-call price
+            "transport": TRANSPORT,
+            "reasoning_effort": None,
+            "reasoning_tokens": None,
             "usage": {},
         }

@@ -24,13 +24,15 @@ One is finished. Two are half-built: their harnesses are complete and a pilot ha
 
 Inference only, nothing trained. **Finding so far.** A 200-example pilot of arm A reproduces the published number, 0.435 with a 95% interval of 0.365 to 0.505, and the truncation diagnostics show five pairs of labels collapsing onto the same string at the default budget. **The budget sweep itself has not run**, so the question is not answered yet.
 
-### 3. What one typed decision costs, `latency/`
+### 3. What one typed decision costs, `decision_cost/`
 
-**`piloted`.** [Protocol](latency/README.md) · [Results](latency/RESULTS.md)
+**`piloted`.** [Protocol](decision_cost/README.md) · [Results](decision_cost/RESULTS.md)
 
 *For the same decision, what does one answer cost in latency, tokens, money and validity, asked of a decision model against one LLM per family?*
 
-The same decision asked of a decision model and of one LLM per family, over a 5-option task and a 77-option one, with model ids resolved from the gateway's catalog rather than written down. **Finding so far.** At 77 options the option list is 87% to 93% of an LLM's billed prompt for three of the four families, but Jev's own input tokens roughly double too, so the gap is about 1.6x rather than an order of magnitude. **Pilot only, 10 examples per model on the 5-option task; the full run has not been launched.**
+The same decision asked of a decision model and of one LLM per family, over a 5-option task and a 77-option one, with model ids resolved from **OpenRouter's** catalog at runtime rather than written down — current generation first, cheapest tier within it. **Finding so far.** Against current-generation models, Jev answers a 5-option decision at a 224 ms median for $0.0204 per thousand while Claude and Gemini cost 116x and 68x more, because both are reasoning models billing thinking tokens on a one-word answer. At 77 options the option list is 84% to 92% of an LLM's billed prompt, reproducing the earlier finding on entirely different models — but Jev's own input tokens roughly double too, so options are cheap for a decision model rather than free. **Pilot only, 10 examples per model on the 5-option task. The full run was priced at $3.48 and not launched, over a $3 ceiling; one family, Claude at its Opus tier, is 84% of that bill.**
+
+*Transport note:* this experiment ran over the Vercel AI Gateway before 2026-09-24 and over OpenRouter after it. The two sets of numbers are not comparable, every call record carries its `transport`, and the report will not merge them.
 
 ## What a decision model is
 

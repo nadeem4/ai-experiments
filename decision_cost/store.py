@@ -12,7 +12,11 @@ from pathlib import Path
 
 
 def key(record):
-    return (record["model"], record["task"], record["example_id"])
+    """(model, task, example, pass). The pass is what `--repeat` varies: the same
+    example asked a second time is a second record, not a duplicate to be skipped,
+    and both answers stay in the log so the disagreement can be audited. Records
+    written before `--repeat` existed carry no field and read as pass 0."""
+    return (record["model"], record["task"], record["example_id"], record.get("repeat", 0))
 
 
 def append(path, record):
@@ -44,5 +48,5 @@ def done_keys(path):
     return {key(r) for r in load(path)}
 
 
-def pending(rows, model, task, done):
-    return [row for row in rows if (model, task, row["id"]) not in done]
+def pending(rows, model, task, done, repeat=0):
+    return [row for row in rows if (model, task, row["id"], repeat) not in done]
