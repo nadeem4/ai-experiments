@@ -1,148 +1,207 @@
 # Results
 
-**Status:** `piloted`. The instrument works on both tasks and all nine models. **The full run has not been launched**, and it is priced at the bottom of this file.
+**Status:** `complete`. 10,120 calls, nine models, two tasks, **$0.7245**.
 
-The protocol is [README.md](README.md), committed in `f2893da` **before** the first measured call; the pilot's call records arrived in `48e9a6b`. The prediction about position bias therefore predates the data, and `git log` shows it.
+The protocol is [README.md](README.md). Its prediction about position bias was committed in `f2893da` on **2026-09-24 22:37:30**; the full run's first call record was written on **2026-09-25 08:03**. The prediction predates the data by about nine hours and `git log -S` on the prediction line is the check.
 
 ## The finding, one sentence
 
-Every transport, both datasets, all nine models and the whole frozen-spec machinery work end to end for **$0.0293 over 358 calls** — and the pilot is far too small to say anything about position bias, which is the thing the experiment exists to measure, so it does not.
+Jev is the fastest model on the slate on both tasks — 1.7x to 15.6x ahead of the rest depending on the model — the only one whose latency barely moves between 4 options and 151, and one of only two that return a probability at all — and it wins on accuracy **nowhere**; meanwhile the position bias this experiment was built to measure turns out to be statistically detectable in **exactly one** of the eight models that could answer.
 
-## What the pilot was
+## What the run was
 
 ```
 python -m typed_decisions.run --models all --tasks ag_news,clinc150 \
-    --limit 5 --bias-subset 2 --validation 4 --warmup 1 --repeat 2 --tag pilot
+    --limit 300 --bias-subset 40 --validation 100 --tag full
 ```
 
-5 examples per task, a bias subset of **2 examples**, 3 random orderings and 3 gold placements over that subset, 4 validation rows, 1 warm-up per model per task, 2 examples re-asked for determinism. 358 recorded calls, of which 90 are the measured `main` arm and 268 are bias, validation and repeat calls excluded from the headline tables.
+300 examples per task in the measured `main` arm, a bias subset of **40** examples under 3 seeded random orderings and 3 controlled gold placements, and 100 validation rows carved out of **train** for the probabilistic models. 10,120 recorded calls, of which 5,400 are the measured `main` arm and 4,720 are bias and validation calls excluded from the headline tables so no example is weighted twice.
 
-Run spec hashes: `ag_news` **d380f59baf56**, `clinc150` **c727bbe2ce10**. Both re-derive byte-identically from `tasks.load(...)`, and both move when the seed moves.
+Run spec hashes: `ag_news` **ad7affdc7ebd**, `clinc150` **40e9e134db8f**. One frozen spec per task, hash-checked on read, so a model added next month is comparable against these numbers without re-running anything.
 
-## The model slate, as resolved
+## Before the numbers: three reporter defects, found and fixed
 
-Resolved live from OpenRouter's catalogue, current generation first and cheapest tier within it, then probed for entitlement.
+Every number below was regenerated after `5f70067`, which fixed three places that scored a **failed call as a wrong answer**. `correct` is stored as `0` for a call that never returned, so anywhere that column was read raw, an outage counted as the model answering incorrectly.
 
-| name | resolved id | released | notes |
-| --- | --- | --- | --- |
-| `glm` | `z-ai/glm-5.3-flash` | 2026-08 | current generation |
-| `phi` | `microsoft/phi-4` | **2025-01** | the only Phi this account can reach; a cross-generation row |
-| `gemma` | `google/gemma-4-26b-a4b-it` | 2026-04 | current generation |
-| `deepseek` | `deepseek/deepseek-v4.1-flash` | 2026-09 | current generation |
-| `llama` | `meta-llama/llama-4-scout` | **2025-04** | the newest Llama in the catalogue; a cross-generation row |
-| `qwen` | `qwen/qwen3.8-27b` | 2026-08 | **`qwen3.8-flash` was refused at pilot time and accepted an hour later** — see below |
-| `gpt` | `openai/gpt-6-luna` | 2026-09 | current generation |
-| `jev` | `typesafe/jev-1.13-20260917` | 2026-09 | pinned dated build, `POST /api/v1/systemone` |
-| `laya` | local weights, CPU | — | `head_max_len=192`, `max_len=512` |
+The rule now applied everywhere: an unusable **answer** is the model failing and scores wrong, because dropping it would pay a model for returning garbage. A call that never returned is the transport and cannot be scored at all. `unparseable`, `not_an_option` and `refusal` stay wrong; `api_error` is excluded and reported in the validity column instead.
 
-No Gemini and no Claude, by design; the protocol says why.
+It mattered. `qwen/clinc150` read 239/300 = **0.797** against 24 API errors; over the calls it actually answered it is 239/276 = **0.866**. Seven points, and the difference between "less accurate" and "failed 8% of its calls", which are two different facts about a model. In the gold-placement table the same model went from a spread of 0.100 to **0.024**, which moved it off the falsification threshold entirely. `laya/clinc150` had been printing `0.000` at every placement — 300 structural failures rendered as a position result — and now prints `n/a`.
 
-**Qwen's resolution is not stable, and it matters.** During the pilot, `qwen/qwen3.8-flash` was refused by the account and the ladder fell through to `qwen/qwen3.8-27b`, roughly four times the input price. On a probe an hour later the same `flash` id answered. So the `qwen` row in this pilot is a *different model* from the one a run started tomorrow may resolve to, and the two must not be compared. What is **measured** is only that one id was refused and later accepted; that entitlement moved is **our inference**.
+This is recorded here rather than quietly corrected because all three would have been published.
 
 ## The numbers
 
-Every figure below is drawn by `figures.py` from `results/pilot.json`, the same file the tables are printed from.
+Every figure is drawn by `figures.py` from `results/full.json`, the same file the tables are printed from.
 
-### ag_news, 4 options, n = 5
+### ag_news, 4 options, n = 300
 
-| model | id | p50 ms | p95 ms | tail | in tok | $/1k | valid | accuracy |
-| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| jev | `typesafe/jev-1.13-20260917` | 211 | 1201 | 5.7 | 363 | 0.0152 | 100% | 1.000 [1.00, 1.00] |
-| gemma | `google/gemma-4-26b-a4b-it` | 412 | 996 | 2.4 | 131 | 0.0133 | 100% | 0.800 [0.40, 1.00] |
-| phi | `microsoft/phi-4` | 431 | 1418 | 3.3 | 105 | 0.0083 | 100% | 1.000 [1.00, 1.00] |
-| llama | `meta-llama/llama-4-scout` | 447 | 606 | 1.4 | 107 | 0.0128 | 100% | 1.000 [1.00, 1.00] |
-| gpt | `openai/gpt-6-luna` | 936 | 2302 | 2.5 | 136 | 0.0278 | 100% | 1.000 [1.00, 1.00] |
-| deepseek | `deepseek/deepseek-v4.1-flash` | 937 | **24280** | **25.9** | 117 | 0.0718 | **80%** | 0.800 [0.40, 1.00] |
-| glm | `z-ai/glm-5.3-flash` | 1128 | 3536 | 3.1 | 133 | 0.0114 | 100% | 1.000 [1.00, 1.00] |
-| qwen | `qwen/qwen3.8-27b` | 1596 | 2112 | 1.3 | 178 | 0.3211 | 100% | 1.000 [1.00, 1.00] |
-| *laya* | *local CPU, **not comparable to the rows above*** | *234* | *274* | *1.2* | *n/a* | *0.0000* | *100%* | *1.000 [1.00, 1.00]* |
+| model | id | p50 ms | p95 ms | tail | in tok | $/1k | $/correct | valid | accuracy | retries |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| **jev** | `typesafe/jev-1.13-20260917` | **230** | **330** | **1.4** | 364 | 0.0153 | 0.000017 | 100% | 0.890 [0.85, 0.92] | 0 |
+| glm | `z-ai/glm-5.3-flash` | 409 | 2043 | 5.0 | 114 | 0.0205 | 0.000023 | 100% | **0.910 [0.88, 0.94]** | 0 |
+| phi | `microsoft/phi-4` | 482 | 972 | 2.0 | 107 | **0.0085** | **0.000010** | 100% | 0.850 [0.81, 0.89] | 0 |
+| deepseek | `deepseek/deepseek-v4.1-flash` | 540 | 2927 | 5.4 | 116 | 0.0402 | 0.000046 | 100% | 0.880 [0.84, 0.91] | 0 |
+| llama | `meta-llama/llama-4-scout` | 571 | 1289 | 2.3 | 109 | 0.0131 | 0.000015 | 100% | 0.857 [0.81, 0.89] | 0 |
+| gemma | `google/gemma-4-26b-a4b-it` | 658 | 2259 | 3.4 | 156 | 0.0123 | 0.000014 | 100% | 0.860 [0.82, 0.90] | 0 |
+| gpt | `openai/gpt-6-luna` | 1392 | 2885 | 2.1 | 138 | 0.0209 | 0.000024 | 100% | 0.867 [0.83, 0.90] | **73** |
+| qwen | `qwen/qwen3.8-flash` | 2860 | 5478 | 1.9 | 168 | 0.0666 | 0.000074 | 100% | 0.900 [0.86, 0.93] | 2 |
 
-**Seven of nine models scored 1.000 on five examples**, and the intervals say what that is worth: `[1.00, 1.00]` on n=5 is not evidence. **No accuracy conclusion is drawn from this pilot.**
+| *local CPU, **not comparable to the rows above*** | | | | | | | | | | |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| *laya* | *local weights, CPU* | *210* | *322* | *1.5* | *n/a* | *0.0000* | *0.000000* | *100%* | ***0.913 [0.88, 0.94]*** | *0* |
 
-### clinc150, 151 options, n = 5
+### clinc150, 151 options, n = 300
 
-| model | p50 ms | p95 ms | tail | in tok | $/1k | valid | accuracy |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| jev | 211 | 259 | 1.2 | 2264 | 0.0951 | 100% | 1.000 |
-| gemma | 504 | 1249 | 2.5 | 1181 | 0.0901 | 100% | 1.000 |
-| phi | 511 | 1254 | 2.5 | 928 | 0.0660 | 100% | 0.800 |
-| glm | 727 | 1337 | 1.8 | 933 | 0.0836 | 100% | 1.000 |
-| llama | 790 | 885 | 1.1 | 952 | 0.0975 | 100% | 1.000 |
-| gpt | 1125 | 3495 | 3.1 | 1462 | 0.1591 | 100% | 1.000 |
-| deepseek | 1316 | 2472 | 1.9 | 1042 | 0.2072 | 100% | 1.000 |
-| qwen | 1383 | 4306 | 3.1 | 976 | 0.4539 | 100% | 1.000 |
-| **laya** | n/a | n/a | n/a | n/a | 0.0000 | **0%** | — |
+| model | p50 ms | p95 ms | tail | in tok | $/1k | $/correct | valid | accuracy | retries |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | ---: |
+| **jev** | **248** | **327** | **1.3** | 2264 | 0.0951 | 0.000111 | 100% | 0.860 [0.82, 0.90] | 0 |
+| glm | 425 | 2258 | 5.3 | 939 | 0.1407 | 0.000159 | 100% | 0.883 [0.85, 0.92] | 0 |
+| phi | 443 | 847 | 1.9 | 928 | **0.0661** | **0.000090** | 100% | 0.737 [0.68, 0.79] | 0 |
+| llama | 708 | 1309 | 1.9 | 952 | 0.0977 | 0.000122 | 100% | 0.803 [0.76, 0.85] | 13 |
+| deepseek | 864 | 4673 | 5.4 | 1068 | 0.2382 | 0.000269 | 99% | 0.886 [0.85, 0.92] | 0 |
+| gemma | 1144 | 3181 | 2.8 | 1311 | 0.0882 | 0.000098 | 100% | 0.897 [0.86, 0.93] | 0 |
+| gpt | 1626 | 3218 | 2.0 | 1462 | 0.1941 | 0.000214 | 100% | **0.906 [0.87, 0.94]** | **66** |
+| qwen | 3879 | 9640 | 2.5 | 989 | 0.2268 | 0.000262 | **92%** | 0.866 [0.82, 0.91] | 25 |
+| **laya** | n/a | n/a | n/a | n/a | 0.0000 | n/a | **0%** | — | 0 |
 
 ![Cost against accuracy](results/figures/cost-accuracy.png)
 
-*Cost per 1,000 decisions against accuracy, one point per model per task, log cost axis. At n=5 almost every model sits on the same accuracy line, so what this chart shows today is the **30x spread in price** between `phi` and `qwen` for the same answer, not a quality frontier. Laya is absent because it costs a true zero and a zero has no place on a log axis; its accuracy is in the table.*
+*Cost per 1,000 decisions against accuracy, one point per model per task, log cost axis. There is no clean frontier: the cheapest model per correct answer on both tasks is `phi`, which is also the least accurate on CLINC150 by five points. Laya is absent because it costs a true zero and a zero has no place on a log axis; its accuracy is in the table.*
 
 ![Latency](results/figures/latency.png)
 
-*Bar is p50, whisker reaches p95, log scale, backoff excluded. The bar to read is `deepseek` on ag_news: a 937 ms median against a 24.3-second p95, a **25.9x tail** on five calls. A p50-only table would have called it mid-field.*
+*Bar is p50, whisker reaches p95, log scale, retry backoff excluded. Two things to read: Jev's bar is the shortest on both tasks and its whisker is barely longer than its bar, and `glm` and `deepseek` carry 5x tails that a p50-only table would hide entirely.*
+
+### Jev is fast, flat, and loses on accuracy
+
+The speed result is unambiguous and it is the clearest thing in the run. Jev's median is **230 ms at 4 options and 248 ms at 151** — a 7.6% rise for a 38-fold increase in the answer space. Every hosted LLM pays much more for those options:
+
+| model | ag_news p50 | clinc150 p50 | rise |
+| --- | ---: | ---: | ---: |
+| **jev** | 230 | 248 | **+8%** |
+| glm | 409 | 425 | +4% |
+| phi | 482 | 443 | −8% |
+| llama | 571 | 708 | +24% |
+| deepseek | 540 | 864 | +60% |
+| gemma | 658 | 1144 | +74% |
+| gpt | 1392 | 1626 | +17% |
+| qwen | 2860 | 3879 | +36% |
+
+Jev also has the **lowest tail ratio on both tasks** (1.4 and 1.3, against 5.0 and 5.4 for `glm` and `deepseek`), which in production is worth more than a median.
+
+And it wins on accuracy nowhere. On AG News, Laya (0.913), `glm` (0.910) and `qwen` (0.900) all beat it; on CLINC150, `gpt` (0.906), `gemma` (0.897), `deepseek` (0.886) and `glm` (0.883) all do. The paired tests say how much of that is real:
+
+**Paired against Laya, the most accurate model on AG News** — per-item differences over the examples both models answered, not two intervals:
+
+| model | n shared | mean diff | 95% interval | |
+| --- | ---: | ---: | --- | --- |
+| glm | 300 | +0.003 | [−0.027, +0.033] | crosses zero |
+| qwen | 299 | +0.013 | [−0.017, +0.044] | crosses zero |
+| **jev** | 300 | **+0.023** | **[−0.007, +0.057]** | **crosses zero** |
+| deepseek | 300 | +0.033 | [+0.000, +0.067] | crosses zero |
+| gpt | 300 | +0.047 | [+0.010, +0.087] | |
+| gemma | 300 | +0.053 | [+0.017, +0.090] | |
+| llama | 300 | +0.057 | [+0.017, +0.097] | |
+| phi | 300 | +0.063 | [+0.027, +0.100] | |
+
+**Paired against `gpt`, the most accurate model on CLINC150:**
+
+| model | n shared | mean diff | 95% interval | |
+| --- | ---: | ---: | --- | --- |
+| gemma | 299 | +0.010 | [−0.023, +0.043] | crosses zero |
+| deepseek | 297 | +0.020 | [−0.010, +0.051] | crosses zero |
+| glm | 299 | +0.023 | [−0.010, +0.057] | crosses zero |
+| **jev** | 299 | **+0.047** | **[+0.010, +0.084]** | |
+| qwen | 275 | +0.051 | [+0.022, +0.080] | |
+| llama | 299 | +0.104 | [+0.060, +0.147] | |
+| phi | 299 | +0.171 | [+0.117, +0.217] | |
+
+So on AG News Jev's deficit against the best model **is not distinguishable from zero**, and on CLINC150 it **is**: 4.7 points behind `gpt`, interval clear of zero. The honest summary is that Jev trades a real but small accuracy loss for a large and reliable speed gain, and that the trade is worse at 151 options than at 4.
+
+### Reliability is not uniform, and it is invisible in an accuracy column
+
+| model/task | validity |
+| --- | --- |
+| `qwen/clinc150` | **276 valid, 24 api_error** — 8% of its calls never returned |
+| `deepseek/clinc150` | 297 valid, 2 api_error, 1 unparseable |
+| `gpt/clinc150` | 299 valid, 1 api_error |
+| `deepseek/ag_news` | 299 valid, 1 unparseable |
+| `qwen/ag_news` | 299 valid, 1 api_error |
+| `laya/clinc150` | **300 api_error** — structural, see below |
+| everything else | 300 valid |
+
+`gpt` also needed **73 and 66 retries** to get its 300 answers on the two tasks, and `qwen` 2 and 25. Retry backoff is excluded from the latency figures by design, so those retries are invisible in the p50 column and real in wall clock.
 
 ### Laya cannot do CLINC150 at all
 
-Every one of Laya's 5 CLINC150 calls failed with, verbatim from the call record:
+All 300 CLINC150 calls failed, verbatim from the call record:
 
 ```
 ValueError: question 'decision' options exceed head_max_len=192
 ```
 
-151 intent names do not fit a 192-token option budget. This is a **structural** zero, not a model getting 151-way classification wrong, and the report says so rather than printing a bare accuracy of 0.000: the row shows `{'api_error': 5}` and `0%` valid, and the position-bias table marks it `0/12 usable` with no flip rate at all. Raising `head_max_len` is a different model configuration, and it is exactly what the sibling [`banking77/`](../banking77/README.md) experiment exists to study, so it is not done here.
+151 intent names do not fit a 192-token option budget. This is a **structural** zero, not a model getting 151-way classification wrong: the row reads 0% valid, the bias table marks it `0/240 usable` with no flip rate, and the figure refuses to draw it. Whether raising that budget recovers the accuracy is exactly what the sibling [`banking77/`](../banking77/README.md) experiment exists to answer, so it is not done here.
 
-Laya also emits this on load, verbatim:
-
-```
-laya: this checkpoint ships invalid temperatures or values outside [0.5, 5];
-using choice:11+=0.10058280825614929 -> 0.5. Treat confidence from the affected
-entries as uncalibrated.
-```
-
-Its own checkpoint says its confidences are uncalibrated. Recorded here because the calibration section below reports an ECE for it.
+On AG News, where it fits, Laya is the **most accurate model in the run** at 0.913. Accuracy does not depend on the transport, so that comparison is legitimate; its latency is measured on local CPU and is grouped apart everywhere because that one is not.
 
 ### What the option list costs
 
 | task | option tokens as a share of the billed prompt |
 | --- | --- |
-| ag_news, 4 options | 9% – 17% (deepseek 9%, glm 10%, phi 11%, qwen 16%, gpt 17%) |
-| clinc150, 151 options | **90% – 96%** (qwen 90%, glm 93%, phi 93%, llama 93%, deepseek 94%, gpt 94%, gemma 96%) |
+| ag_news, 4 options | 8% – 17% (qwen 8%, glm 10%, phi 11%, llama 11%, gemma 12%, gpt 17%) |
+| clinc150, 151 options | **86% – 94%** (gemma 86%, qwen 88%, glm 93%, phi 93%, llama 93%, deepseek 93%, gpt 94%) |
 
-At 151 options the option list is nine tenths of what an LLM is billed for on every single call. This reproduces the earlier finding of this experiment on an entirely different dataset and a different model slate.
+At 151 options the option list is roughly nine tenths of what an LLM is billed for on **every single call** — the same list, re-sent and re-billed, for every decision.
 
 ![Option-count scaling](results/figures/option-scaling.png)
 
-*Mean input tokens per call at 4 options against 151, log-log. **Jev is not free on options either** — 363 tokens to 2,264, a 6.2x rise — but its slope is shallower than the LLMs' (phi 105 to 928, 8.8x) and it starts from a much higher floor. The honest reading is "cheaper per option, not free": at 4 options Jev is billed **3.3x** the input tokens of the cheapest LLM for identical text.*
+*Mean input tokens per call at 4 options against 151, log-log. Jev is not free on options either — 364 to 2,264 tokens — but its slope is shallower than the LLMs' and it starts from a much higher floor. Measured on one identical prompt, Jev is billed **3.4x** the input tokens of `deepseek` at 4 options for exactly the same text.*
 
-One measurement is not usable: on one probe pass `gemma/ag_news` reported **fewer** prompt tokens with the option list than without it (118 against 186), an overhead of −68. That is the provider's accounting, not a property of the options; the report flags it and no conclusion rests on it.
+One measurement is not usable: `deepseek/ag_news` reported **fewer** prompt tokens with the option list than without it, an overhead of −63. That is the provider's accounting, not a property of the options; the report flags it and no conclusion rests on it.
 
-**Jev's output tokens scale with the option count too**, which the protocol did not anticipate: 47 output tokens at 4 options, **1,301** at 151. The distribution over 151 options is itself billed as output, and at 151 options it is most of Jev's per-call cost.
+**Jev's output tokens scale with the option count too**, which the protocol did not anticipate: **1,301 mean output tokens** per call at 151 options. The distribution over 151 options is itself billed as output, and it is most of Jev's per-call cost at that option count.
 
-### Position bias — measured, and far too small to interpret
+### Position bias — the measurement this experiment exists for
 
 ![Position bias](results/figures/position-bias.png)
 
-**The bias subset in this pilot is 2 examples.** Two. Every flip rate below is out of two and every gold-placement accuracy is out of two. The numbers are printed because the pilot's job is to prove the instrument records them, and it does: the orderings came off the spec, identical across all nine models, and the chosen position is read off the order that actually went over the wire.
+Bias subset **n = 40** examples per task, under 3 seeded random orderings and 3 controlled gold placements.
 
-| model | ag_news flip / spread | clinc150 flip / spread |
-| --- | --- | --- |
-| glm | 0% / 0.000 | 0% / 0.000 |
-| phi | 0% / 0.000 | 0% / 0.500 |
-| gemma | 0% / 0.000 | 0% / 0.000 |
-| deepseek | 0% / 0.000 | **50% / 0.500** |
-| llama | 0% / 0.000 | **50% / 0.500** |
-| qwen | 0% / 0.000 | 0% / 0.000 |
-| gpt | 0% / 0.000 | 0% / 0.000 |
-| jev | 0% / 0.000 | 0% / 0.000 |
-| laya | 0% / 0.000 | no usable answer |
+| model/task | opts | usable | flip | gold 1st | gold mid | gold last | spread | mean pos |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| deepseek/ag_news | 4 | 239/240 | 0% | 0.950 | 0.974 | 0.975 | 0.025 | 0.54 |
+| gemma/ag_news | 4 | 240/240 | 2% | 0.925 | 0.950 | 0.925 | 0.025 | 0.54 |
+| glm/ag_news | 4 | 240/240 | 8% | 0.925 | 0.950 | 0.975 | 0.050 | 0.52 |
+| gpt/ag_news | 4 | 240/240 | 2% | 0.950 | 0.975 | 0.975 | 0.025 | 0.54 |
+| jev/ag_news | 4 | 240/240 | **0%** | 0.975 | 0.975 | 0.975 | **0.000** | 0.54 |
+| laya/ag_news | 4 | 240/240 | 2% | 0.950 | 0.975 | 0.950 | 0.025 | 0.53 |
+| llama/ag_news | 4 | 238/240 | 8% | 0.925 | 0.925 | 0.950 | 0.025 | 0.54 |
+| phi/ag_news | 4 | 240/240 | 5% | 0.925 | 0.925 | 0.925 | 0.000 | 0.54 |
+| qwen/ag_news | 4 | 238/240 | 2% | 0.974 | 0.974 | 0.950 | 0.024 | 0.54 |
+| deepseek/clinc150 | 151 | 234/240 | 8% | 0.850 | 0.825 | 0.875 | 0.050 | 0.48 |
+| gemma/clinc150 | 151 | 240/240 | 15% | 0.875 | 0.875 | 0.850 | 0.025 | 0.47 |
+| glm/clinc150 | 151 | 240/240 | 15% | 0.775 | 0.725 | 0.750 | 0.050 | 0.49 |
+| gpt/clinc150 | 151 | 240/240 | 5% | 0.850 | 0.850 | 0.825 | 0.025 | 0.48 |
+| jev/clinc150 | 151 | 240/240 | 5% | 0.825 | 0.825 | 0.850 | 0.025 | 0.50 |
+| laya/clinc150 | 151 | **0/240** | n/a | n/a | n/a | n/a | n/a | n/a |
+| llama/clinc150 | 151 | 240/240 | 22% | 0.725 | 0.725 | 0.700 | 0.025 | 0.42 |
+| **phi/clinc150** | 151 | 240/240 | **32%** | **0.725** | 0.750 | **0.500** | **0.250** | 0.43 |
+| qwen/clinc150 | 151 | 205/240 | 4% | 0.781 | 0.806 | 0.806 | 0.024 | 0.49 |
 
-**This does not test the prediction and is not offered as doing so.** With n=2, one changed answer is a 50% flip rate. What can be said is narrower:
+`mean pos` is where in the shown list the answer sat, 0 = always first, 1 = always last, 0.5 = no positional preference. It says what **kind** of bias a model has, not how much.
 
-- **Nothing moved at all on ag_news**, for any of the nine models. Consistent with the prediction's first clause, and equally consistent with two easy examples.
-- **The only movement anywhere was on clinc150**, in `deepseek`, `llama` and `phi`. Consistent with the prediction's second clause, on a sample that cannot support it.
-- **Jev did not move on either task.** One point in favour of the mechanism, out of two examples.
+**Almost none of this spread column survives a significance test.** At n=40 per placement, a spread of 0.025 is one example. Paired McNemar (exact binomial on discordant pairs) on `gold:first` against `gold:last`, same examples in both arms:
 
-The full run's bias subset is 40 examples, which is where this becomes a measurement.
+| model/task | first | last | diff | discordant pairs | p | |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| **phi/clinc150** | 0.725 | 0.500 | **+0.225** | **13** | **0.0225** | **distinguishable** |
+| every other model, both tasks | | | ≤0.050 | 0 – 4 | **≥0.50** | within noise |
+
+The smallest p-value anywhere else in the run is **0.50**, for `glm` on the 4-option task; every other pair is 1.00.
+
+**One model out of eighteen model/task pairs shows position bias that survives a test.** Phi loses **22.5 points** when the correct option moves to the bottom of a 151-item list, while the middle placement is unharmed; its 13 discordant pairs split 11 against 2 in the predicted direction. Everything else — including both direction reversals, and including Jev's flat rows — rests on one to four discordant examples in total and is indistinguishable from zero.
+
+What does separate the models is the **kind** of bias rather than the amount. At 151 options every model sits at or below 0.50 mean position, with `llama` (0.42) and `phi` (0.43) leaning hardest toward the top of the list and Jev sitting exactly at 0.50. That is the direction the mechanism predicts, and it is a weaker claim than the spread column was meant to support.
 
 ### Does it return a probability at all
 
@@ -150,96 +209,81 @@ The full run's bias subset is 40 examples, which is where this becomes a measure
 | --- | --- |
 | `jev`, `laya` | `glm`, `phi`, `gemma`, `deepseek`, `llama`, `qwen`, `gpt` |
 
-Measured from the records, not declared: every successful Jev and Laya call carried a probability for every option, and no LLM call carried one. Seven of the nine models cannot be thresholded, so "route this one to a human when unsure" is not available from them at any price.
+Measured from the records, not declared. Seven of nine models cannot be thresholded, so "route this one to a human when the model is unsure" is not available from them at any price. This is the most durable difference in the run and it is a capability difference rather than a quality one.
 
-### Calibration — not fitted, deliberately
+### Calibration
 
-| model/task | n test | n validation | T | ECE raw | ECE scaled |
+| model/task | n test | n val | T | ECE raw | ECE scaled |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| jev/ag_news | 5 | 4 | — | 0.0540 | — |
-| jev/clinc150 | 5 | 4 | — | 0.0020 | — |
-| laya/ag_news | 5 | 4 | — | 0.1067 | — |
+| jev/ag_news | 300 | 100 | 1.99 | 0.0705 | **0.0768** |
+| jev/clinc150 | 300 | 100 | 2.76 | 0.0674 | **0.0836** |
+| laya/ag_news | 300 | 100 | 0.77 | 0.0275 | **0.0524** |
 
 ![Calibration](results/figures/calibration.png)
 
-**No temperature was fitted, on purpose.** The pilot carved 4 validation rows out of train and the fit needs at least 30. On a handful of confident, correct rows the likelihood is minimised by driving T to the bottom of its range: an earlier version of this pilot reported **T = 0.00 and a scaled ECE of exactly 0.0000** for all three rows — an artefact of the sample size wearing the clothes of a calibration result. The fit is now refused below 30 validation rows and bounded to [0.25, 10], and the report prints why the column is empty. The raw ECEs above are over 5 test rows and are not interpretable either.
+**Temperature scaling made calibration worse on test in all three cases.** The temperature was fitted on a validation split carved out of **train**, never on test, which is the correct procedure and also why it can lose: a temperature that helps on train-distribution rows is not guaranteed to help on test. Both Jev fits pull T above 1, meaning its raw probabilities are over-confident on validation; the correction then overshoots on test.
 
-### Determinism
+Laya's raw ECE of 0.0275 is the best number in this table, and it should be read against its own load-time warning, quoted verbatim from the run output:
 
-16 of 18 model/task pairs answered both passes identically over the 2 repeated examples. The exceptions: `qwen/clinc150` at 50% — one of two examples answered differently at temperature 0 — and `laya/clinc150` at 100%, which is its structural failure rather than non-determinism.
+```
+laya: this checkpoint ships invalid temperatures or values outside [0.5, 5];
+using choice:11+=0.10058280825614929 -> 0.5. Treat confidence from the affected
+entries as uncalibrated.
+```
+
+The checkpoint says its own confidences are uncalibrated. The ECE is reported because it was measured; the warning is reported because it qualifies it.
+
+`laya/clinc150` is absent although its 100 validation rows were collected: all 300 of its **test** calls failed structurally, so there is nothing to score the fitted temperature against. No LLM appears here at all, because none of them return a probability to calibrate.
 
 ## Did the prediction hold?
 
-**Unanswered.** The prediction is about position bias at 4 options against 151, and this pilot measured it over 2 examples per task. Nothing here confirms or falsifies it. The early signal — movement only on CLINC150, only in LLMs, none in Jev — points the way the prediction does, and is far too small to count.
+**Partly, and the run is underpowered to decide most of the rest.** Taking the protocol's clauses in order:
+
+| clause | verdict |
+| --- | --- |
+| AG News, 4 options: flip under ~5% and spread within ~0.03 for every model | **Held in substance.** `glm` and `llama` flipped 8% and `glm`'s spread was 0.050, all at p = 1.0. Nothing on AG News is distinguishable from zero. |
+| CLINC150, 151 options: flip **above ~20% for the LLMs** | **Did not hold.** Two of seven (llama 22%, phi 32%). `gpt` is 5% and `qwen` 4%. |
+| CLINC150: accuracy varying **by more than ~0.10** across placements | **Did not hold.** One of seven (phi, 0.250). No other model exceeds 0.050. |
+| CLINC150: direction favours early positions, `gold:first` > `gold:last` | **Not resolved.** Holds for five models, reverses for `deepseek` and `qwen`, but every one of those differences is one example and p = 1.0. The `mean pos` column supports the direction; the placement column cannot. |
+| Jev and Laya: flip and spread at or very near zero at both option counts | **Held where testable, and it is weak evidence.** Jev is 0%/0.000 on AG News and 5%/0.025 on CLINC150. Laya is 2%/0.025 on AG News and could not answer CLINC150 at all. |
+
+None of the four named falsifications is cleanly triggered. The one that comes closest — "Jev or Laya shows a non-trivial flip rate or spread", flagged in the protocol as the outcome that would most surprise its author — is not met: Jev's 5% flip on CLINC150 is 2 examples out of 40, the same as `gpt`, and its spread of 0.025 sits at p = 1.0.
+
+**The honest reading is less flattering to the design than either outcome.** The prediction's decision-model half "held" in a run where almost nothing showed bias at all. Jev being flat is not evidence for the marker-scoring mechanism when `gpt`, `gemma` and `deepseek` are equally flat. At n=40 an effect must move at least **six** examples, all in the same direction, before the exact binomial can call it: six one-sided discordant pairs give p = 0.031, five give 0.063. Every model except Phi produced between **zero and four discordant pairs in total**, which is below the floor at which this arm can decide anything. It detected the one effect large enough to detect and cannot speak to the rest.
 
 ## What surprised us
 
-1. **Jev pays for options too, and pays in output.** The protocol framed options as free for a decision model. They are not: 363 → 2,264 input tokens and 47 → **1,301 output** tokens between 4 options and 151. The right claim is "a shallower slope from a higher floor", and at 4 options Jev is the most expensive model on the slate in input tokens.
-2. **Laya cannot take a 151-option list at all.** Anticipated as a risk, confirmed as a hard wall, and it removes a whole row from the CLINC150 comparison.
-3. **Qwen resolved to two different models an hour apart.** A reason to read any cross-run Qwen comparison with suspicion.
-4. **A 25.9x latency tail on `deepseek`/ag_news** from five calls, with one outright API error, while its median is mid-field.
-5. **The report's spec check had to be per task, not per store.** Its first run refused the entire pilot — correct by its own rule, wrong by the design's, since one spec per task is the intent. Fixed, with a test.
+1. **Position bias is not a general property of LLMs at 151 options.** The experiment was built on the assumption that long option lists induce it broadly. One model in eight shows it. That is the result, and it is the opposite of what the motivation argued.
+2. **Jev's speed is flat in the option count and its accuracy is not.** +8% latency from 4 options to 151, against +60% and +74% for `deepseek` and `gemma` — while its accuracy gap against the field goes from indistinguishable-from-zero on AG News to a clear 4.7 points on CLINC150.
+3. **Temperature scaling made calibration worse in all three fits.** Fitted correctly, on train-derived validation rows, and it still lost on test each time.
+4. **`qwen` failed 8% of its CLINC150 calls outright**, and before the reporter was fixed that failure was being published as seven points of lost accuracy.
+5. **`gpt` needed 139 retries across the two tasks** to return 300 answers each, none of which appear in its latency figures.
+6. **The reporter had three separate instances of the same defect** and all three would have shipped. Found by an agent reading the raw store against the reporter's output rather than trusting either.
 
 ## What this does not answer
 
-- **Anything about accuracy.** n=5 per task, with seven models at [1.00, 1.00].
-- **Anything about position bias.** n=2 per task.
-- **Anything about calibration.** No temperature fitted; raw ECE over 5 rows.
-- **Whether 4-against-151 isolates option count.** It does not: AG News is topic classification and CLINC150 is intent classification, and this design cannot separate the two.
-- **How any of these models behave outside the cheapest tier of their current generation.**
-
-## Priced, and not launched
-
-Two independent estimates of a `--limit 300` run — 300 main examples, a 40-example bias subset under 6 orderings, 100 validation rows for the probabilistic models, 20 warm-ups, per model per task. **10,480 calls.**
-
-**From the pilot's own recorded per-call costs** (OpenRouter's `usage.cost` on the real task, not a synthetic probe):
-
-| model/task | resolved id | in tok | out tok | $/call | calls | $ projected |
-| --- | --- | ---: | ---: | ---: | ---: | ---: |
-| qwen/clinc150 | `qwen/qwen3.8-27b` | 976 | 79 | 0.000454 | 560 | **0.2542** |
-| qwen/ag_news | `qwen/qwen3.8-27b` | 178 | 91 | 0.000321 | 560 | **0.1798** |
-| deepseek/clinc150 | `deepseek/deepseek-v4.1-flash` | 1042 | 64 | 0.000207 | 560 | 0.1160 |
-| gpt/clinc150 | `openai/gpt-6-luna` | 1462 | 20 | 0.000159 | 560 | 0.0891 |
-| jev/clinc150 | `typesafe/jev-1.13-20260917` | 2264 | 1301 | 0.000095 | 660 | 0.0628 |
-| llama/clinc150 | `meta-llama/llama-4-scout` | 952 | 8 | 0.000097 | 560 | 0.0546 |
-| gemma/clinc150 | `google/gemma-4-26b-a4b-it` | 1181 | 8 | 0.000090 | 560 | 0.0504 |
-| glm/clinc150 | `z-ai/glm-5.3-flash` | 933 | 9 | 0.000084 | 560 | 0.0468 |
-| deepseek/ag_news | `deepseek/deepseek-v4.1-flash` | 117 | 119 | 0.000072 | 560 | 0.0402 |
-| phi/clinc150 | `microsoft/phi-4` | 928 | 8 | 0.000066 | 560 | 0.0370 |
-| gpt/ag_news | `openai/gpt-6-luna` | 136 | 28 | 0.000028 | 560 | 0.0156 |
-| jev/ag_news | `typesafe/jev-1.13-20260917` | 363 | 47 | 0.000015 | 660 | 0.0101 |
-| gemma/ag_news | `google/gemma-4-26b-a4b-it` | 131 | 7 | 0.000013 | 560 | 0.0075 |
-| llama/ag_news | `meta-llama/llama-4-scout` | 107 | 7 | 0.000013 | 560 | 0.0071 |
-| glm/ag_news | `z-ai/glm-5.3-flash` | 133 | 14 | 0.000011 | 560 | 0.0064 |
-| phi/ag_news | `microsoft/phi-4` | 105 | 7 | 0.000008 | 560 | 0.0047 |
-| laya/ag_news | local CPU | n/a | n/a | 0.000000 | 660 | 0.0000 |
-| laya/clinc150 | local CPU | n/a | n/a | 0.000000 | 660 | 0.0000 |
-| **TOTAL** | | | | | **10,480** | **$0.98** |
-
-**From three fresh `--probe-only` passes** (per-call cost measured three times per model per task): **$0.30 to $0.46**, with two pairs unpriced because their probe returned no usage block at all.
-
-**The quote is $0.60 to $1.00, and the spread is Qwen.** `qwen` alone is **$0.43 of the $0.98** at the `qwen3.8-27b` tier the pilot resolved to. If the account can reach `qwen3.8-flash` — about a quarter of the input price — the total falls to roughly **$0.65**. Pinning it with `--models qwen=qwen/qwen3.8-flash` removes the uncertainty.
-
-Per-call cost varies widely between probe passes of the same model — `gpt/clinc150` came back at $0.000188 and $0.000021 on two passes minutes apart — which is why a single probe is not a quote and the pilot's own measured costs are the better basis.
-
-**Account balance, checked immediately before quoting: $19.80 of a $20.00 monthly cap.** The run is affordable several times over. At $0.98 it sits just under the default $1.00 cost guard, close enough that `--yes-spend` may be needed if Qwen resolves to the expensive tier.
-
-**Projected wall clock: roughly 2.5 to 3.5 hours.** From the pilot's measured rate of 0.4 – 5.9 s/call for the hosted models (median around 1.2 s) over 7,560 hosted calls, plus 660 Laya AG News calls at a 234 ms median on CPU and 660 CLINC calls that fail instantly. Wall clock, not money, is the binding constraint.
-
-**The full run has not been launched.**
+- **Whether decision models are order-independent.** The arm was powered to detect an effect the size of Phi's and nothing smaller. Jev's flat rows are consistent with the mechanism and equally consistent with an under-powered test.
+- **Whether 4-against-151 isolates option count.** It does not. AG News is topic classification and CLINC150 is intent classification, and this design cannot separate the two.
+- **Determinism.** The `--repeat` arm was not run at `--limit 300`; `determinism` in `results/full.json` is empty. The pilot measured it on 2 examples and that number is not carried forward.
+- **Whether Laya can do 151 options with a larger head budget.** Deliberately out of scope; that is [`banking77/`](../banking77/README.md).
+- **Anything about Gemini or Claude models**, excluded by design; the protocol says why.
+- **How any of these models behave outside the cheapest tier of their current generation**, or on hardware other than this one.
 
 ## Provenance
 
 | | |
 | --- | --- |
-| Transport | OpenRouter for every hosted call (`POST /api/v1/chat/completions`; `POST /api/v1/systemone` for Jev); local CPU for Laya. Recorded on every call record |
+| Transport | OpenRouter for every hosted call (`POST /api/v1/chat/completions`; `POST /api/v1/systemone` for Jev); local CPU for Laya. Recorded on every call record, and the report refuses to average across them |
 | Data | `fancyzhx/ag_news` default/test (licence **unknown**, per the hub) and `clinc/clinc_oos` plus/test (CC-BY-3.0), read from the hub's parquet, class names read from each file's own `ClassLabel` metadata |
-| Run spec | `ag_news` `d380f59baf56`, `clinc150` `c727bbe2ce10`, written to `runs/pilot/` and hash-checked on read |
-| Raw wire | `typed_decisions/runs/pilot/calls.jsonl`, 358 records, gitignored: request, response, usage, both clocks, the option order shown, and the distribution where there is one |
-| Committed | `typed_decisions/results/pilot.json` and `results/figures/*.png`, written by `python -m typed_decisions.report --tag pilot` |
+| Run spec | `ag_news` `ad7affdc7ebd`, `clinc150` `40e9e134db8f`, written to `runs/full/` and hash-checked on read |
+| Raw wire | `typed_decisions/runs/full/calls.jsonl`, 10,120 records, gitignored: request, response, usage, both clocks, the option order shown, and the distribution where there is one |
+| Committed | `typed_decisions/results/full.json` and `results/figures/*.png`, written by `python -m typed_decisions.report --tag full` |
 | Seed | 0, for the shared permutation and for the bias orderings |
-| Hardware | Windows 11, CPU only; no usable GPU, which is why Laya is grouped apart everywhere |
-| Tests | 322 passing |
-| Protocol | [README.md](README.md), committed in `f2893da` before the first measured call |
+| Hardware | Windows 11, CPU only; no usable GPU, which is why Laya is grouped apart in every latency table |
+| Spend | **$0.7245** over 10,120 calls, against a quote of $0.60 – $1.00 made from the pilot |
+| Tests | 487 passing |
+| Reporter | Numbers regenerated after `5f70067`; earlier figures for `qwen/clinc150` and `laya/clinc150` are superseded |
+| Reproducibility | The report step was run twice from the same store by two people minutes apart. `results/full.json` differed in the `written_at` timestamp and in nothing else, and all five figures came out byte-identical |
+| Protocol | [README.md](README.md); prediction committed `f2893da` 2026-09-24 22:37:30, first call record 2026-09-25 08:03 |
 
-**Claims here are measured in this run** unless marked otherwise. The Laya warning and the `head_max_len` error are quoted verbatim from the run's own output and its call records. The licence statuses are read from the Hugging Face dataset cards and are marked as such. That Qwen's entitlement *moved* is **our inference**; what is measured is only that one id was refused and later accepted.
+**Claims here are measured in this run** unless marked otherwise. The Laya warning and the `head_max_len` error are quoted verbatim from the run's own output and its call records. The licence statuses are read from the Hugging Face dataset cards and are marked as such. The McNemar tests are computed from the same `runs/full/calls.jsonl` the tables are built from, excluding calls that never returned. That `qwen` resolved to `qwen3.8-flash` in this run where the pilot resolved to `qwen3.8-27b` is recorded on the call records; the two runs' `qwen` rows are different models and must not be compared.
