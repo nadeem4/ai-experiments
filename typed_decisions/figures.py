@@ -51,8 +51,6 @@ GRID = {"color": "#cccccc", "linewidth": 0.6, "alpha": 0.9}
 
 LOCAL_NOTE = ("local CPU, no network in it: not comparable to a hosted call")
 
-FIGURE_NAMES = ("cost-accuracy", "latency", "position-bias", "option-scaling", "calibration")
-
 
 class NothingToPlot(ValueError):
     """The metric this figure is about is absent from the results.
@@ -108,6 +106,17 @@ def _style_for(index):
 # --- the winner-picking chart -------------------------------------------------
 
 
+def priced_out(summary):
+    """Models that cost nothing, and so cannot go on a log cost axis.
+
+    Laya runs on this machine, so its cost is a true zero. A log scale silently
+    drops it, which would take the only free model off the frontier chart without
+    a word -- the most misleading thing this figure could do. It is excluded
+    explicitly and named in the caption instead."""
+    return sorted({row["model"] for row in summary.values()
+                   if not row.get("cost_per_1k_usd")})
+
+
 def cost_accuracy_plot(results, out_dir):
     """Cost per 1,000 decisions against accuracy, one point per model per task.
 
@@ -121,9 +130,11 @@ def cost_accuracy_plot(results, out_dir):
     if not scored:
         raise NothingToPlot("no row reports an accuracy: this task has no ground truth, "
                             "so there is no cost-against-accuracy frontier to draw")
-    priced = [r for r in scored if r.get("cost_per_1k_usd") is not None]
+    priced = [r for r in scored if r.get("cost_per_1k_usd")]
     if not priced:
-        raise NothingToPlot("no row reports a cost per 1,000 decisions")
+        raise NothingToPlot("no row reports a non-zero cost per 1,000 decisions, and a "
+                            "zero cannot go on the log axis this chart needs")
+    free = priced_out(summary)
 
     tasks = _tasks(summary)
     fig, axes = plt.subplots(1, len(tasks), figsize=FIGSIZE_WIDE, squeeze=False)
@@ -142,8 +153,11 @@ def cost_accuracy_plot(results, out_dir):
         panel.set_xscale("log")
     fig.suptitle("Cost against accuracy: the useful models are lower and to the right",
                  fontsize=12, x=0.02, ha="left")
-    fig.text(0.02, -0.03, f"hollow marker = {LOCAL_NOTE}, and its zero cost is not a price",
-             fontsize=8, color="#555555")
+    caption = f"hollow marker = {LOCAL_NOTE}, and its zero cost is not a price"
+    if free:
+        caption = (f"Not shown, costs nothing to run so it has no place on a log cost "
+                   f"axis: {', '.join(free)}. Its accuracy is in the table.")
+    fig.text(0.02, -0.03, caption, fontsize=8, color="#555555")
     fig.tight_layout()
     return _save(fig, out_dir, "cost-accuracy")
 
@@ -186,7 +200,7 @@ def latency_plot(results, out_dir):
         for bar, hatch in zip(bars, hatches):
             bar.set_hatch(hatch)
     ax.set_xticks(range(len(models)))
-    ax.set_xticklabels(models, fontsize=8)
+    ax.set_xticklabels(models, fontsize=8, rotation=25, ha="right")
     ax.set_yscale("log")
     _style(ax, "Latency: bar is p50, whisker reaches p95",
            "", "milliseconds, successful attempt only (log scale)")
@@ -213,12 +227,18 @@ def position_bias_plot(results, out_dir):
     if not bias:
         raise NothingToPlot("no position-bias arm ran: there is no flip rate and no "
                             "gold-placement accuracy in this store")
+    # A model that returned nothing usable under any ordering scores zero at every
+    # position. That is a structural failure, not a position effect, so it is left
+    # out and the exclusion is stated in the caption rather than drawn as three
+    # flat bars at zero.
+    excluded = sorted(k for k, v in bias.items() if v.get("n_valid") == 0)
     measured = {k: v for k, v in bias.items()
-                if any(v.get("gold", {}).get("accuracy", {}).get(p) is not None
-                       for p in ("first", "middle", "last"))}
+                if v.get("n_valid") != 0
+                and any(v.get("gold", {}).get("accuracy", {}).get(p) is not None
+                        for p in ("first", "middle", "last"))}
     if not measured:
-        raise NothingToPlot("the gold-placement arm produced no scored answers, so accuracy "
-                            "by position cannot be drawn")
+        raise NothingToPlot("no model returned a usable answer under the gold-placement "
+                            "arm, so accuracy by position cannot be drawn")
 
     tasks = list(dict.fromkeys(v["task"] for v in measured.values()))
     fig, axes = plt.subplots(1, len(tasks), figsize=FIGSIZE_TALL, squeeze=False, sharey=True)
@@ -241,16 +261,21 @@ def position_bias_plot(results, out_dir):
                 panel.annotate(f"flip {rate:.0%}", (i, 1.02), ha="center", fontsize=8,
                                color="#555555", annotation_clip=False)
         panel.set_xticks(range(len(rows)))
-        panel.set_xticklabels([r["model"] for r in rows], fontsize=8)
+        panel.set_xticklabels([r["model"] for r in rows], fontsize=8, rotation=35, ha="right")
         panel.set_ylim(0, 1.12)
         n_examples = rows[0]["n_examples"] if rows else 0
         _style(panel, f"{task} ({rows[0]['n_options']} options, n={n_examples})",
                "", "accuracy")
-    axes[0][0].legend(fontsize=8, frameon=False, loc="lower left")
+    axes[0][0].legend(fontsize=8, frameon=False, loc="upper center",
+                      bbox_to_anchor=(1.05, -0.22), ncol=3)
     fig.suptitle("Position bias: same example, same options, only the order changes",
                  fontsize=12, x=0.02, ha="left")
-    fig.text(0.02, -0.03, "Flat bars mean the model does not care where the answer sits. "
-                          "Any slope is pure error.", fontsize=8, color="#555555")
+    caption = ("Flat bars mean the model does not care where the answer sits. "
+               "Any slope is pure error.")
+    if excluded:
+        caption += (f"\nLeft out, no usable answer under any ordering: "
+                    f"{', '.join(excluded)}.")
+    fig.text(0.02, -0.03, caption, fontsize=8, color="#555555")
     fig.tight_layout()
     return _save(fig, out_dir, "position-bias")
 
@@ -322,9 +347,14 @@ def calibration_plot(results, out_dir):
     for i, (key, row) in enumerate(sorted(drawable.items())):
         marker, shade, _ = _style_for(i)
         reliability = row["reliability"]
+        # No temperature means the fit was refused for too few validation rows,
+        # not that the model is uncalibrated. The raw curve is still the
+        # measurement, and the legend says which it is.
+        temperature = row.get("temperature")
+        fitted = f"T={temperature:.2f}" if temperature is not None else "no T fitted"
         ax.plot(reliability["bin_centres"], reliability["accuracy"], marker=marker,
                 color=shade, linewidth=1.4, markersize=6,
-                label=f"{key} (ECE {row['ece_raw']:.3f}, T={row['temperature']:.2f})")
+                label=f"{key} (ECE {row['ece_raw']:.3f}, {fitted})")
     _style(ax, "Calibration: confidence against how often the answer was right",
            "predicted probability of the chosen option", "share actually correct")
     ax.set_xlim(0, 1)

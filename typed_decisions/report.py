@@ -37,11 +37,10 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
-from . import calibration, registry, spec as spec_module, stats, store
+from . import catalog, spec as spec_module, stats, store
 
 RUN_DIR = Path("typed_decisions/runs")
 RESULTS_DIR = Path("typed_decisions/results")
-LOCAL = {"laya"}  # not comparable to a hosted call; grouped separately everywhere
 MEASURED_PASS = 0
 MEASURED_ARM = "main"
 
@@ -94,7 +93,7 @@ def _select(records, models):
 
 
 def require_one_spec(records, specs):
-    """-> the single spec hash every record carries, or refuse, naming what moved.
+    """-> {task: spec hash}, or refuse, naming what moved.
 
     **This is the safety property of the whole design.** Comparing a model
     measured today against one measured next month is only sound if both saw
@@ -103,40 +102,52 @@ def require_one_spec(records, specs):
     report will not print one: it stops, names the hashes, says which models are
     on which, and diffs the two specs field by field.
 
+    The granularity is **per task**, because one spec per task is the design --
+    the option list, the instruction and the example ids all differ between
+    `ag_news` and `clinc150`. The rule is that every record *of one task* was
+    produced under that task's spec.
+
     A record with no spec hash at all is refused for the same reason. It cannot
     be shown to have seen the same inputs, and unknown is not a free pass."""
-    by_hash = defaultdict(set)
-    for r in records:
-        by_hash[r.get("spec_hash")].add(r["model"])
-    if not by_hash:
+    if not records:
         raise SystemExit("no records to report on")
-    if len(by_hash) == 1:
-        only = next(iter(by_hash))
-        if only is None:
-            raise SystemExit("every record carries an unknown spec hash: this store predates "
-                             "the frozen run spec and cannot be compared against one.")
-        if only not in specs:
-            raise SystemExit(f"the records were produced under spec {spec_module.short(only)}, "
-                             f"whose spec file is not in this run directory. Without it the "
-                             f"inputs cannot be checked, so the report stops.")
-        return only
+    by_task = defaultdict(lambda: defaultdict(set))
+    for r in records:
+        by_task[r["task"]][r.get("spec_hash")].add(r["model"])
 
-    lines = ["the store holds records from more than one run spec, and they must not be "
-             "mixed into one table:"]
-    for digest, models in sorted(by_hash.items(), key=lambda kv: str(kv[0])):
-        label = spec_module.short(digest) if digest else "unknown (pre-spec records)"
-        lines.append(f"  {label}: {', '.join(sorted(models))}")
-    known = [h for h in by_hash if h in specs]
-    if len(known) >= 2:
-        first, second = known[0], known[1]
-        lines.append(f"what differs between {spec_module.short(first)} and "
-                     f"{spec_module.short(second)}:")
-        lines += [f"  - {line}" for line in spec_module.diff(specs[first], specs[second])]
-    else:
-        lines.append("at least one of those specs is not in this run directory, so the "
-                     "difference cannot be shown -- only that there is one.")
-    lines.append("re-run the models that are behind, or report on one spec at a time.")
-    raise SystemExit("\n".join(lines))
+    out = {}
+    for task, by_hash in sorted(by_task.items()):
+        if len(by_hash) == 1:
+            only = next(iter(by_hash))
+            if only is None:
+                raise SystemExit(f"every {task} record carries an unknown spec hash: this "
+                                 f"store predates the frozen run spec and cannot be "
+                                 f"compared against one.")
+            if only not in specs:
+                raise SystemExit(f"the {task} records were produced under spec "
+                                 f"{spec_module.short(only)}, whose spec file is not in this "
+                                 f"run directory. Without it the inputs cannot be checked, "
+                                 f"so the report stops.")
+            out[task] = only
+            continue
+
+        lines = [f"the {task} records come from more than one run spec, and they must not "
+                 f"be mixed into one table:"]
+        for digest, models in sorted(by_hash.items(), key=lambda kv: str(kv[0])):
+            label = spec_module.short(digest) if digest else "unknown (pre-spec records)"
+            lines.append(f"  {label}: {', '.join(sorted(models))}")
+        known = [h for h in by_hash if h in specs]
+        if len(known) >= 2:
+            first, second = known[0], known[1]
+            lines.append(f"what differs between {spec_module.short(first)} and "
+                         f"{spec_module.short(second)}:")
+            lines += [f"  - {line}" for line in spec_module.diff(specs[first], specs[second])]
+        else:
+            lines.append("at least one of those specs is not in this run directory, so the "
+                         "difference cannot be shown -- only that there is one.")
+        lines.append("re-run the models that are behind, or report on one spec at a time.")
+        raise SystemExit("\n".join(lines))
+    return out
 
 
 def summarise(records, models=None):
@@ -176,7 +187,7 @@ def summarise(records, models=None):
             "transport": rows[0].get("transport", "unknown"),
             "n_options": rows[0]["n_options"],
             "structured": rows[0]["structured"],
-            "local": rows[0]["model"] in LOCAL,
+            "local": catalog.is_local(rows[0]["model"]),
             "n": len(rows),
             "n_timed": len(timed),
             "p50_ms": p50,
@@ -196,8 +207,8 @@ def summarise(records, models=None):
             # distribution and did not must show as not, or this column is
             # documentation rather than a measurement.
             "returns_probability": any(r.get("probabilities") for r in rows),
-            "declares_probability": registry.returns_probability(rows[0]["model"])
-                                    if rows[0]["model"] in registry.ALL else None,
+            "declares_probability": catalog.returns_probability(rows[0]["model"])
+                                    if rows[0]["model"] in catalog.ALL else None,
             "validity": dict(validity),
             "valid": validity["valid"],
             "valid_rate": validity["valid"] / len(rows),
@@ -287,6 +298,11 @@ def position_bias(records, models=None):
             "n_options": n_options,
             "n_examples": len({r["example_id"] for r in rows}),
             "n_calls": len(rows),
+            # A model that could not answer at all -- Laya cannot fit 151 options
+            # into its head budget -- scores zero at every gold position, and that
+            # is a structural failure rather than a position effect. The count is
+            # carried so the table and the figure can say so instead of drawing it.
+            "n_valid": sum(1 for r in rows if r.get("choice") is not None),
             "flip": stats.flip_rate(random_answers, n_orders=n_orders or 1),
             "gold": stats.accuracy_by_position(placements),
             "positions": stats.position_histogram(
@@ -338,7 +354,7 @@ def _distributions(records, arm):
     return out
 
 
-def calibrations(records, models=None, n_bins=calibration.N_BINS):
+def calibrations(records, models=None, n_bins=stats.N_BINS):
     """-> {"<model>/<task>": {temperature, ece_raw, ece_scaled, reliability, ...}}.
 
     Present only for the models that returned a distribution: an LLM in
@@ -355,11 +371,11 @@ def calibrations(records, models=None, n_bins=calibration.N_BINS):
     validation = _distributions(records, "validation")
     out = {}
     for name, rows in test.items():
-        scored = calibration.calibrate(validation.get(name, []), rows, n_bins=n_bins)
+        scored = stats.calibrate(validation.get(name, []), rows, n_bins=n_bins)
         if scored is None:
             continue
         scored["model"], scored["task"] = name.split("/", 1)
-        scored["reliability"] = calibration.reliability(
+        scored["reliability"] = stats.reliability(
             [max(p.values()) for p, _ in rows],
             [int(max(p, key=p.get) == gold) for p, gold in rows], n_bins=n_bins)
         out[name] = scored
@@ -411,18 +427,18 @@ def load_specs(run_dir):
     return out
 
 
-def build_results(records, config, specs, spec_hash, models=None):
+def build_results(records, config, specs, spec_hashes, models=None):
     """The one results structure the tables and every figure are both built from.
 
     One source, so a chart can never disagree with the table printed beside it."""
     summary = summarise(records, models)
-    payload = specs.get(spec_hash) or {}
     return {
         "tag": config.get("tag"),
         "written_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
-        "spec_hash": spec_hash,
-        "spec": {k: payload.get(k) for k in
-                 ("task", "dataset", "config", "split", "seed", "instructions")},
+        "spec_hashes": spec_hashes,
+        "spec": {task: {k: (specs.get(digest) or {}).get(k) for k in
+                        ("task", "dataset", "config", "split", "seed", "instructions")}
+                 for task, digest in spec_hashes.items()},
         "models": sorted({s["model"] for s in summary.values()}),
         "summary": summary,
         "position_bias": position_bias(records, models),
@@ -443,11 +459,12 @@ def _print_position_bias(bias):
     print("\n=== position bias: same example, same options, only the order changes ===")
     print("Measured on a SUBSET of the run; n is that subset. These calls are excluded")
     print("from the latency and cost tables above, so no example is weighted twice.")
-    print(f"{'model/task':<24} {'opts':>5} {'n':>4} {'flip':>6} "
+    print(f"{'model/task':<24} {'opts':>5} {'n':>4} {'usable':>7} {'flip':>6} "
           f"{'gold 1st':>9} {'gold mid':>9} {'gold last':>10} {'spread':>7} {'mean pos':>9}")
     for key, b in sorted(bias.items(), key=lambda kv: (kv[1]["task"], kv[1]["model"])):
         accuracy = b["gold"]["accuracy"]
         print(f"{key:<24} {b['n_options']:>5} {b['n_examples']:>4} "
+              f"{b['n_valid']:>3}/{b['n_calls']:<3} "
               f"{_fmt(b['flip']['rate'], '{:.0%}'):>6} "
               f"{_fmt(accuracy.get('first'), '{:.3f}'):>9} "
               f"{_fmt(accuracy.get('middle'), '{:.3f}'):>9} "
@@ -456,6 +473,10 @@ def _print_position_bias(bias):
               f"{_fmt(b['positions']['mean_normalised'], '{:.2f}'):>9}")
     print("mean pos: 0 = always picks whatever is listed first, 1 = always the last,")
     print("0.5 = no positional preference. It says what kind of bias, not how much.")
+    dead = [k for k, b in bias.items() if b["n_valid"] == 0]
+    if dead:
+        print(f"!! {', '.join(sorted(dead))} returned no usable answer under ANY ordering. "
+              f"Its zeroes are a failure, not a position effect, and it has no flip rate.")
 
 
 def _print_calibration(scored):
@@ -471,6 +492,13 @@ def _print_calibration(scored):
         print(f"{key:<24} {c['n_test']:>7} {c['n_validation']:>6} "
               f"{_fmt(c['temperature'], '{:.2f}'):>6} {_fmt(c['ece_raw'], '{:.4f}'):>9} "
               f"{_fmt(c['ece_scaled'], '{:.4f}'):>11}")
+    refused = [k for k, c in scored.items() if c.get("fit_refused")]
+    if refused:
+        minimum = next(iter(scored.values())).get("min_validation")
+        print(f"!! no temperature was fitted for {', '.join(sorted(refused))}: fewer than "
+              f"{minimum} validation rows. On a handful of confident, correct rows the fit "
+              f"runs to the bottom of its range and returns a scaled ECE of zero, which is "
+              f"an artefact of the sample and not a calibration. Raw ECE only.")
 
 
 def _print_paired(records, summary, task):
@@ -501,10 +529,6 @@ def main(argv=None):
     p.add_argument("--models", default=None,
                    help="comma-separated subset to report on. Computed entirely from the "
                         "store: this command never calls a model.")
-    p.add_argument("--no-figures", action="store_true",
-                   help="skip regenerating the figures. They are written by default, so a "
-                        "chart can never drift from the table beside it.")
-    p.add_argument("--results-dir", default=str(RESULTS_DIR))
     args = p.parse_args(argv)
 
     run_dir = RUN_DIR / args.tag
@@ -517,10 +541,12 @@ def main(argv=None):
     models = [m.strip() for m in args.models.split(",")] if args.models else None
 
     specs = load_specs(run_dir)
-    spec_hash = require_one_spec(_select(records, models), specs)
-    print(f"run spec {spec_module.short(spec_hash)} -- every record below was produced under it.")
+    spec_hashes = require_one_spec(_select(records, models), specs)
+    for task, digest in spec_hashes.items():
+        print(f"{task}: run spec {spec_module.short(digest)} -- every record below was "
+              f"produced under it.")
 
-    results = build_results(records, config, specs, spec_hash, models)
+    results = build_results(records, config, specs, spec_hashes, models)
     summary = results["summary"]
 
     transports = sorted({s["transport"] for s in summary.values()})
@@ -586,26 +612,32 @@ def main(argv=None):
                   f"{_fmt(o.get('prompt_tokens_with_options')):>8} "
                   f"{_fmt(o.get('prompt_tokens_without_options')):>8} "
                   f"{_fmt(o.get('option_tokens')):>11} {_fmt(share, '{:.0%}'):>7}")
+        negative = [k for k, o in overhead.items()
+                    if (o.get("option_tokens") or 0) < 0]
+        if negative:
+            print(f"!! {', '.join(sorted(negative))} reported FEWER prompt tokens with the "
+                  f"option list than without it. That is the provider's accounting, not a "
+                  f"measurement of the options, and the figure for it is not usable.")
 
     selected = _select(records, models)
     print(f"\ntotal recorded spend: ${results['total_recorded_spend_usd']:.4f} over "
           f"{results['n_calls']} calls "
           f"({len(selected) - len(_measured(selected))} of them outside the measured arm)")
 
-    results_dir = Path(args.results_dir)
+    results_dir = RESULTS_DIR
     results_dir.mkdir(parents=True, exist_ok=True)
     results_path = results_dir / f"{args.tag}.json"
     results_path.write_text(json.dumps(results, indent=2, default=str) + "\n", encoding="utf-8")
     print(f"\nwrote {results_path}")
 
-    if not args.no_figures:
-        from . import figures
+    # Always, so a chart cannot drift from the table it was printed beside.
+    from . import figures
 
-        out = figures.write_all(results, results_dir / "figures")
-        for name in out["written"]:
-            print(f"  figure: {results_dir / 'figures' / name}")
-        for name, reason in out["skipped"].items():
-            print(f"  figure {name}: NOT drawn -- {reason}")
+    out = figures.write_all(results, results_dir / "figures")
+    for name in out["written"]:
+        print(f"  figure: {results_dir / 'figures' / name}")
+    for name, reason in out["skipped"].items():
+        print(f"  figure {name}: NOT drawn -- {reason}")
 
 
 if __name__ == "__main__":

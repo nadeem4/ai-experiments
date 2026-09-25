@@ -20,7 +20,7 @@ position-bias ordering -- and hashes the lot.
     store, running nothing.
   * The report **refuses** to mix records whose spec hashes differ.
 
-Adding a hosted model is one line in `registry.py` (or `--models name=exact/id`
+Adding a hosted model is one line in `catalog.py` (or `--models name=exact/id`
 on the command line). Adding a local one is one adapter module and one line.
 
 ## The arms
@@ -32,7 +32,7 @@ on the command line). Adding a local one is one adapter module and one line.
   * `gold:first|middle|last` -- the bias subset with the correct option placed
     deliberately at each position, for accuracy by position and the spread.
   * `validation` -- rows from **train**, run only for the models that return a
-    probability, and used only to fit the one temperature in `calibration.py`.
+    probability, and used only to fit the one temperature in `stats.py`.
     Nothing is ever fitted on test.
 
 Nothing here hardcodes a model id: OpenRouter is asked what it hosts, the catalog
@@ -47,8 +47,8 @@ import platform
 import time
 from pathlib import Path
 
-from . import (calibration, catalog, laya_local, openrouter, parse, prompts, registry,
-               spec as spec_module, stats, store, tasks)
+from . import (catalog, laya_local, openrouter, prompts, spec as spec_module,
+               stats, store, tasks)
 
 RUN_DIR = Path("typed_decisions/runs")
 ROOT_ENV = Path(__file__).resolve().parents[1] / ".env"
@@ -95,19 +95,19 @@ def build_models(wanted, key, verbose=True):
     probe = prober(key)
     models, resolution = {}, {}
     for name, pinned in wanted.items():
-        kind = registry.kind_of(name)
+        kind = catalog.kind_of(name)
 
         if kind == "local":
-            adapter = registry.load_adapter(registry.LOCAL[name]["adapter"])
+            adapter = catalog.load_adapter(catalog.LOCAL[name]["adapter"])
             models[name] = adapter()
             resolution[name] = {"model_id": models[name].model_id, "route": "local (cpu)",
                                 "transport": laya_local.TRANSPORT, "structured_mode": "typed",
-                                "returns_probability": registry.returns_probability(name),
+                                "returns_probability": catalog.returns_probability(name),
                                 "tried": []}
             continue
 
         if kind == "decision":
-            model_id = pinned or registry.DECISION[name]["model_id"]
+            model_id = pinned or catalog.DECISION[name]["model_id"]
             # The catalog lists the floating minor, not the dated build, so the
             # version block is looked up under either and the *pinned* id is what
             # goes on the wire.
@@ -119,9 +119,9 @@ def build_models(wanted, key, verbose=True):
                 continue
             models[name] = openrouter.JevModel(name, model_id, api_key=key)
             resolution[name] = {"model_id": model_id,
-                                "route": registry.DECISION[name]["route"],
+                                "route": catalog.DECISION[name]["route"],
                                 "transport": openrouter.TRANSPORT, "structured_mode": "typed",
-                                "returns_probability": registry.returns_probability(name),
+                                "returns_probability": catalog.returns_probability(name),
                                 "generation": catalog.version(entry).get("released"),
                                 "version": catalog.version(entry), "tried": []}
             continue
@@ -131,7 +131,7 @@ def build_models(wanted, key, verbose=True):
             if entry is None:
                 raise SystemExit(f"{pinned} is not in the OpenRouter catalog")
         else:
-            entry, tried = catalog.resolve(listing, registry.HOSTED[name], probe)
+            entry, tried = catalog.resolve(listing, catalog.HOSTED[name], probe)
         if verbose:
             for model_id, ok in tried:
                 print(f"  {name}: {model_id} {'reachable' if ok else 'REFUSED by this account'}")
@@ -152,7 +152,7 @@ def build_models(wanted, key, verbose=True):
                             "transport": openrouter.TRANSPORT,
                             "structured_mode": "json_schema (strict)", "temperature": temperature,
                             "reasoning_effort": reasoning_effort,
-                            "returns_probability": registry.returns_probability(name),
+                            "returns_probability": catalog.returns_probability(name),
                             "generation": version.get("released"),
                             "current_generation": not refused,
                             "refused_above_it": refused,
@@ -241,7 +241,7 @@ def arms_to_run(task, selection, models):
             if spec_module.is_bias(arm):
                 out.append((arm, list(models)))
     if "validation" in selection and task["validation"]:
-        probabilistic = [m for m in models if registry.returns_probability(m)]
+        probabilistic = [m for m in models if catalog.returns_probability(m)]
         if probabilistic:
             out.append((VALIDATION_ARM, probabilistic))
     return out
@@ -282,7 +282,7 @@ def run_arm(model, name, task, arm, path, warmup=0, repeat=0):
                              "validity": "api_error" if out["failed"] else "not_an_option",
                              "detail": out["error"] or str(out["choice"])})
         else:
-            verdict = parse.classify(out["content"], criteria)
+            verdict = prompts.classify(out["content"], criteria)
             if out["failed"]:
                 verdict = {"choice": None, "validity": "api_error", "detail": out["error"]}
         store.append(path, {
@@ -372,7 +372,8 @@ def write_config(path, resolution, probes, args, models, loaded):
         "question_id": openrouter.QUESTION_ID,
         "max_tokens": openrouter.MAX_TOKENS,
         "calibration": {
-            "n_bins": calibration.N_BINS,
+            "n_bins": stats.N_BINS,
+            "min_validation": stats.MIN_VALIDATION,
             "fitted_on": "a validation split carved out of TRAIN, stratified by label. "
                          "Nothing is ever fitted on test.",
         },
@@ -410,7 +411,7 @@ def write_config(path, resolution, probes, args, models, loaded):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--models", default="all",
-                   help=f"comma-separated: {', '.join(registry.ALL)}, or name=model-id to pin")
+                   help=f"comma-separated: {', '.join(catalog.ALL)}, or name=model-id to pin")
     p.add_argument("--tasks", default="ag_news", help=f"comma-separated: {', '.join(tasks.NAMES)}")
     p.add_argument("--limit", type=int, default=0, help="first N examples per task (0 = all)")
     p.add_argument("--tag", default="pilot", help="run directory under typed_decisions/runs")
@@ -451,7 +452,7 @@ def main(argv=None):
         print(f"account: could not read the balance ({type(e).__name__})")
 
     print("resolving each family against what this account can actually call:")
-    models, resolution = build_models(registry.parse(args.models), key)
+    models, resolution = build_models(catalog.select(args.models), key)
     for name, info in resolution.items():
         if info.get("unavailable"):
             print(f"  {name}: UNAVAILABLE -- {info['unavailable']}")

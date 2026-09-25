@@ -1,4 +1,10 @@
-"""The same question, rendered for a transport that only speaks text.
+"""The text transport: the question on the way out, the answer on the way back.
+
+An LLM cannot be handed a typed question, so it is handed a prompt, and its
+completion has to be read back into a decision. Both ends live here because they
+are one interface, and because this is the one place the experiment could put a
+thumb on the scale -- so both are mechanical and short enough to read in a
+minute.
 
 A decision model is handed `instructions` and a `criteria` map and answers by
 scoring each option at its own marker. An LLM has to be handed the same thing as a
@@ -8,6 +14,8 @@ and the only thing added is `ANSWER_DIRECTIVE`, which is one constant shared by
 every LLM. That is the whole difference between the arms -- the transport -- and it
 is kept in one file so it can be read in thirty seconds.
 """
+
+import json
 
 ANSWER_DIRECTIVE = 'Answer with a JSON object {"choice": "<one option, copied exactly>"} and nothing else.'
 
@@ -60,3 +68,39 @@ def schema(criteria, with_enum=True):
             },
         },
     }
+
+
+# --- reading the answer back --------------------------------------------------
+
+KINDS = ("valid", "unparseable", "not_an_option", "refusal", "api_error")
+
+# A refusal and a broken completion are both failures, but they are different
+# failures, so prose is checked against a short fixed list of refusal openers
+# before being written off as unparseable. The list is deliberately small: a model
+# that refuses says so in the first clause.
+REFUSAL_MARKERS = ("i'm sorry", "i am sorry", "i can't", "i cannot", "i won't", "i'm unable", "as an ai")
+
+
+def _out(choice, validity, detail=None):
+    return {"choice": choice, "validity": validity, "detail": detail}
+
+
+def classify(content, options):
+    if content is None:
+        return _out(None, "api_error", "no content")
+    text = content.strip()
+    try:
+        parsed = json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        lowered = text.lower()
+        if any(lowered.startswith(m) or m in lowered[:80] for m in REFUSAL_MARKERS):
+            return _out(None, "refusal", text[:200])
+        return _out(None, "unparseable", text[:200] or "empty")
+    if not isinstance(parsed, dict):
+        return _out(None, "unparseable", "not an object")
+    if "choice" not in parsed:
+        return _out(None, "unparseable", "no choice field")
+    choice = parsed["choice"]
+    if choice in options:
+        return _out(choice, "valid")
+    return _out(None, "not_an_option", str(choice)[:200])

@@ -189,20 +189,6 @@ def options_in_order(spec, arm, example_id):
     return {canonical[i]: texts[canonical[i]] for i in order_for(spec, arm, example_id)}
 
 
-def gold_position(spec, arm, example_id):
-    """Where the correct option sat in what this arm actually showed, 0-based.
-
-    Measured off the ordering rather than assumed from the arm name, so the
-    `gold:middle` label cannot drift away from where gold really was."""
-    payload = spec["payload"]
-    gold = payload["gold"].get(example_id)
-    if gold is None:
-        return None
-    index = payload["canonical_order"].index(gold)
-    order = order_for(spec, arm, example_id)
-    return order.index(index)
-
-
 _SUMMARY_FIELDS = ("task", "dataset", "config", "split", "seed", "instructions")
 
 

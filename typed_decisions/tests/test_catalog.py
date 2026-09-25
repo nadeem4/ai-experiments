@@ -173,12 +173,10 @@ def test_accepts_reasoning_effort_is_read_from_the_catalog_not_assumed():
     assert catalog.accepts_reasoning_effort(catalog.find(CATALOG, "google/gemma-4-31b-it")) is False
 
 
-def test_the_families_are_the_registry_slate_and_nothing_else():
-    """The slate lives in `registry.py` so that adding a model is one line of
-    configuration. `catalog.FAMILIES` is that same mapping, re-exported."""
-    from typed_decisions import registry
-
-    assert catalog.FAMILIES is registry.HOSTED
+def test_the_families_are_the_slate_and_nothing_else():
+    """`FAMILIES` is the older name for the same mapping, kept so the resolution
+    code below reads as it always did."""
+    assert catalog.FAMILIES is catalog.HOSTED
     assert set(catalog.FAMILIES) == {"glm", "phi", "gemma", "deepseek", "llama", "qwen", "gpt"}
 
 
@@ -221,3 +219,106 @@ def test_the_slate_itself_survives_the_deny_list(kept):
     """A deny list wide enough to remove the flagships and narrow enough to keep
     the models the experiment actually runs."""
     assert not catalog.denied(kept)
+
+
+# =============================================================================
+# The slate: adding a model is configuration, not code
+# =============================================================================
+#
+# The model registry: adding a model is configuration, not code.
+#
+# The requirement behind this file is that the slate grows. A hosted model should
+# be one line mapping a CLI name to a catalogue prefix (or an exact id on the
+# command line); a second local decision model should be one new adapter module and
+# one registry line, with nothing in `run.py` or `report.py` needing to know.
+
+
+class TestTheSlate:
+    def test_the_hosted_families_are_the_ones_the_protocol_names(self):
+        assert set(catalog.HOSTED) == {"glm", "phi", "gemma", "deepseek", "llama", "qwen", "gpt"}
+
+    def test_gemini_is_not_on_the_slate(self):
+        """Excluded deliberately: it spent 318 completion tokens on a one-word
+        answer and would have been most of the bill."""
+        assert "gemini" not in catalog.ALL
+
+    def test_claude_is_not_on_the_slate(self):
+        """The only current-generation Claude this account reaches is an Opus
+        tier, and nobody deploys a flagship for intent classification."""
+        assert "claude" not in catalog.ALL
+
+    def test_the_decision_models_are_their_own_kind(self):
+        assert set(catalog.DECISION) == {"jev"}
+        assert set(catalog.LOCAL) == {"laya"}
+
+    def test_jev_is_pinned_to_a_dated_build_not_a_floating_id(self):
+        pinned = catalog.DECISION["jev"]["model_id"]
+        assert pinned == "typesafe/jev-1.13-20260917"
+        assert not pinned.startswith("~")
+
+    def test_every_name_appears_exactly_once_across_the_three_kinds(self):
+        names = list(catalog.HOSTED) + list(catalog.DECISION) + list(catalog.LOCAL)
+        assert len(names) == len(set(names))
+        assert set(names) == set(catalog.ALL)
+
+
+class TestProbabilityCapability:
+    def test_decision_models_return_a_distribution_over_every_option(self):
+        assert catalog.returns_probability("jev") is True
+        assert catalog.returns_probability("laya") is True
+
+    def test_an_llm_in_structured_mode_returns_a_label_and_nothing_else(self):
+        """Without a probability you cannot threshold, so 'ask a human when
+        unsure' is not available at all. It is a column, not a footnote."""
+        for name in catalog.HOSTED:
+            assert catalog.returns_probability(name) is False
+
+
+class TestParsingTheCliArgument:
+    def test_all_selects_every_registered_model(self):
+        assert list(catalog.select("all")) == list(catalog.ALL)
+
+    def test_a_subset_selects_only_those(self):
+        assert catalog.select("glm,phi,jev") == {"glm": None, "phi": None, "jev": None}
+
+    def test_a_name_can_be_pinned_to_an_exact_id(self):
+        assert catalog.select("glm=z-ai/glm-5.3-flash")["glm"] == "z-ai/glm-5.3-flash"
+
+    def test_whitespace_around_a_name_is_tolerated(self):
+        assert set(catalog.select("glm, phi ")) == {"glm", "phi"}
+
+    def test_an_unknown_name_is_refused_and_the_message_lists_the_known_ones(self):
+        with pytest.raises(SystemExit, match="gemini"):
+            catalog.select("gemini")
+        with pytest.raises(SystemExit, match="glm"):
+            catalog.select("gemini")
+
+
+class TestLocalAdapters:
+    def test_a_local_model_is_one_registry_line_naming_an_adapter(self):
+        """`module:Class`. Adding a second local decision model is a new module
+        and a line here; nothing in the runner changes."""
+        assert catalog.LOCAL["laya"]["adapter"] == "typed_decisions.laya_local:LayaModel"
+
+    def test_the_adapter_is_resolved_by_dotted_path(self):
+        from typed_decisions.laya_local import LayaModel
+
+        assert catalog.load_adapter("typed_decisions.laya_local:LayaModel") is LayaModel
+
+    def test_a_missing_adapter_fails_with_the_path_in_the_message(self):
+        with pytest.raises(SystemExit, match="nope.module:Thing"):
+            catalog.load_adapter("nope.module:Thing")
+
+
+class TestKinds:
+    def test_kind_of_names_the_transport_family(self):
+        assert catalog.kind_of("gpt") == "hosted"
+        assert catalog.kind_of("jev") == "decision"
+        assert catalog.kind_of("laya") == "local"
+
+    def test_only_the_local_models_are_grouped_apart_in_tables(self):
+        """A local CPU number and a network round trip are not a latency
+        comparison, so the grouping is mechanical rather than remembered."""
+        assert catalog.is_local("laya") is True
+        assert catalog.is_local("jev") is False
+        assert catalog.is_local("gpt") is False

@@ -1,0 +1,2442 @@
+{
+  "tag": "pilot",
+  "written_at": "2026-09-25T07:57:36",
+  "spec_hashes": {
+    "ag_news": "d380f59baf56b4792284ab19e15f96741f0f872577a2aa37f4fdd1e545a2cc10",
+    "clinc150": "c727bbe2ce10d1f983db3c6463bc98aa7da30a527bfa476471a8ee0def83207f"
+  },
+  "spec": {
+    "ag_news": {
+      "task": "ag_news",
+      "dataset": "fancyzhx/ag_news",
+      "config": "default",
+      "split": "test",
+      "seed": 0,
+      "instructions": "Classify the news article below into exactly one of the topics listed."
+    },
+    "clinc150": {
+      "task": "clinc150",
+      "dataset": "clinc/clinc_oos",
+      "config": "plus",
+      "split": "test",
+      "seed": 0,
+      "instructions": "Classify the user's utterance below into exactly one of the intents listed. Answer 'oos' if it matches none of them."
+    }
+  },
+  "models": [
+    "deepseek",
+    "gemma",
+    "glm",
+    "gpt",
+    "jev",
+    "laya",
+    "llama",
+    "phi",
+    "qwen"
+  ],
+  "summary": {
+    "glm/ag_news@openrouter": {
+      "model": "glm",
+      "model_id": "z-ai/glm-5.3-flash",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 1128.222499974072,
+      "p95_ms": 3535.7256999704987,
+      "tail_ratio": 3.133890433892033,
+      "wall_p50_ms": 1128.2245999900624,
+      "wall_p95_ms": 3535.7284999918193,
+      "mean_input_tokens": 133.0,
+      "mean_output_tokens": 13.6,
+      "n_tokens_reported": 5,
+      "cost_usd": 5.682e-05,
+      "cost_per_call_usd": 1.1364e-05,
+      "cost_per_1k_usd": 0.011363999999999999,
+      "cost_per_correct_usd": 1.1364e-05,
+      "spec_hash": "d380f59baf56b4792284ab19e15f96741f0f872577a2aa37f4fdd1e545a2cc10",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "phi/ag_news@openrouter": {
+      "model": "phi",
+      "model_id": "microsoft/phi-4",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 430.5912998970598,
+      "p95_ms": 1418.1956000393257,
+      "tail_ratio": 3.293600219926342,
+      "wall_p50_ms": 430.59399991761893,
+      "wall_p95_ms": 1418.1974000530317,
+      "mean_input_tokens": 104.8,
+      "mean_output_tokens": 7.0,
+      "n_tokens_reported": 5,
+      "cost_usd": 4.158e-05,
+      "cost_per_call_usd": 8.316e-06,
+      "cost_per_1k_usd": 0.008316,
+      "cost_per_correct_usd": 8.316e-06,
+      "spec_hash": "d380f59baf56b4792284ab19e15f96741f0f872577a2aa37f4fdd1e545a2cc10",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "gemma/ag_news@openrouter": {
+      "model": "gemma",
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 411.7941999575123,
+      "p95_ms": 995.5066000111401,
+      "tail_ratio": 2.4174857249418604,
+      "wall_p50_ms": 411.7959999712184,
+      "wall_p95_ms": 995.5091000301763,
+      "mean_input_tokens": 131.4,
+      "mean_output_tokens": 7.2,
+      "n_tokens_reported": 5,
+      "cost_usd": 6.6562e-05,
+      "cost_per_call_usd": 1.3312400000000001e-05,
+      "cost_per_1k_usd": 0.013312400000000002,
+      "cost_per_correct_usd": 1.66405e-05,
+      "spec_hash": "d380f59baf56b4792284ab19e15f96741f0f872577a2aa37f4fdd1e545a2cc10",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 0.8,
+      "accuracy_ci": [
+        0.4,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "deepseek/ag_news@openrouter": {
+      "model": "deepseek",
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 937.2911000391468,
+      "p95_ms": 24279.970000032336,
+      "tail_ratio": 25.90440685825168,
+      "wall_p50_ms": 937.2929000528529,
+      "wall_p95_ms": 24279.973199940287,
+      "mean_input_tokens": 117.0,
+      "mean_output_tokens": 118.8,
+      "n_tokens_reported": 5,
+      "cost_usd": 0.00035921,
+      "cost_per_call_usd": 7.1842e-05,
+      "cost_per_1k_usd": 0.07184199999999999,
+      "cost_per_correct_usd": 8.980249999999999e-05,
+      "spec_hash": "d380f59baf56b4792284ab19e15f96741f0f872577a2aa37f4fdd1e545a2cc10",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 4,
+        "api_error": 1
+      },
+      "valid": 4,
+      "valid_rate": 0.8,
+      "accuracy": 0.8,
+      "accuracy_ci": [
+        0.4,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "llama/ag_news@openrouter": {
+      "model": "llama",
+      "model_id": "meta-llama/llama-4-scout",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 447.05449999310076,
+      "p95_ms": 605.684099951759,
+      "tail_ratio": 1.3548327999407372,
+      "wall_p50_ms": 447.0564000075683,
+      "wall_p95_ms": 605.6867999723181,
+      "mean_input_tokens": 106.6,
+      "mean_output_tokens": 7.0,
+      "n_tokens_reported": 5,
+      "cost_usd": 6.38e-05,
+      "cost_per_call_usd": 1.2760000000000001e-05,
+      "cost_per_1k_usd": 0.012760000000000002,
+      "cost_per_correct_usd": 1.2760000000000001e-05,
+      "spec_hash": "d380f59baf56b4792284ab19e15f96741f0f872577a2aa37f4fdd1e545a2cc10",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "qwen/ag_news@openrouter": {
+      "model": "qwen",
+      "model_id": "qwen/qwen3.8-27b",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 1596.3417999446392,
+      "p95_ms": 2112.1535999700427,
+      "tail_ratio": 1.3231211511490157,
+      "wall_p50_ms": 1596.3436999591067,
+      "wall_p95_ms": 2112.1554999845102,
+      "mean_input_tokens": 177.6,
+      "mean_output_tokens": 91.0,
+      "n_tokens_reported": 5,
+      "cost_usd": 0.001605694,
+      "cost_per_call_usd": 0.0003211388,
+      "cost_per_1k_usd": 0.3211388,
+      "cost_per_correct_usd": 0.0003211388,
+      "spec_hash": "d380f59baf56b4792284ab19e15f96741f0f872577a2aa37f4fdd1e545a2cc10",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "gpt/ag_news@openrouter": {
+      "model": "gpt",
+      "model_id": "openai/gpt-6-luna",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 936.0497000161558,
+      "p95_ms": 2302.2546999854967,
+      "tail_ratio": 2.4595432271873605,
+      "wall_p50_ms": 936.0519000329077,
+      "wall_p95_ms": 2302.2576000075787,
+      "mean_input_tokens": 136.2,
+      "mean_output_tokens": 28.4,
+      "n_tokens_reported": 5,
+      "cost_usd": 0.0001391,
+      "cost_per_call_usd": 2.7819999999999998e-05,
+      "cost_per_1k_usd": 0.027819999999999998,
+      "cost_per_correct_usd": 2.7819999999999998e-05,
+      "spec_hash": "d380f59baf56b4792284ab19e15f96741f0f872577a2aa37f4fdd1e545a2cc10",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "jev/ag_news@openrouter": {
+      "model": "jev",
+      "model_id": "typesafe/jev-1.13-20260917",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": "typed",
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 210.92529990710318,
+      "p95_ms": 1201.284300070256,
+      "tail_ratio": 5.695306824735259,
+      "wall_p50_ms": 210.92779992613941,
+      "wall_p95_ms": 1201.2868999736384,
+      "mean_input_tokens": 363.0,
+      "mean_output_tokens": 47.0,
+      "n_tokens_reported": 5,
+      "cost_usd": 7.623e-05,
+      "cost_per_call_usd": 1.5246e-05,
+      "cost_per_1k_usd": 0.015246,
+      "cost_per_correct_usd": 1.5246e-05,
+      "spec_hash": "d380f59baf56b4792284ab19e15f96741f0f872577a2aa37f4fdd1e545a2cc10",
+      "returns_probability": true,
+      "declares_probability": true,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "laya/ag_news@local-cpu": {
+      "model": "laya",
+      "model_id": "laya (C:\\projects\\jev_demo\\arena\\models\\laya)",
+      "task": "ag_news",
+      "transport": "local-cpu",
+      "n_options": 4,
+      "structured": "typed",
+      "local": true,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 234.4166999682784,
+      "p95_ms": 274.12099996581674,
+      "tail_ratio": 1.1693748781674307,
+      "wall_p50_ms": 234.4166999682784,
+      "wall_p95_ms": 274.12099996581674,
+      "mean_input_tokens": null,
+      "mean_output_tokens": null,
+      "n_tokens_reported": 0,
+      "cost_usd": 0.0,
+      "cost_per_call_usd": 0.0,
+      "cost_per_1k_usd": 0.0,
+      "cost_per_correct_usd": 0.0,
+      "spec_hash": "d380f59baf56b4792284ab19e15f96741f0f872577a2aa37f4fdd1e545a2cc10",
+      "returns_probability": true,
+      "declares_probability": true,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "glm/clinc150@openrouter": {
+      "model": "glm",
+      "model_id": "z-ai/glm-5.3-flash",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 727.2930999752134,
+      "p95_ms": 1336.8929999414831,
+      "tail_ratio": 1.8381763830662565,
+      "wall_p50_ms": 727.2951999912038,
+      "wall_p95_ms": 1336.8955999612808,
+      "mean_input_tokens": 932.6,
+      "mean_output_tokens": 8.8,
+      "n_tokens_reported": 5,
+      "cost_usd": 0.00041809,
+      "cost_per_call_usd": 8.3618e-05,
+      "cost_per_1k_usd": 0.083618,
+      "cost_per_correct_usd": 8.3618e-05,
+      "spec_hash": "c727bbe2ce10d1f983db3c6463bc98aa7da30a527bfa476471a8ee0def83207f",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "phi/clinc150@openrouter": {
+      "model": "phi",
+      "model_id": "microsoft/phi-4",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 511.129799997434,
+      "p95_ms": 1254.3441000161693,
+      "tail_ratio": 2.454061766741963,
+      "wall_p50_ms": 511.131800012663,
+      "wall_p95_ms": 1254.3462000321597,
+      "mean_input_tokens": 927.6,
+      "mean_output_tokens": 7.8,
+      "n_tokens_reported": 5,
+      "cost_usd": 0.00033012,
+      "cost_per_call_usd": 6.6024e-05,
+      "cost_per_1k_usd": 0.066024,
+      "cost_per_correct_usd": 8.253e-05,
+      "spec_hash": "c727bbe2ce10d1f983db3c6463bc98aa7da30a527bfa476471a8ee0def83207f",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 0.8,
+      "accuracy_ci": [
+        0.4,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "gemma/clinc150@openrouter": {
+      "model": "gemma",
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 503.5630000056699,
+      "p95_ms": 1248.8146999385208,
+      "tail_ratio": 2.47995722466595,
+      "wall_p50_ms": 503.56490002013743,
+      "wall_p95_ms": 1248.8164999522269,
+      "mean_input_tokens": 1181.2,
+      "mean_output_tokens": 8.4,
+      "n_tokens_reported": 5,
+      "cost_usd": 0.000450298,
+      "cost_per_call_usd": 9.00596e-05,
+      "cost_per_1k_usd": 0.0900596,
+      "cost_per_correct_usd": 9.00596e-05,
+      "spec_hash": "c727bbe2ce10d1f983db3c6463bc98aa7da30a527bfa476471a8ee0def83207f",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "deepseek/clinc150@openrouter": {
+      "model": "deepseek",
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 1316.1704000085592,
+      "p95_ms": 2472.3138000117615,
+      "tail_ratio": 1.878414679433365,
+      "wall_p50_ms": 1316.1725000245497,
+      "wall_p95_ms": 2472.315500024706,
+      "mean_input_tokens": 1041.6,
+      "mean_output_tokens": 63.8,
+      "n_tokens_reported": 5,
+      "cost_usd": 0.00103602,
+      "cost_per_call_usd": 0.00020720399999999998,
+      "cost_per_1k_usd": 0.20720399999999997,
+      "cost_per_correct_usd": 0.00020720399999999998,
+      "spec_hash": "c727bbe2ce10d1f983db3c6463bc98aa7da30a527bfa476471a8ee0def83207f",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "llama/clinc150@openrouter": {
+      "model": "llama",
+      "model_id": "meta-llama/llama-4-scout",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 790.0226999772713,
+      "p95_ms": 885.4193999432027,
+      "tail_ratio": 1.120751846711083,
+      "wall_p50_ms": 790.0245999917388,
+      "wall_p95_ms": 885.4215999599546,
+      "mean_input_tokens": 951.6,
+      "mean_output_tokens": 7.8,
+      "n_tokens_reported": 5,
+      "cost_usd": 0.0004875,
+      "cost_per_call_usd": 9.75e-05,
+      "cost_per_1k_usd": 0.0975,
+      "cost_per_correct_usd": 9.75e-05,
+      "spec_hash": "c727bbe2ce10d1f983db3c6463bc98aa7da30a527bfa476471a8ee0def83207f",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "qwen/clinc150@openrouter": {
+      "model": "qwen",
+      "model_id": "qwen/qwen3.8-27b",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 1382.57480005268,
+      "p95_ms": 4306.28500005696,
+      "tail_ratio": 3.1146850064769573,
+      "wall_p50_ms": 1382.5767000671476,
+      "wall_p95_ms": 4306.2867999542505,
+      "mean_input_tokens": 976.2,
+      "mean_output_tokens": 78.8,
+      "n_tokens_reported": 5,
+      "cost_usd": 0.0022695838,
+      "cost_per_call_usd": 0.00045391676000000006,
+      "cost_per_1k_usd": 0.4539167600000001,
+      "cost_per_correct_usd": 0.00045391676000000006,
+      "spec_hash": "c727bbe2ce10d1f983db3c6463bc98aa7da30a527bfa476471a8ee0def83207f",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "gpt/clinc150@openrouter": {
+      "model": "gpt",
+      "model_id": "openai/gpt-6-luna",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 1124.827399966307,
+      "p95_ms": 3495.46960007865,
+      "tail_ratio": 3.107560857944386,
+      "wall_p50_ms": 1124.8295999830589,
+      "wall_p95_ms": 3495.4713000915945,
+      "mean_input_tokens": 1461.6,
+      "mean_output_tokens": 19.8,
+      "n_tokens_reported": 5,
+      "cost_usd": 0.000795415,
+      "cost_per_call_usd": 0.000159083,
+      "cost_per_1k_usd": 0.159083,
+      "cost_per_correct_usd": 0.000159083,
+      "spec_hash": "c727bbe2ce10d1f983db3c6463bc98aa7da30a527bfa476471a8ee0def83207f",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "jev/clinc150@openrouter": {
+      "model": "jev",
+      "model_id": "typesafe/jev-1.13-20260917",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": "typed",
+      "local": false,
+      "n": 5,
+      "n_timed": 5,
+      "p50_ms": 211.39950002543628,
+      "p95_ms": 259.2218000208959,
+      "tail_ratio": 1.226217658933467,
+      "wall_p50_ms": 211.40170004218817,
+      "wall_p95_ms": 259.225600049831,
+      "mean_input_tokens": 2263.8,
+      "mean_output_tokens": 1301.0,
+      "n_tokens_reported": 5,
+      "cost_usd": 0.000475398,
+      "cost_per_call_usd": 9.507959999999999e-05,
+      "cost_per_1k_usd": 0.09507959999999999,
+      "cost_per_correct_usd": 9.507959999999999e-05,
+      "spec_hash": "c727bbe2ce10d1f983db3c6463bc98aa7da30a527bfa476471a8ee0def83207f",
+      "returns_probability": true,
+      "declares_probability": true,
+      "validity": {
+        "valid": 5
+      },
+      "valid": 5,
+      "valid_rate": 1.0,
+      "accuracy": 1.0,
+      "accuracy_ci": [
+        1.0,
+        1.0
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "laya/clinc150@local-cpu": {
+      "model": "laya",
+      "model_id": "laya (C:\\projects\\jev_demo\\arena\\models\\laya)",
+      "task": "clinc150",
+      "transport": "local-cpu",
+      "n_options": 151,
+      "structured": "typed",
+      "local": true,
+      "n": 5,
+      "n_timed": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "tail_ratio": null,
+      "wall_p50_ms": 6.10730005428195,
+      "wall_p95_ms": 6.783500080928206,
+      "mean_input_tokens": null,
+      "mean_output_tokens": null,
+      "n_tokens_reported": 0,
+      "cost_usd": 0.0,
+      "cost_per_call_usd": 0.0,
+      "cost_per_1k_usd": 0.0,
+      "cost_per_correct_usd": null,
+      "spec_hash": "c727bbe2ce10d1f983db3c6463bc98aa7da30a527bfa476471a8ee0def83207f",
+      "returns_probability": false,
+      "declares_probability": true,
+      "validity": {
+        "api_error": 5
+      },
+      "valid": 0,
+      "valid_rate": 0.0,
+      "accuracy": 0.0,
+      "accuracy_ci": [
+        0.0,
+        0.0
+      ],
+      "retries": 0,
+      "failed": 5
+    }
+  },
+  "position_bias": {
+    "glm/ag_news": {
+      "model": "glm",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.25,
+          0.08333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5833333333333334,
+        "n": 12
+      }
+    },
+    "phi/ag_news": {
+      "model": "phi",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.25,
+          0.08333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5833333333333334,
+        "n": 12
+      }
+    },
+    "gemma/ag_news": {
+      "model": "gemma",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.25,
+          0.08333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5833333333333334,
+        "n": 12
+      }
+    },
+    "deepseek/ag_news": {
+      "model": "deepseek",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.25,
+          0.08333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5833333333333334,
+        "n": 12
+      }
+    },
+    "llama/ag_news": {
+      "model": "llama",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.25,
+          0.08333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5833333333333334,
+        "n": 12
+      }
+    },
+    "qwen/ag_news": {
+      "model": "qwen",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.25,
+          0.08333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5833333333333334,
+        "n": 12
+      }
+    },
+    "gpt/ag_news": {
+      "model": "gpt",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.25,
+          0.08333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5833333333333334,
+        "n": 12
+      }
+    },
+    "jev/ag_news": {
+      "model": "jev",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.25,
+          0.08333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5833333333333334,
+        "n": 12
+      }
+    },
+    "laya/ag_news": {
+      "model": "laya",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.25,
+          0.08333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5833333333333334,
+        "n": 12
+      }
+    },
+    "glm/clinc150": {
+      "model": "glm",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.3333333333333333,
+          0.0,
+          0.08333333333333333,
+          0.16666666666666666,
+          0.16666666666666666,
+          0.0,
+          0.08333333333333333,
+          0.0,
+          0.0,
+          0.16666666666666666
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.39722222222222225,
+        "n": 12
+      }
+    },
+    "phi/clinc150": {
+      "model": "phi",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.5,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.5,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.25,
+          0.0,
+          0.08333333333333333,
+          0.16666666666666666,
+          0.16666666666666666,
+          0.0,
+          0.08333333333333333,
+          0.08333333333333333,
+          0.0,
+          0.16666666666666666
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.46,
+        "n": 12
+      }
+    },
+    "gemma/clinc150": {
+      "model": "gemma",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.3333333333333333,
+          0.0,
+          0.08333333333333333,
+          0.16666666666666666,
+          0.16666666666666666,
+          0.0,
+          0.08333333333333333,
+          0.0,
+          0.0,
+          0.16666666666666666
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.39722222222222225,
+        "n": 12
+      }
+    },
+    "deepseek/clinc150": {
+      "model": "deepseek",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 11,
+      "flip": {
+        "rate": 0.5,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 0.5,
+          "last": 1.0
+        },
+        "spread": 0.5,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.45454545454545453,
+          0.0,
+          0.09090909090909091,
+          0.18181818181818182,
+          0.09090909090909091,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.18181818181818182
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.3284848484848485,
+        "n": 11
+      }
+    },
+    "llama/clinc150": {
+      "model": "llama",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.5,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 0.5,
+          "last": 0.5
+        },
+        "spread": 0.5,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.3333333333333333,
+          0.0,
+          0.3333333333333333,
+          0.16666666666666666,
+          0.08333333333333333,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.08333333333333333
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.2861111111111111,
+        "n": 12
+      }
+    },
+    "qwen/clinc150": {
+      "model": "qwen",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 9,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.5,
+          "middle": 0.5,
+          "last": 0.5
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.3333333333333333,
+          0.0,
+          0.1111111111111111,
+          0.2222222222222222,
+          0.1111111111111111,
+          0.0,
+          0.1111111111111111,
+          0.0,
+          0.0,
+          0.1111111111111111
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.36296296296296293,
+        "n": 9
+      }
+    },
+    "gpt/clinc150": {
+      "model": "gpt",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.3333333333333333,
+          0.0,
+          0.08333333333333333,
+          0.16666666666666666,
+          0.16666666666666666,
+          0.0,
+          0.08333333333333333,
+          0.0,
+          0.0,
+          0.16666666666666666
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.39722222222222225,
+        "n": 12
+      }
+    },
+    "jev/clinc150": {
+      "model": "jev",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 12,
+      "flip": {
+        "rate": 0.0,
+        "n": 2,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 1.0,
+          "middle": 1.0,
+          "last": 1.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": [
+          0.3333333333333333,
+          0.0,
+          0.08333333333333333,
+          0.16666666666666666,
+          0.16666666666666666,
+          0.0,
+          0.08333333333333333,
+          0.0,
+          0.0,
+          0.16666666666666666
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.39722222222222225,
+        "n": 12
+      }
+    },
+    "laya/clinc150": {
+      "model": "laya",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 2,
+      "n_calls": 12,
+      "n_valid": 0,
+      "flip": {
+        "rate": null,
+        "n": 0,
+        "n_incomplete": 0,
+        "n_unusable": 2
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.0,
+          "middle": 0.0,
+          "last": 0.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 2,
+          "middle": 2,
+          "last": 2
+        }
+      },
+      "positions": {
+        "shares": null,
+        "edges": null,
+        "mean_normalised": null,
+        "n": 0
+      }
+    }
+  },
+  "determinism": {
+    "glm/ag_news@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "phi/ag_news@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "gemma/ag_news@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "deepseek/ag_news@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "llama/ag_news@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "qwen/ag_news@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "gpt/ag_news@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "jev/ag_news@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "laya/ag_news@local-cpu": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "glm/clinc150@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "phi/clinc150@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "gemma/clinc150@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "deepseek/clinc150@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "llama/clinc150@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "qwen/clinc150@openrouter": {
+      "disagreement_rate": 0.5,
+      "n": 2
+    },
+    "gpt/clinc150@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "jev/clinc150@openrouter": {
+      "disagreement_rate": 0.0,
+      "n": 2
+    },
+    "laya/clinc150@local-cpu": {
+      "disagreement_rate": 1.0,
+      "n": 2
+    }
+  },
+  "calibration": {
+    "jev/ag_news": {
+      "temperature": null,
+      "ece_raw": 0.054000000000000006,
+      "ece_scaled": null,
+      "n_validation": 4,
+      "n_test": 5,
+      "n_bins": 15,
+      "min_validation": 30,
+      "fit_refused": true,
+      "model": "jev",
+      "task": "ag_news",
+      "reliability": {
+        "bin_centres": [
+          0.84,
+          0.89,
+          1.0
+        ],
+        "accuracy": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "counts": [
+          1,
+          1,
+          3
+        ]
+      }
+    },
+    "laya/ag_news": {
+      "temperature": null,
+      "ece_raw": 0.10667999999999998,
+      "ece_scaled": null,
+      "n_validation": 4,
+      "n_test": 5,
+      "n_bins": 15,
+      "min_validation": 30,
+      "fit_refused": true,
+      "model": "laya",
+      "task": "ag_news",
+      "reliability": {
+        "bin_centres": [
+          0.6488,
+          0.8945,
+          0.9744333333333334
+        ],
+        "accuracy": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "counts": [
+          1,
+          1,
+          3
+        ]
+      }
+    },
+    "jev/clinc150": {
+      "temperature": null,
+      "ece_raw": 0.0020000000000000018,
+      "ece_scaled": null,
+      "n_validation": 4,
+      "n_test": 5,
+      "n_bins": 15,
+      "min_validation": 30,
+      "fit_refused": true,
+      "model": "jev",
+      "task": "clinc150",
+      "reliability": {
+        "bin_centres": [
+          0.998
+        ],
+        "accuracy": [
+          1.0
+        ],
+        "counts": [
+          5
+        ]
+      }
+    }
+  },
+  "option_overhead": {
+    "glm/ag_news": {
+      "model_id": "z-ai/glm-5.3-flash",
+      "n_options": 4,
+      "prompt_tokens_with_options": 116,
+      "prompt_tokens_without_options": 104,
+      "option_tokens": 12,
+      "output_tokens": 53,
+      "cost_one_call": 2.8874e-05
+    },
+    "phi/ag_news": {
+      "model_id": "microsoft/phi-4",
+      "n_options": 4,
+      "prompt_tokens_with_options": 111,
+      "prompt_tokens_without_options": 99,
+      "option_tokens": 12,
+      "output_tokens": 7,
+      "cost_one_call": 8.75e-06
+    },
+    "gemma/ag_news": {
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "n_options": 4,
+      "prompt_tokens_with_options": 118,
+      "prompt_tokens_without_options": 186,
+      "option_tokens": -68,
+      "output_tokens": 7,
+      "cost_one_call": 1.814e-05
+    },
+    "deepseek/ag_news": {
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "n_options": 4,
+      "prompt_tokens_with_options": 136,
+      "prompt_tokens_without_options": 124,
+      "option_tokens": 12,
+      "output_tokens": 31,
+      "cost_one_call": 7.8e-05
+    },
+    "llama/ag_news": {
+      "model_id": "meta-llama/llama-4-scout",
+      "n_options": 4,
+      "prompt_tokens_with_options": null,
+      "prompt_tokens_without_options": 102,
+      "option_tokens": null,
+      "output_tokens": null,
+      "cost_one_call": null
+    },
+    "qwen/ag_news": {
+      "model_id": "qwen/qwen3.8-27b",
+      "n_options": 4,
+      "prompt_tokens_with_options": 160,
+      "prompt_tokens_without_options": 135,
+      "option_tokens": 25,
+      "output_tokens": 106,
+      "cost_one_call": 0.0004112
+    },
+    "gpt/ag_news": {
+      "model_id": "openai/gpt-6-luna",
+      "n_options": 4,
+      "prompt_tokens_with_options": 144,
+      "prompt_tokens_without_options": 119,
+      "option_tokens": 25,
+      "output_tokens": 12,
+      "cost_one_call": 2.04e-05
+    },
+    "jev/ag_news": {
+      "model_id": "typesafe/jev-1.13-20260917",
+      "n_options": 4,
+      "prompt_tokens_with_options": 369,
+      "prompt_tokens_without_options": null,
+      "option_tokens": null,
+      "output_tokens": 47,
+      "cost_one_call": 1.5498e-05
+    },
+    "laya/ag_news": {
+      "model_id": "laya (C:\\projects\\jev_demo\\arena\\models\\laya)",
+      "n_options": 4,
+      "prompt_tokens_with_options": null,
+      "prompt_tokens_without_options": null,
+      "option_tokens": null,
+      "output_tokens": null,
+      "cost_one_call": 0.0
+    },
+    "glm/clinc150": {
+      "model_id": "z-ai/glm-5.3-flash",
+      "n_options": 151,
+      "prompt_tokens_with_options": 928,
+      "prompt_tokens_without_options": 68,
+      "option_tokens": 860,
+      "output_tokens": 9,
+      "cost_one_call": 4.302e-05
+    },
+    "phi/clinc150": {
+      "model_id": "microsoft/phi-4",
+      "n_options": 151,
+      "prompt_tokens_with_options": 923,
+      "prompt_tokens_without_options": 63,
+      "option_tokens": 860,
+      "output_tokens": 8,
+      "cost_one_call": 6.573e-05
+    },
+    "gemma/clinc150": {
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "n_options": 151,
+      "prompt_tokens_with_options": 1722,
+      "prompt_tokens_without_options": 69,
+      "option_tokens": 1653,
+      "output_tokens": 8,
+      "cost_one_call": 7.4084e-05
+    },
+    "deepseek/clinc150": {
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "n_options": 151,
+      "prompt_tokens_with_options": 1037,
+      "prompt_tokens_without_options": 59,
+      "option_tokens": 978,
+      "output_tokens": 41,
+      "cost_one_call": 0.0003603
+    },
+    "llama/clinc150": {
+      "model_id": "meta-llama/llama-4-scout",
+      "n_options": 151,
+      "prompt_tokens_with_options": 947,
+      "prompt_tokens_without_options": 64,
+      "option_tokens": 883,
+      "output_tokens": 8,
+      "cost_one_call": 9.71e-05
+    },
+    "qwen/clinc150": {
+      "model_id": "qwen/qwen3.8-27b",
+      "n_options": 151,
+      "prompt_tokens_with_options": 961,
+      "prompt_tokens_without_options": 98,
+      "option_tokens": 863,
+      "output_tokens": 56,
+      "cost_one_call": 0.00035384
+    },
+    "gpt/clinc150": {
+      "model_id": "openai/gpt-6-luna",
+      "n_options": 151,
+      "prompt_tokens_with_options": 1457,
+      "prompt_tokens_without_options": 81,
+      "option_tokens": 1376,
+      "output_tokens": 13,
+      "cost_one_call": 0.00018855
+    },
+    "jev/clinc150": {
+      "model_id": "typesafe/jev-1.13-20260917",
+      "n_options": 151,
+      "prompt_tokens_with_options": 2259,
+      "prompt_tokens_without_options": null,
+      "option_tokens": null,
+      "output_tokens": 1301,
+      "cost_one_call": 9.4878e-05
+    },
+    "laya/clinc150": {
+      "model_id": "laya (C:\\projects\\jev_demo\\arena\\models\\laya)",
+      "n_options": 151,
+      "prompt_tokens_with_options": null,
+      "prompt_tokens_without_options": null,
+      "option_tokens": null,
+      "output_tokens": null,
+      "cost_one_call": 0.0
+    }
+  },
+  "tasks": {
+    "ag_news": {
+      "dataset": "fancyzhx/ag_news",
+      "config": "default",
+      "split": "test",
+      "licence": "unknown -- the hub lists `license: unknown` for this dataset. Recorded as unknown rather than assumed permissive.",
+      "source": "fancyzhx/ag_news (default config), test split",
+      "n_examples": 5,
+      "n_options": 4,
+      "n_validation": 4,
+      "bias_subset": 2,
+      "n_random_orders": 3
+    },
+    "clinc150": {
+      "dataset": "clinc/clinc_oos",
+      "config": "plus",
+      "split": "test",
+      "licence": "CC-BY-3.0",
+      "source": "clinc/clinc_oos (plus config), test split",
+      "n_examples": 5,
+      "n_options": 151,
+      "n_validation": 4,
+      "bias_subset": 2,
+      "n_random_orders": 3
+    }
+  },
+  "model_resolution": {
+    "glm": {
+      "model_id": "z-ai/glm-5.3-flash",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": 0,
+      "reasoning_effort": "minimal",
+      "returns_probability": false,
+      "generation": "2026-08",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "z-ai/glm-5.3-flash",
+        "canonical_slug": "z-ai/glm-5.3-flash-20260826",
+        "name": "Z.ai: GLM 5.3 Flash",
+        "created": 1787752741,
+        "released": "2026-08",
+        "context_length": 1310720,
+        "knowledge_cutoff": null,
+        "pricing": {
+          "prompt": "0.000000045",
+          "completion": "0.0000006",
+          "input_cache_read": "0.0000000285"
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "include_reasoning",
+          "logit_bias",
+          "logprobs",
+          "max_tokens",
+          "min_p",
+          "parallel_tool_calls",
+          "presence_penalty",
+          "reasoning",
+          "reasoning_effort",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_logprobs",
+          "top_p"
+        ]
+      },
+      "tried": [
+        [
+          "z-ai/glm-5.3-flash",
+          true
+        ]
+      ]
+    },
+    "phi": {
+      "model_id": "microsoft/phi-4",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": 0,
+      "reasoning_effort": null,
+      "returns_probability": false,
+      "generation": "2025-01",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "microsoft/phi-4",
+        "canonical_slug": "microsoft/phi-4",
+        "name": "Microsoft: Phi 4",
+        "created": 1736489872,
+        "released": "2025-01",
+        "context_length": 16384,
+        "knowledge_cutoff": "2024-06-30",
+        "pricing": {
+          "prompt": "0.00000007",
+          "completion": "0.00000014"
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "logit_bias",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "top_k",
+          "top_p"
+        ]
+      },
+      "tried": [
+        [
+          "microsoft/phi-4",
+          true
+        ]
+      ]
+    },
+    "gemma": {
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": 0,
+      "reasoning_effort": null,
+      "returns_probability": false,
+      "generation": "2026-04",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "google/gemma-4-26b-a4b-it",
+        "canonical_slug": "google/gemma-4-26b-a4b-it-20260403",
+        "name": "Google: Gemma 4 26B A4B ",
+        "created": 1775227989,
+        "released": "2026-04",
+        "context_length": 262144,
+        "knowledge_cutoff": null,
+        "pricing": {
+          "prompt": "0.00000009",
+          "completion": "0.0000003",
+          "input_cache_read": "0.00000005"
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "include_reasoning",
+          "logit_bias",
+          "logprobs",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "reasoning",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_logprobs",
+          "top_p"
+        ]
+      },
+      "tried": [
+        [
+          "google/gemma-4-26b-a4b-it",
+          true
+        ]
+      ]
+    },
+    "deepseek": {
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": 0,
+      "reasoning_effort": "minimal",
+      "returns_probability": false,
+      "generation": "2026-09",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "deepseek/deepseek-v4.1-flash",
+        "canonical_slug": "deepseek/deepseek-v4.1-flash-20260910",
+        "name": "DeepSeek: DeepSeek V4.1 Flash",
+        "created": 1789021285,
+        "released": "2026-09",
+        "context_length": 1048576,
+        "knowledge_cutoff": null,
+        "pricing": {
+          "prompt": "0.0000003",
+          "completion": "0.0000012",
+          "input_cache_read": "0.000000006",
+          "overrides": [
+            {
+              "utc_days": [
+                "saturday",
+                "sunday"
+              ],
+              "prompt": "0.00000015",
+              "completion": "0.0000006",
+              "input_cache_read": "0.000000003"
+            },
+            {
+              "utc_days": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday"
+              ],
+              "utc_start": 0,
+              "utc_end": 100,
+              "prompt": "0.00000015",
+              "completion": "0.0000006",
+              "input_cache_read": "0.000000003"
+            },
+            {
+              "utc_days": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday"
+              ],
+              "utc_start": 100,
+              "utc_end": 400,
+              "prompt": "0.0000003",
+              "completion": "0.0000012",
+              "input_cache_read": "0.000000006"
+            },
+            {
+              "utc_days": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday"
+              ],
+              "utc_start": 400,
+              "utc_end": 600,
+              "prompt": "0.00000015",
+              "completion": "0.0000006",
+              "input_cache_read": "0.000000003"
+            },
+            {
+              "utc_days": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday"
+              ],
+              "utc_start": 600,
+              "utc_end": 1000,
+              "prompt": "0.0000003",
+              "completion": "0.0000012",
+              "input_cache_read": "0.000000006"
+            },
+            {
+              "utc_days": [
+                "monday",
+                "tuesday",
+                "wednesday",
+                "thursday",
+                "friday"
+              ],
+              "utc_start": 1000,
+              "utc_end": 0,
+              "prompt": "0.00000015",
+              "completion": "0.0000006",
+              "input_cache_read": "0.000000003"
+            }
+          ]
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "include_reasoning",
+          "logit_bias",
+          "logprobs",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "reasoning",
+          "reasoning_effort",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_logprobs",
+          "top_p"
+        ]
+      },
+      "tried": [
+        [
+          "deepseek/deepseek-v4.1-flash",
+          true
+        ]
+      ]
+    },
+    "llama": {
+      "model_id": "meta-llama/llama-4-scout",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": 0,
+      "reasoning_effort": null,
+      "returns_probability": false,
+      "generation": "2025-04",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "meta-llama/llama-4-scout",
+        "canonical_slug": "meta-llama/llama-4-scout-17b-16e-instruct",
+        "name": "Meta: Llama 4 Scout",
+        "created": 1743881519,
+        "released": "2025-04",
+        "context_length": 1310720,
+        "knowledge_cutoff": "2024-08-31",
+        "pricing": {
+          "prompt": "0.0000001",
+          "completion": "0.0000003"
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "logit_bias",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_k",
+          "top_p"
+        ]
+      },
+      "tried": [
+        [
+          "meta-llama/llama-4-scout",
+          true
+        ]
+      ]
+    },
+    "qwen": {
+      "model_id": "qwen/qwen3.8-27b",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": 0,
+      "reasoning_effort": "minimal",
+      "returns_probability": false,
+      "generation": "2026-08",
+      "current_generation": false,
+      "refused_above_it": [
+        "qwen/qwen3.8-flash"
+      ],
+      "version": {
+        "id": "qwen/qwen3.8-27b",
+        "canonical_slug": "qwen/qwen3.8-27b-20260814",
+        "name": "Qwen: Qwen3.8 27B",
+        "created": 1786722910,
+        "released": "2026-08",
+        "context_length": 1000000,
+        "knowledge_cutoff": null,
+        "pricing": {
+          "prompt": "0.00000042",
+          "completion": "0.000003",
+          "input_cache_read": "0.000000085"
+        },
+        "supported_parameters": [
+          "frequency_penalty",
+          "include_reasoning",
+          "logit_bias",
+          "logprobs",
+          "max_tokens",
+          "min_p",
+          "presence_penalty",
+          "reasoning",
+          "reasoning_effort",
+          "repetition_penalty",
+          "response_format",
+          "seed",
+          "stop",
+          "structured_outputs",
+          "temperature",
+          "tool_choice",
+          "tools",
+          "top_a",
+          "top_k",
+          "top_logprobs",
+          "top_p"
+        ]
+      },
+      "tried": [
+        [
+          "qwen/qwen3.8-flash",
+          false
+        ],
+        [
+          "qwen/qwen3.8-27b",
+          true
+        ]
+      ]
+    },
+    "gpt": {
+      "model_id": "openai/gpt-6-luna",
+      "route": "POST /api/v1/chat/completions",
+      "transport": "openrouter",
+      "structured_mode": "json_schema (strict)",
+      "temperature": null,
+      "reasoning_effort": "minimal",
+      "returns_probability": false,
+      "generation": "2026-09",
+      "current_generation": true,
+      "refused_above_it": [],
+      "version": {
+        "id": "openai/gpt-6-luna",
+        "canonical_slug": "openai/gpt-6-luna-20260922",
+        "name": "OpenAI: GPT-6 Luna",
+        "created": 1790100786,
+        "released": "2026-09",
+        "context_length": 1050000,
+        "knowledge_cutoff": null,
+        "pricing": {
+          "prompt": "0.0000001",
+          "completion": "0.0000005",
+          "web_search": "0.01",
+          "input_cache_read": "0.00000001",
+          "input_cache_write": "0.000000125",
+          "overrides": [
+            {
+              "min_prompt_tokens": 272000,
+              "prompt": "0.0000002",
+              "completion": "0.00000075",
+              "input_cache_read": "0.00000002",
+              "input_cache_write": "0.00000025"
+            }
+          ]
+        },
+        "supported_parameters": [
+          "include_reasoning",
+          "max_completion_tokens",
+          "max_tokens",
+          "reasoning",
+          "reasoning_effort",
+          "response_format",
+          "seed",
+          "structured_outputs",
+          "tool_choice",
+          "tools"
+        ]
+      },
+      "tried": [
+        [
+          "openai/gpt-6-luna",
+          true
+        ]
+      ]
+    },
+    "jev": {
+      "model_id": "typesafe/jev-1.13-20260917",
+      "route": "POST /api/v1/systemone",
+      "transport": "openrouter",
+      "structured_mode": "typed",
+      "returns_probability": true,
+      "generation": "2026-09",
+      "version": {
+        "id": "typesafe/jev-1.13",
+        "canonical_slug": "typesafe/jev-1.13-20260917",
+        "name": "TypeSafe: Jev 1.13",
+        "created": 1789689684,
+        "released": "2026-09",
+        "context_length": 32000,
+        "knowledge_cutoff": null,
+        "pricing": {
+          "prompt": "0.000000042",
+          "completion": "0"
+        },
+        "supported_parameters": []
+      },
+      "tried": []
+    },
+    "laya": {
+      "model_id": "laya (C:\\projects\\jev_demo\\arena\\models\\laya)",
+      "route": "local (cpu)",
+      "transport": "local-cpu",
+      "structured_mode": "typed",
+      "returns_probability": true,
+      "tried": [],
+      "cfg": {
+        "head_max_len": 192,
+        "max_len": 512
+      }
+    }
+  },
+  "total_recorded_spend_usd": 0.0293034568,
+  "n_calls": 358
+}

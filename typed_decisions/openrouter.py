@@ -12,7 +12,7 @@ Three properties matter.
     that succeeded, so queueing is never charged to a model's speed; `wall_ms`
     covers the whole call including backoff, so it never disappears either.
   * An answer is never asked for twice. One call, one answer. A completion that
-    cannot be parsed is a result -- see `parse.py` -- not a reason to call again.
+    cannot be parsed is a result -- see `prompts.classify` -- not a reason to call again.
   * Every record carries `transport`. The experiment previously ran over the
     Vercel AI Gateway, and those numbers are not comparable to these: a different
     provider, a different route and a different set of models. Tagging every call

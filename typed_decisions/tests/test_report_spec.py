@@ -47,9 +47,29 @@ def _payload(**over):
 
 
 class TestRefusingToMixSpecs:
-    def test_one_spec_hash_is_fine(self):
+    def test_one_spec_hash_per_task_is_fine(self):
         assert report.require_one_spec([_rec(), _rec(model="phi")],
-                                       {HASH_A: _payload()}) == HASH_A
+                                       {HASH_A: _payload()}) == {"ag_news": HASH_A}
+
+    def test_two_tasks_each_with_their_own_spec_is_the_normal_case(self):
+        """One spec per task, by construction: the option list, the instruction
+        and the example ids all differ between them. The rule is that every
+        record *of one task* shares that task's spec, not that the whole store
+        has one hash."""
+        records = [_rec(task="ag_news", spec_hash=HASH_A),
+                   _rec(task="clinc150", spec_hash=HASH_B)]
+        specs = {HASH_A: _payload(), HASH_B: _payload(task="clinc150")}
+        assert report.require_one_spec(records, specs) == {"ag_news": HASH_A,
+                                                           "clinc150": HASH_B}
+
+    def test_one_task_on_two_specs_is_still_refused(self):
+        records = [_rec(task="ag_news", spec_hash=HASH_A),
+                   _rec(task="ag_news", model="phi", spec_hash=HASH_B),
+                   _rec(task="clinc150", spec_hash="c" * 64)]
+        specs = {HASH_A: _payload(), HASH_B: _payload(seed=9),
+                 "c" * 64: _payload(task="clinc150")}
+        with pytest.raises(SystemExit, match="ag_news"):
+            report.require_one_spec(records, specs)
 
     def test_two_spec_hashes_are_refused(self):
         """A quietly invalid comparison must fail loudly. This is the whole
@@ -193,6 +213,24 @@ class TestPositionBias:
 
     def test_a_run_with_no_bias_arms_reports_nothing_rather_than_zero_bias(self):
         assert report.position_bias([_rec(arm="main")]) == {}
+
+    def test_a_model_that_could_not_answer_at_all_is_marked_as_such(self):
+        """Laya cannot fit 151 options into its head budget, so every CLINC call
+        fails. Its zero accuracy at every gold position is a structural failure,
+        not a position effect, and the row has to say so."""
+        records = [_rec(model="laya", arm=arm, example="e1", choice=None, correct=0,
+                        validity="api_error")
+                   for arm in ("rand:0", "rand:1", "rand:2",
+                               "gold:first", "gold:middle", "gold:last")]
+        out = report.position_bias(records)["laya/ag_news"]
+        assert out["n_valid"] == 0
+        assert out["flip"]["rate"] is None, "a total failure is not a 100% flip rate"
+        assert out["flip"]["n_unusable"] == 1
+
+    def test_a_model_that_answered_reports_how_many_were_usable(self):
+        records = [_rec(model="gpt", arm=f"rand:{i}", example="e1", choice="World")
+                   for i in range(3)]
+        assert report.position_bias(records)["gpt/ag_news"]["n_valid"] == 3
 
     def test_the_bias_arms_are_kept_apart_per_task(self):
         records = ([_rec(model="gpt", task="ag_news", arm=f"rand:{i}", example="e",

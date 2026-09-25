@@ -1,4 +1,9 @@
-"""Percentiles, a bootstrap CI, the position-bias measures, and the run's spend estimate.
+"""Every number this experiment reports, as pure functions over plain lists.
+
+Percentiles, a bootstrap CI, paired differences, the position-bias measures,
+calibration, and the estimate that guards a paid run. Percentiles are
+nearest-rank rather than interpolated, so every latency reported is a latency
+some call actually had.
 
 Plain Python and numpy. Percentiles are nearest-rank rather than interpolated, so
 every latency reported is a latency some call actually had.
@@ -64,12 +69,6 @@ def disagreement_rate(first, second):
     return (differ / len(shared), len(shared))
 
 
-def call_cost(input_tokens, output_tokens, pricing):
-    """Only for the pre-run estimate. Every cost that gets reported comes off the
-    provider's own per-call `cost`, never off a rate and a token count."""
-    return input_tokens * float(pricing["input"]) + output_tokens * float(pricing["output"])
-
-
 def estimate(plan):
     by_model = {p["model"]: (p["calls"] + p["warmup"]) * p["cost_per_call"] for p in plan}
     return {"by_model": by_model, "total_usd": sum(by_model.values())}
@@ -90,25 +89,36 @@ def needs_confirmation(total_usd, threshold):
 
 
 def flip_rate(answers_by_example, n_orders=3):
-    """-> {"rate", "n", "n_incomplete"} over examples answered under every order.
+    """-> {"rate", "n", "n_incomplete", "n_unusable"}.
 
-    An example flips if its answers are not all the same string. `None` -- an
-    unusable answer -- is never evidence of stability, so three failures count as
-    a flip rather than as a model agreeing with itself.
+    An example flips if its answers are not all the same. Two kinds of example
+    are **excluded and counted** rather than scored, because in neither case did
+    the option order cause anything:
 
-    An example missing one of the orders is **excluded and counted**, not scored:
-    a model that failed a call has demonstrated neither stability nor a flip, and
-    letting it count either way would quietly move the number."""
-    complete, incomplete = [], 0
+      * *incomplete* -- the model has no record under one of the orders, so it
+        demonstrated neither stability nor a flip;
+      * *unusable* -- the model returned nothing usable under **any** order. That
+        is a failure, and counting it as position bias would put a number in the
+        bias table that the order did not cause. Laya on a 151-option list does
+        exactly this: every call fails on its option budget, and a 100% flip rate
+        would be a lie about why.
+
+    An example answered under two orders and failed under the third **is** a
+    flip: the answer did change with the order."""
+    complete, incomplete, unusable = [], 0, 0
     for answers in answers_by_example.values():
         if len(answers) != n_orders:
             incomplete += 1
             continue
+        if all(a is None for a in answers):
+            unusable += 1
+            continue
         complete.append(answers)
     if not complete:
-        return {"rate": None, "n": 0, "n_incomplete": incomplete}
-    flipped = sum(1 for a in complete if None in a or len(set(a)) > 1)
-    return {"rate": flipped / len(complete), "n": len(complete), "n_incomplete": incomplete}
+        return {"rate": None, "n": 0, "n_incomplete": incomplete, "n_unusable": unusable}
+    flipped = sum(1 for a in complete if len(set(a)) > 1)
+    return {"rate": flipped / len(complete), "n": len(complete),
+            "n_incomplete": incomplete, "n_unusable": unusable}
 
 
 def accuracy_by_position(correct_by_placement):
@@ -184,3 +194,142 @@ def paired(a, b, n=1000, seed=0, alpha=0.05):
     diffs = [a[k] - b[k] for k in shared]
     return {"n": len(shared), "mean_diff": sum(diffs) / len(diffs),
             "ci": bootstrap_ci(diffs, n=n, seed=seed, alpha=alpha)}
+
+
+# --- calibration -------------------------------------------------------------
+#
+# Is the number a model hands back a probability you could act on? Only the
+# decision models answer that at all: Jev and Laya return a distribution over every
+# option, an LLM in structured mode returns a label. Without a probability there is
+# no threshold, so "route this one to a human" is not available from that model at
+# any price -- which is why the capability is a column in the report and
+# calibration is present for some rows and simply absent for others.
+#
+# The temperature is fitted on a validation split carved out of TRAIN, never on
+# test. `calibrate()` takes the two sets separately for exactly that reason.
+
+
+N_BINS = 15
+
+# The temperature is searched inside a range, not off the end of one. A fitted
+# 0.001 is the optimiser running out of grid, not a calibration.
+T_MIN, T_MAX = 0.25, 10.0
+_GRID = [T_MIN + 0.02 * i for i in range(int((T_MAX - T_MIN) / 0.02) + 1)]
+
+# Below this many validation rows, no temperature is reported at all. With a
+# handful of confident, correct rows the likelihood is minimised by driving T
+# towards zero: the fit returns the smallest value on the grid and a scaled ECE
+# of exactly zero, which is an artefact of the sample size and would be read as a
+# calibration result. Refusing to fit is the honest outcome.
+MIN_VALIDATION = 30
+
+
+def ece(confidences, correct, n_bins=N_BINS):
+    """Expected calibration error: sum over bins of |accuracy - confidence|,
+    weighted by the share of answers in the bin."""
+    if len(confidences) != len(correct):
+        raise ValueError(f"{len(confidences)} confidences against {len(correct)} outcomes")
+    if not confidences:
+        return None
+    bins = [[] for _ in range(n_bins)]
+    for c, ok in zip(confidences, correct):
+        bins[min(n_bins - 1, int(c * n_bins))].append((c, ok))
+    total = len(confidences)
+    return sum(
+        len(rows) / total * abs(sum(ok for _, ok in rows) / len(rows)
+                                - sum(c for c, _ in rows) / len(rows))
+        for rows in bins if rows
+    )
+
+
+def _log(p):
+    """log with a floor, because a model that returns a hard 0 for an option is
+    common and -inf would end the fit rather than inform it."""
+    return math.log(max(float(p), 1e-12))
+
+
+def _nll(rows, temperature):
+    total = 0.0
+    for probs, gold in rows:
+        scaled = {k: _log(v) / temperature for k, v in probs.items()}
+        peak = max(scaled.values())
+        denominator = sum(math.exp(v - peak) for v in scaled.values())
+        total -= (scaled.get(gold, _log(0) / temperature) - peak) - math.log(denominator)
+    return total / len(rows)
+
+
+def fit_temperature(rows):
+    """-> the scalar T minimising negative log likelihood on `rows`.
+
+    `rows` is [({option: probability}, gold option)] and must come from the
+    **validation** split. A coarse grid then a local refinement: the objective is
+    one-dimensional and smooth, so this is exact enough and adds no dependency.
+
+    `None` when there is nothing to fit on, or fewer than `MIN_VALIDATION` rows.
+    Returning 1.0 instead would report an unfitted model as though it had been
+    calibrated, and fitting on four rows would report an artefact as one."""
+    if len(rows) < MIN_VALIDATION:
+        return None
+    best = min(_GRID, key=lambda t: _nll(rows, t))
+    fine = [best + 0.002 * i for i in range(-9, 10) if T_MIN <= best + 0.002 * i <= T_MAX]
+    return min(fine, key=lambda t: _nll(rows, t))
+
+
+def apply_temperature(probs, temperature):
+    """Softmax of (log p / T). T = 1 is the identity; T > 1 flattens; T < 1
+    sharpens. The ranking is untouched at every T, so accuracy cannot move."""
+    scaled = {k: _log(v) / temperature for k, v in probs.items()}
+    peak = max(scaled.values())
+    exponentiated = {k: math.exp(v - peak) for k, v in scaled.items()}
+    total = sum(exponentiated.values())
+    return {k: v / total for k, v in exponentiated.items()}
+
+
+def calibrate(validation, test, n_bins=N_BINS):
+    """-> {"temperature", "ece_raw", "ece_scaled", "n_validation", "n_test"}.
+
+    `None` when the model returned no probabilities. A model that cannot be
+    calibrated is absent from the calibration table rather than scored zero,
+    which would read as perfectly calibrated."""
+    if not test:
+        return None
+    temperature = fit_temperature(validation)
+    raw_conf = [max(p.values()) for p, _ in test]
+    raw_correct = [int(max(p, key=p.get) == gold) for p, gold in test]
+    out = {
+        "temperature": temperature,
+        "ece_raw": ece(raw_conf, raw_correct, n_bins),
+        "ece_scaled": None,
+        "n_validation": len(validation),
+        "n_test": len(test),
+        "n_bins": n_bins,
+        "min_validation": MIN_VALIDATION,
+        "fit_refused": len(validation) < MIN_VALIDATION,
+    }
+    if temperature is not None:
+        scaled = [apply_temperature(p, temperature) for p, _ in test]
+        out["ece_scaled"] = ece([max(p.values()) for p in scaled], raw_correct, n_bins)
+    return out
+
+
+def reliability(confidences, correct, n_bins=N_BINS):
+    """-> {"bin_centres", "accuracy", "counts"} for the reliability diagram.
+
+    One point per **non-empty** bin: a bin nothing fell into is not a model that
+    was wrong there, and plotting it at zero would draw a curve the run never
+    measured. The x of each point is the mean confidence actually expressed in
+    that bin rather than the nominal centre of the bucket, because the curve is
+    read against the diagonal."""
+    if len(confidences) != len(correct):
+        raise ValueError(f"{len(confidences)} confidences against {len(correct)} outcomes")
+    if not confidences:
+        return None
+    bins = [[] for _ in range(n_bins)]
+    for c, ok in zip(confidences, correct):
+        bins[min(n_bins - 1, int(c * n_bins))].append((c, ok))
+    filled = [rows for rows in bins if rows]
+    return {
+        "bin_centres": [sum(c for c, _ in rows) / len(rows) for rows in filled],
+        "accuracy": [sum(ok for _, ok in rows) / len(rows) for rows in filled],
+        "counts": [len(rows) for rows in filled],
+    }

@@ -31,7 +31,7 @@ def row(model, task="ag_news", **kw):
 def results(**over):
     base = {
         "tag": "pilot",
-        "spec_hash": "a" * 64,
+        "spec_hashes": {"ag_news": "a" * 64, "clinc150": "b" * 64},
         "summary": {
             "gpt/ag_news@openrouter": row("gpt"),
             "jev/ag_news@openrouter": row("jev", accuracy=0.9, cost_per_1k_usd=0.05),
@@ -114,6 +114,15 @@ class TestWriteAll:
 
 
 class TestFailingLoudlyRatherThanDrawingNothing:
+    def test_a_model_whose_temperature_fit_was_refused_still_plots_its_raw_curve(self, tmp_path):
+        """Too few validation rows means no temperature, not no calibration: the
+        raw reliability curve is still the measurement, and the legend says the
+        fit was refused instead of crashing on a missing number."""
+        cal = {k: dict(v, temperature=None, ece_scaled=None, fit_refused=True)
+               for k, v in results()["calibration"].items()}
+        assert "calibration.png" in figures.write_all(results(calibration=cal),
+                                                      tmp_path)["written"]
+
     def test_a_calibration_panel_with_no_probabilistic_model_is_refused(self, tmp_path):
         """The named case: an LLM returns a label, so there is nothing to plot.
         An empty reliability diagram would read as a perfectly calibrated
@@ -127,14 +136,49 @@ class TestFailingLoudlyRatherThanDrawingNothing:
         with pytest.raises(figures.NothingToPlot, match="accuracy"):
             figures.cost_accuracy_plot(results(summary=no_gold), tmp_path)
 
+    def test_a_free_local_model_is_named_in_the_caption_not_silently_dropped(self, tmp_path):
+        """Cost is on a log axis, and a zero cannot go on one. Laya costs nothing
+        because it runs on this machine, so it would simply disappear from the
+        frontier chart -- the single most misleading thing this figure could do.
+        It is excluded explicitly and the caption says so."""
+        summary = {k: dict(v, cost_per_1k_usd=0.0 if v["local"] else v["cost_per_1k_usd"])
+                   for k, v in results()["summary"].items()}
+        assert figures.cost_accuracy_plot(results(summary=summary), tmp_path)                == "cost-accuracy.png"
+        assert figures.priced_out(summary) == ["laya"]
+
+    def test_nothing_is_excluded_when_every_model_has_a_price(self):
+        assert figures.priced_out(results()["summary"]) == []
+
     def test_cost_against_accuracy_is_refused_when_nothing_reports_a_cost(self, tmp_path):
-        free = {k: dict(v, cost_per_1k_usd=None) for k, v in results()["summary"].items()}
+        free = {k: dict(v, cost_per_1k_usd=0.0) for k, v in results()["summary"].items()}
         with pytest.raises(figures.NothingToPlot, match="cost"):
             figures.cost_accuracy_plot(results(summary=free), tmp_path)
 
     def test_the_position_bias_panel_is_refused_when_that_arm_never_ran(self, tmp_path):
         with pytest.raises(figures.NothingToPlot, match="position"):
             figures.position_bias_plot(results(position_bias={}), tmp_path)
+
+    def test_a_model_with_no_usable_answer_is_left_out_of_the_bias_panel(self, tmp_path):
+        """Zero accuracy at every position because every call failed is not a
+        position effect. It is excluded and the exclusion is stated, rather than
+        drawn as three flat bars at zero."""
+        bias = dict(results()["position_bias"])
+        bias["laya/clinc150"] = {"model": "laya", "task": "clinc150", "n_options": 151,
+                                 "n_examples": 40, "n_valid": 0,
+                                 "flip": {"rate": None, "n": 0, "n_incomplete": 0,
+                                          "n_unusable": 40},
+                                 "gold": {"accuracy": {"first": 0.0, "middle": 0.0, "last": 0.0},
+                                          "spread": 0.0, "n": {"first": 40, "middle": 40,
+                                                               "last": 40}},
+                                 "positions": {"shares": None, "edges": None,
+                                               "mean_normalised": None, "n": 0}}
+        out = figures.write_all(results(position_bias=bias), tmp_path)
+        assert "position-bias.png" in out["written"]
+
+    def test_the_position_bias_panel_is_refused_when_every_model_failed(self, tmp_path):
+        dead = {k: dict(v, n_valid=0) for k, v in results()["position_bias"].items()}
+        with pytest.raises(figures.NothingToPlot, match="usable"):
+            figures.position_bias_plot(results(position_bias=dead), tmp_path)
 
     def test_the_position_bias_panel_is_refused_when_no_gold_placement_was_measured(self, tmp_path):
         half = {k: dict(v, gold={"accuracy": {"first": None, "middle": None, "last": None},
