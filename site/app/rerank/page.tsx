@@ -88,11 +88,11 @@ export default function Page() {
 
       <Section
         id="expected"
-        title="What we expected, written down first"
-        standfirst="This is the part most write-ups leave out, and it is the part that makes the rest an experiment instead of a report."
+        title="What we expected"
+        standfirst="Written up after the run, not before it. The reasoning is real and it was wrong, but it is reasoning rather than a pre-registered prediction, and this page should not imply otherwise."
       >
         <div className="max-w-[62ch] border border-line bg-surface p-5">
-          <p className="numeric text-micro text-ink-soft">The prediction, before the run</p>
+          <p className="numeric text-micro text-ink-soft">What we believed going in, recorded afterwards</p>
           <p className="mt-3 text-lead italic leading-snug">
             Laya will re-rank well here, and better than Jev, because Convai&apos;s published benchmarks put it
             ahead of Jev on text relevance tasks, and this task is text relevance.
