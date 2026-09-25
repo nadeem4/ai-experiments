@@ -1,0 +1,2422 @@
+{
+  "tag": "full",
+  "written_at": "2026-09-25T11:52:29",
+  "spec_hashes": {
+    "ag_news": "ad7affdc7ebdc55f7b6558da2bb099f96379d58ccca7691cd21261e1d9cad8ac",
+    "clinc150": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc"
+  },
+  "spec": {
+    "ag_news": {
+      "task": "ag_news",
+      "dataset": "fancyzhx/ag_news",
+      "config": "default",
+      "split": "test",
+      "seed": 0,
+      "instructions": "Classify the news article below into exactly one of the topics listed."
+    },
+    "clinc150": {
+      "task": "clinc150",
+      "dataset": "clinc/clinc_oos",
+      "config": "plus",
+      "split": "test",
+      "seed": 0,
+      "instructions": "Classify the user's utterance below into exactly one of the intents listed. Answer 'oos' if it matches none of them."
+    }
+  },
+  "models": [
+    "deepseek",
+    "gemma",
+    "glm",
+    "gpt",
+    "jev",
+    "laya",
+    "llama",
+    "phi",
+    "qwen"
+  ],
+  "summary": {
+    "glm/ag_news@openrouter": {
+      "model": "glm",
+      "model_id": "z-ai/glm-5.3-flash",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 408.58470008242875,
+      "p95_ms": 2043.014399940148,
+      "tail_ratio": 5.0002224741356835,
+      "wall_p50_ms": 408.5878999903798,
+      "wall_p95_ms": 2043.018199969083,
+      "mean_input_tokens": 113.91,
+      "mean_output_tokens": 9.17,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.006159177,
+      "cost_per_call_usd": 2.053059e-05,
+      "cost_per_1k_usd": 0.020530589999999998,
+      "cost_per_correct_usd": 2.256108791208791e-05,
+      "spec_hash": "ad7affdc7ebdc55f7b6558da2bb099f96379d58ccca7691cd21261e1d9cad8ac",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 300
+      },
+      "valid": 300,
+      "valid_rate": 1.0,
+      "accuracy": 0.91,
+      "accuracy_ci": [
+        0.8766666666666667,
+        0.94
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "phi/ag_news@openrouter": {
+      "model": "phi",
+      "model_id": "microsoft/phi-4",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 481.571999960579,
+      "p95_ms": 971.7440000968054,
+      "tail_ratio": 2.0178581814896868,
+      "wall_p50_ms": 481.57619999255985,
+      "wall_p95_ms": 971.7470000032336,
+      "mean_input_tokens": 107.02,
+      "mean_output_tokens": 7.373333333333333,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.0025571,
+      "cost_per_call_usd": 8.523666666666668e-06,
+      "cost_per_1k_usd": 0.008523666666666667,
+      "cost_per_correct_usd": 1.0027843137254903e-05,
+      "spec_hash": "ad7affdc7ebdc55f7b6558da2bb099f96379d58ccca7691cd21261e1d9cad8ac",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 300
+      },
+      "valid": 300,
+      "valid_rate": 1.0,
+      "accuracy": 0.85,
+      "accuracy_ci": [
+        0.8099166666666667,
+        0.89
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "gemma/ag_news@openrouter": {
+      "model": "gemma",
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 658.3509999327362,
+      "p95_ms": 2259.3518000794575,
+      "tail_ratio": 3.43183469047711,
+      "wall_p50_ms": 658.3549999631941,
+      "wall_p95_ms": 2259.3545001000166,
+      "mean_input_tokens": 156.49333333333334,
+      "mean_output_tokens": 6.973333333333334,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.003688546,
+      "cost_per_call_usd": 1.2295153333333333e-05,
+      "cost_per_1k_usd": 0.012295153333333333,
+      "cost_per_correct_usd": 1.4296689922480621e-05,
+      "spec_hash": "ad7affdc7ebdc55f7b6558da2bb099f96379d58ccca7691cd21261e1d9cad8ac",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 300
+      },
+      "valid": 300,
+      "valid_rate": 1.0,
+      "accuracy": 0.86,
+      "accuracy_ci": [
+        0.8166666666666667,
+        0.8967499999999998
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "deepseek/ag_news@openrouter": {
+      "model": "deepseek",
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 539.6097999764606,
+      "p95_ms": 2926.5758999390528,
+      "tail_ratio": 5.423503983928236,
+      "wall_p50_ms": 539.6135000046343,
+      "wall_p95_ms": 2926.5791999641806,
+      "mean_input_tokens": 115.53333333333333,
+      "mean_output_tokens": 21.246666666666666,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.012052685,
+      "cost_per_call_usd": 4.0175616666666665e-05,
+      "cost_per_1k_usd": 0.040175616666666664,
+      "cost_per_correct_usd": 4.565410984848485e-05,
+      "spec_hash": "ad7affdc7ebdc55f7b6558da2bb099f96379d58ccca7691cd21261e1d9cad8ac",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 299,
+        "unparseable": 1
+      },
+      "valid": 299,
+      "valid_rate": 0.9966666666666667,
+      "accuracy": 0.88,
+      "accuracy_ci": [
+        0.8433333333333334,
+        0.9133333333333333
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "llama/ag_news@openrouter": {
+      "model": "llama",
+      "model_id": "meta-llama/llama-4-scout",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 571.2464000098407,
+      "p95_ms": 1289.147299947217,
+      "tail_ratio": 2.256727219506345,
+      "wall_p50_ms": 571.2505999254063,
+      "wall_p95_ms": 1289.1508999746293,
+      "mean_input_tokens": 108.81,
+      "mean_output_tokens": 7.373333333333333,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.0039279,
+      "cost_per_call_usd": 1.3093e-05,
+      "cost_per_1k_usd": 0.013093,
+      "cost_per_correct_usd": 1.528365758754864e-05,
+      "spec_hash": "ad7affdc7ebdc55f7b6558da2bb099f96379d58ccca7691cd21261e1d9cad8ac",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 300
+      },
+      "valid": 300,
+      "valid_rate": 1.0,
+      "accuracy": 0.8566666666666667,
+      "accuracy_ci": [
+        0.8133333333333334,
+        0.8934166666666665
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "qwen/ag_news@openrouter": {
+      "model": "qwen",
+      "model_id": "qwen/qwen3.8-flash",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 2860.42149993591,
+      "p95_ms": 5478.260700008832,
+      "tail_ratio": 1.9151935126104933,
+      "wall_p50_ms": 2867.355599999428,
+      "wall_p95_ms": 5478.264300036244,
+      "mean_input_tokens": 167.79333333333332,
+      "mean_output_tokens": 88.21333333333334,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.01998878,
+      "cost_per_call_usd": 6.662926666666667e-05,
+      "cost_per_1k_usd": 0.06662926666666667,
+      "cost_per_correct_usd": 7.430773234200744e-05,
+      "spec_hash": "ad7affdc7ebdc55f7b6558da2bb099f96379d58ccca7691cd21261e1d9cad8ac",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 299,
+        "api_error": 1
+      },
+      "valid": 299,
+      "valid_rate": 0.9966666666666667,
+      "accuracy": 0.8966666666666666,
+      "accuracy_ci": [
+        0.86,
+        0.9333333333333333
+      ],
+      "retries": 2,
+      "failed": 0
+    },
+    "gpt/ag_news@openrouter": {
+      "model": "gpt",
+      "model_id": "openai/gpt-6-luna",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 1391.7920000385493,
+      "p95_ms": 2885.21950005088,
+      "tail_ratio": 2.0730249203695426,
+      "wall_p50_ms": 1404.819699935615,
+      "wall_p95_ms": 4796.083700028248,
+      "mean_input_tokens": 138.42,
+      "mean_output_tokens": 14.116666666666667,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.0062701,
+      "cost_per_call_usd": 2.0900333333333334e-05,
+      "cost_per_1k_usd": 0.020900333333333333,
+      "cost_per_correct_usd": 2.411576923076923e-05,
+      "spec_hash": "ad7affdc7ebdc55f7b6558da2bb099f96379d58ccca7691cd21261e1d9cad8ac",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 300
+      },
+      "valid": 300,
+      "valid_rate": 1.0,
+      "accuracy": 0.8666666666666667,
+      "accuracy_ci": [
+        0.8266666666666667,
+        0.9033333333333333
+      ],
+      "retries": 73,
+      "failed": 0
+    },
+    "jev/ag_news@openrouter": {
+      "model": "jev",
+      "model_id": "typesafe/jev-1.13-20260917",
+      "task": "ag_news",
+      "transport": "openrouter",
+      "n_options": 4,
+      "structured": "typed",
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 230.41169997304678,
+      "p95_ms": 329.5704999472946,
+      "tail_ratio": 1.430354882090828,
+      "wall_p50_ms": 230.41550000198185,
+      "wall_p95_ms": 329.5737999724224,
+      "mean_input_tokens": 364.2633333333333,
+      "mean_output_tokens": 47.46666666666667,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.004589718,
+      "cost_per_call_usd": 1.5299059999999998e-05,
+      "cost_per_1k_usd": 0.015299059999999998,
+      "cost_per_correct_usd": 1.7189955056179772e-05,
+      "spec_hash": "ad7affdc7ebdc55f7b6558da2bb099f96379d58ccca7691cd21261e1d9cad8ac",
+      "returns_probability": true,
+      "declares_probability": true,
+      "validity": {
+        "valid": 300
+      },
+      "valid": 300,
+      "valid_rate": 1.0,
+      "accuracy": 0.89,
+      "accuracy_ci": [
+        0.8533333333333334,
+        0.9234166666666666
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "glm/clinc150@openrouter": {
+      "model": "glm",
+      "model_id": "z-ai/glm-5.3-flash",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 425.3896999871358,
+      "p95_ms": 2258.0330000491813,
+      "tail_ratio": 5.308151561068513,
+      "wall_p50_ms": 425.3927000099793,
+      "wall_p95_ms": 2258.036100072786,
+      "mean_input_tokens": 938.6833333333333,
+      "mean_output_tokens": 9.34,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.0422147275,
+      "cost_per_call_usd": 0.00014071575833333333,
+      "cost_per_1k_usd": 0.14071575833333333,
+      "cost_per_correct_usd": 0.00015930085849056604,
+      "spec_hash": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 300
+      },
+      "valid": 300,
+      "valid_rate": 1.0,
+      "accuracy": 0.8833333333333333,
+      "accuracy_ci": [
+        0.8466666666666667,
+        0.9166666666666666
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "phi/clinc150@openrouter": {
+      "model": "phi",
+      "model_id": "microsoft/phi-4",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 442.71020009182394,
+      "p95_ms": 846.6369999805465,
+      "tail_ratio": 1.9123955124705572,
+      "wall_p50_ms": 442.71390000358224,
+      "wall_p95_ms": 846.6403000056744,
+      "mean_input_tokens": 927.7833333333333,
+      "mean_output_tokens": 8.243333333333334,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.01982967,
+      "cost_per_call_usd": 6.60989e-05,
+      "cost_per_1k_usd": 0.0660989,
+      "cost_per_correct_usd": 8.972701357466063e-05,
+      "spec_hash": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 300
+      },
+      "valid": 300,
+      "valid_rate": 1.0,
+      "accuracy": 0.7366666666666667,
+      "accuracy_ci": [
+        0.6833333333333333,
+        0.7866666666666666
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "gemma/clinc150@openrouter": {
+      "model": "gemma",
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 1143.5211999341846,
+      "p95_ms": 3180.7939999271184,
+      "tail_ratio": 2.7815785139009135,
+      "wall_p50_ms": 1143.5248999623582,
+      "wall_p95_ms": 3180.797699955292,
+      "mean_input_tokens": 1310.88,
+      "mean_output_tokens": 8.456666666666667,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.0264634935,
+      "cost_per_call_usd": 8.8211645e-05,
+      "cost_per_1k_usd": 0.08821164499999999,
+      "cost_per_correct_usd": 9.837729925650557e-05,
+      "spec_hash": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 300
+      },
+      "valid": 300,
+      "valid_rate": 1.0,
+      "accuracy": 0.8966666666666666,
+      "accuracy_ci": [
+        0.86,
+        0.93
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "deepseek/clinc150@openrouter": {
+      "model": "deepseek",
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 863.947800011374,
+      "p95_ms": 4673.078100080602,
+      "tail_ratio": 5.408982001017978,
+      "wall_p50_ms": 863.9525000471622,
+      "wall_p95_ms": 4673.081899993122,
+      "mean_input_tokens": 1068.2866666666666,
+      "mean_output_tokens": 47.39666666666667,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.071465807,
+      "cost_per_call_usd": 0.00023821935666666668,
+      "cost_per_1k_usd": 0.2382193566666667,
+      "cost_per_correct_usd": 0.0002707038143939394,
+      "spec_hash": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 297,
+        "api_error": 2,
+        "unparseable": 1
+      },
+      "valid": 297,
+      "valid_rate": 0.99,
+      "accuracy": 0.88,
+      "accuracy_ci": [
+        0.84,
+        0.9166666666666666
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "llama/clinc150@openrouter": {
+      "model": "llama",
+      "model_id": "meta-llama/llama-4-scout",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 707.5955000473186,
+      "p95_ms": 1309.452599962242,
+      "tail_ratio": 1.8505666017868623,
+      "wall_p50_ms": 714.8754999507219,
+      "wall_p95_ms": 1375.1756000565365,
+      "mean_input_tokens": 951.7866666666666,
+      "mean_output_tokens": 8.346666666666666,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.0293048,
+      "cost_per_call_usd": 9.768266666666666e-05,
+      "cost_per_1k_usd": 0.09768266666666665,
+      "cost_per_correct_usd": 0.0001215966804979253,
+      "spec_hash": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 300
+      },
+      "valid": 300,
+      "valid_rate": 1.0,
+      "accuracy": 0.8033333333333333,
+      "accuracy_ci": [
+        0.7566666666666667,
+        0.8466666666666667
+      ],
+      "retries": 13,
+      "failed": 0
+    },
+    "qwen/clinc150@openrouter": {
+      "model": "qwen",
+      "model_id": "qwen/qwen3.8-flash",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 3878.7448999937624,
+      "p95_ms": 9640.4778000433,
+      "tail_ratio": 2.485463222925231,
+      "wall_p50_ms": 4063.3853999897838,
+      "wall_p95_ms": 11806.543399929069,
+      "mean_input_tokens": 988.8566666666667,
+      "mean_output_tokens": 167.71666666666667,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.068043688,
+      "cost_per_call_usd": 0.00022681229333333335,
+      "cost_per_1k_usd": 0.22681229333333336,
+      "cost_per_correct_usd": 0.0002847016234309624,
+      "spec_hash": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 276,
+        "api_error": 24
+      },
+      "valid": 276,
+      "valid_rate": 0.92,
+      "accuracy": 0.7966666666666666,
+      "accuracy_ci": [
+        0.75,
+        0.8433333333333334
+      ],
+      "retries": 25,
+      "failed": 0
+    },
+    "gpt/clinc150@openrouter": {
+      "model": "gpt",
+      "model_id": "openai/gpt-6-luna",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": true,
+      "local": false,
+      "n": 300,
+      "n_timed": 299,
+      "p50_ms": 1626.0694999946281,
+      "p95_ms": 3217.7877000067383,
+      "tail_ratio": 1.9788746422077093,
+      "wall_p50_ms": 1643.2322999462485,
+      "wall_p95_ms": 5205.984800006263,
+      "mean_input_tokens": 1461.6923076923076,
+      "mean_output_tokens": 24.234113712374583,
+      "n_tokens_reported": 299,
+      "cost_usd": 0.058231325,
+      "cost_per_call_usd": 0.00019410441666666667,
+      "cost_per_1k_usd": 0.19410441666666667,
+      "cost_per_correct_usd": 0.0002148757380073801,
+      "spec_hash": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc",
+      "returns_probability": false,
+      "declares_probability": false,
+      "validity": {
+        "valid": 299,
+        "api_error": 1
+      },
+      "valid": 299,
+      "valid_rate": 0.9966666666666667,
+      "accuracy": 0.9033333333333333,
+      "accuracy_ci": [
+        0.8666666666666667,
+        0.9366666666666666
+      ],
+      "retries": 66,
+      "failed": 1
+    },
+    "jev/clinc150@openrouter": {
+      "model": "jev",
+      "model_id": "typesafe/jev-1.13-20260917",
+      "task": "clinc150",
+      "transport": "openrouter",
+      "n_options": 151,
+      "structured": "typed",
+      "local": false,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 248.3799000037834,
+      "p95_ms": 326.9944000057876,
+      "tail_ratio": 1.31650910561123,
+      "wall_p50_ms": 248.3841999201104,
+      "wall_p95_ms": 327.0001000491902,
+      "mean_input_tokens": 2263.93,
+      "mean_output_tokens": 1301.48,
+      "n_tokens_reported": 300,
+      "cost_usd": 0.028525518,
+      "cost_per_call_usd": 9.508505999999999e-05,
+      "cost_per_1k_usd": 0.09508506,
+      "cost_per_correct_usd": 0.00011056402325581395,
+      "spec_hash": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc",
+      "returns_probability": true,
+      "declares_probability": true,
+      "validity": {
+        "valid": 300
+      },
+      "valid": 300,
+      "valid_rate": 1.0,
+      "accuracy": 0.86,
+      "accuracy_ci": [
+        0.82,
+        0.8966666666666666
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "laya/ag_news@local-cpu": {
+      "model": "laya",
+      "model_id": "laya (C:\\projects\\jev_demo\\arena\\models\\laya)",
+      "task": "ag_news",
+      "transport": "local-cpu",
+      "n_options": 4,
+      "structured": "typed",
+      "local": true,
+      "n": 300,
+      "n_timed": 300,
+      "p50_ms": 210.49059997312725,
+      "p95_ms": 321.80989999324083,
+      "tail_ratio": 1.5288563956505679,
+      "wall_p50_ms": 210.49059997312725,
+      "wall_p95_ms": 321.80989999324083,
+      "mean_input_tokens": null,
+      "mean_output_tokens": null,
+      "n_tokens_reported": 0,
+      "cost_usd": 0.0,
+      "cost_per_call_usd": 0.0,
+      "cost_per_1k_usd": 0.0,
+      "cost_per_correct_usd": 0.0,
+      "spec_hash": "ad7affdc7ebdc55f7b6558da2bb099f96379d58ccca7691cd21261e1d9cad8ac",
+      "returns_probability": true,
+      "declares_probability": true,
+      "validity": {
+        "valid": 300
+      },
+      "valid": 300,
+      "valid_rate": 1.0,
+      "accuracy": 0.9133333333333333,
+      "accuracy_ci": [
+        0.88,
+        0.9433333333333334
+      ],
+      "retries": 0,
+      "failed": 0
+    },
+    "laya/clinc150@local-cpu": {
+      "model": "laya",
+      "model_id": "laya (C:\\projects\\jev_demo\\arena\\models\\laya)",
+      "task": "clinc150",
+      "transport": "local-cpu",
+      "n_options": 151,
+      "structured": "typed",
+      "local": true,
+      "n": 300,
+      "n_timed": 0,
+      "p50_ms": null,
+      "p95_ms": null,
+      "tail_ratio": null,
+      "wall_p50_ms": 3.907000063918531,
+      "wall_p95_ms": 4.620300023816526,
+      "mean_input_tokens": null,
+      "mean_output_tokens": null,
+      "n_tokens_reported": 0,
+      "cost_usd": 0.0,
+      "cost_per_call_usd": 0.0,
+      "cost_per_1k_usd": 0.0,
+      "cost_per_correct_usd": null,
+      "spec_hash": "40e9e134db8f9e431af2f050e101071522562a8386e6a89045031060dcccddfc",
+      "returns_probability": false,
+      "declares_probability": true,
+      "validity": {
+        "api_error": 300
+      },
+      "valid": 0,
+      "valid_rate": 0.0,
+      "accuracy": 0.0,
+      "accuracy_ci": [
+        0.0,
+        0.0
+      ],
+      "retries": 0,
+      "failed": 300
+    }
+  },
+  "position_bias": {
+    "glm/ag_news": {
+      "model": "glm",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip": {
+        "rate": 0.075,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.925,
+          "middle": 0.95,
+          "last": 0.975
+        },
+        "spread": 0.04999999999999993,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": [
+          0.30416666666666664,
+          0.12916666666666668,
+          0.2708333333333333,
+          0.29583333333333334
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5194444444444445,
+        "n": 240
+      }
+    },
+    "phi/ag_news": {
+      "model": "phi",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip": {
+        "rate": 0.05,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.925,
+          "middle": 0.925,
+          "last": 0.925
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": [
+          0.2833333333333333,
+          0.12916666666666668,
+          0.26666666666666666,
+          0.32083333333333336
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5416666666666666,
+        "n": 240
+      }
+    },
+    "gemma/ag_news": {
+      "model": "gemma",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip": {
+        "rate": 0.025,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.925,
+          "middle": 0.95,
+          "last": 0.925
+        },
+        "spread": 0.02499999999999991,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": [
+          0.2875,
+          0.11666666666666667,
+          0.2833333333333333,
+          0.3125
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5402777777777777,
+        "n": 240
+      }
+    },
+    "deepseek/ag_news": {
+      "model": "deepseek",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 239,
+      "flip": {
+        "rate": 0.0,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.95,
+          "middle": 0.95,
+          "last": 0.975
+        },
+        "spread": 0.025000000000000022,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": [
+          0.2928870292887029,
+          0.11297071129707113,
+          0.2803347280334728,
+          0.3138075313807531
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5383542538354255,
+        "n": 239
+      }
+    },
+    "llama/ag_news": {
+      "model": "llama",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 238,
+      "flip": {
+        "rate": 0.125,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.925,
+          "middle": 0.925,
+          "last": 0.95
+        },
+        "spread": 0.02499999999999991,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": [
+          0.28991596638655465,
+          0.12605042016806722,
+          0.2689075630252101,
+          0.31512605042016806
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5364145658263305,
+        "n": 238
+      }
+    },
+    "qwen/ag_news": {
+      "model": "qwen",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 238,
+      "flip": {
+        "rate": 0.025,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.95,
+          "middle": 0.95,
+          "last": 0.95
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": [
+          0.28991596638655465,
+          0.11764705882352941,
+          0.2815126050420168,
+          0.31092436974789917
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5378151260504201,
+        "n": 238
+      }
+    },
+    "gpt/ag_news": {
+      "model": "gpt",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip": {
+        "rate": 0.025,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.95,
+          "middle": 0.975,
+          "last": 0.975
+        },
+        "spread": 0.025000000000000022,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": [
+          0.29583333333333334,
+          0.11666666666666667,
+          0.2708333333333333,
+          0.31666666666666665
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5361111111111111,
+        "n": 240
+      }
+    },
+    "jev/ag_news": {
+      "model": "jev",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip": {
+        "rate": 0.0,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.975,
+          "middle": 0.975,
+          "last": 0.975
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": [
+          0.29583333333333334,
+          0.1125,
+          0.2791666666666667,
+          0.3125
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5361111111111111,
+        "n": 240
+      }
+    },
+    "glm/clinc150": {
+      "model": "glm",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 80,
+      "n_valid": 80,
+      "flip": {
+        "rate": 0.125,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": null,
+          "middle": null,
+          "last": null
+        },
+        "spread": null,
+        "n": {
+          "first": 0,
+          "middle": 0,
+          "last": 0
+        }
+      },
+      "positions": {
+        "shares": [
+          0.125,
+          0.15,
+          0.025,
+          0.125,
+          0.1,
+          0.0625,
+          0.0875,
+          0.125,
+          0.075,
+          0.125
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.49583333333333335,
+        "n": 80
+      }
+    },
+    "phi/clinc150": {
+      "model": "phi",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 73,
+      "n_valid": 73,
+      "flip": {
+        "rate": 0.3333333333333333,
+        "n": 33,
+        "n_incomplete": 7,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": null,
+          "middle": null,
+          "last": null
+        },
+        "spread": null,
+        "n": {
+          "first": 0,
+          "middle": 0,
+          "last": 0
+        }
+      },
+      "positions": {
+        "shares": [
+          0.1506849315068493,
+          0.1643835616438356,
+          0.0547945205479452,
+          0.1506849315068493,
+          0.0547945205479452,
+          0.0821917808219178,
+          0.0821917808219178,
+          0.136986301369863,
+          0.0410958904109589,
+          0.0821917808219178
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.44127853881278534,
+        "n": 73
+      }
+    },
+    "gemma/clinc150": {
+      "model": "gemma",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 40,
+      "n_valid": 40,
+      "flip": {
+        "rate": 0.0,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": null,
+          "middle": null,
+          "last": null
+        },
+        "spread": null,
+        "n": {
+          "first": 0,
+          "middle": 0,
+          "last": 0
+        }
+      },
+      "positions": {
+        "shares": [
+          0.1,
+          0.15,
+          0.025,
+          0.15,
+          0.075,
+          0.075,
+          0.125,
+          0.075,
+          0.075,
+          0.15
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.5058333333333334,
+        "n": 40
+      }
+    },
+    "deepseek/clinc150": {
+      "model": "deepseek",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 40,
+      "n_valid": 39,
+      "flip": {
+        "rate": 0.0,
+        "n": 39,
+        "n_incomplete": 0,
+        "n_unusable": 1
+      },
+      "gold": {
+        "accuracy": {
+          "first": null,
+          "middle": null,
+          "last": null
+        },
+        "spread": null,
+        "n": {
+          "first": 0,
+          "middle": 0,
+          "last": 0
+        }
+      },
+      "positions": {
+        "shares": [
+          0.10256410256410256,
+          0.1282051282051282,
+          0.0,
+          0.15384615384615385,
+          0.07692307692307693,
+          0.07692307692307693,
+          0.1282051282051282,
+          0.10256410256410256,
+          0.07692307692307693,
+          0.15384615384615385
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.5244444444444445,
+        "n": 39
+      }
+    },
+    "llama/clinc150": {
+      "model": "llama",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 40,
+      "n_valid": 40,
+      "flip": {
+        "rate": 0.0,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": null,
+          "middle": null,
+          "last": null
+        },
+        "spread": null,
+        "n": {
+          "first": 0,
+          "middle": 0,
+          "last": 0
+        }
+      },
+      "positions": {
+        "shares": [
+          0.125,
+          0.175,
+          0.0,
+          0.175,
+          0.075,
+          0.075,
+          0.125,
+          0.05,
+          0.075,
+          0.125
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.4716666666666667,
+        "n": 40
+      }
+    },
+    "qwen/clinc150": {
+      "model": "qwen",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 40,
+      "n_valid": 33,
+      "flip": {
+        "rate": 0.0,
+        "n": 33,
+        "n_incomplete": 0,
+        "n_unusable": 7
+      },
+      "gold": {
+        "accuracy": {
+          "first": null,
+          "middle": null,
+          "last": null
+        },
+        "spread": null,
+        "n": {
+          "first": 0,
+          "middle": 0,
+          "last": 0
+        }
+      },
+      "positions": {
+        "shares": [
+          0.09090909090909091,
+          0.15151515151515152,
+          0.0,
+          0.18181818181818182,
+          0.09090909090909091,
+          0.06060606060606061,
+          0.09090909090909091,
+          0.09090909090909091,
+          0.12121212121212122,
+          0.12121212121212122
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.5135353535353535,
+        "n": 33
+      }
+    },
+    "gpt/clinc150": {
+      "model": "gpt",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 40,
+      "n_valid": 40,
+      "flip": {
+        "rate": 0.0,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": null,
+          "middle": null,
+          "last": null
+        },
+        "spread": null,
+        "n": {
+          "first": 0,
+          "middle": 0,
+          "last": 0
+        }
+      },
+      "positions": {
+        "shares": [
+          0.1,
+          0.175,
+          0.0,
+          0.15,
+          0.075,
+          0.075,
+          0.125,
+          0.05,
+          0.1,
+          0.15
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.5053333333333333,
+        "n": 40
+      }
+    },
+    "laya/ag_news": {
+      "model": "laya",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip": {
+        "rate": 0.025,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.95,
+          "middle": 0.975,
+          "last": 0.95
+        },
+        "spread": 0.025000000000000022,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": [
+          0.2916666666666667,
+          0.11666666666666667,
+          0.2916666666666667,
+          0.3
+        ],
+        "edges": [
+          0.0,
+          1.0,
+          2.0,
+          3.0,
+          4.0
+        ],
+        "mean_normalised": 0.5333333333333333,
+        "n": 240
+      }
+    },
+    "jev/clinc150": {
+      "model": "jev",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 40,
+      "n_valid": 40,
+      "flip": {
+        "rate": 0.0,
+        "n": 40,
+        "n_incomplete": 0,
+        "n_unusable": 0
+      },
+      "gold": {
+        "accuracy": {
+          "first": null,
+          "middle": null,
+          "last": null
+        },
+        "spread": null,
+        "n": {
+          "first": 0,
+          "middle": 0,
+          "last": 0
+        }
+      },
+      "positions": {
+        "shares": [
+          0.1,
+          0.125,
+          0.0,
+          0.15,
+          0.075,
+          0.075,
+          0.125,
+          0.05,
+          0.1,
+          0.2
+        ],
+        "edges": [
+          0.0,
+          15.1,
+          30.2,
+          45.3,
+          60.4,
+          75.5,
+          90.6,
+          105.7,
+          120.8,
+          135.9,
+          151.0
+        ],
+        "mean_normalised": 0.5458333333333333,
+        "n": 40
+      }
+    },
+    "laya/clinc150": {
+      "model": "laya",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 0,
+      "flip": {
+        "rate": null,
+        "n": 0,
+        "n_incomplete": 0,
+        "n_unusable": 40
+      },
+      "gold": {
+        "accuracy": {
+          "first": 0.0,
+          "middle": 0.0,
+          "last": 0.0
+        },
+        "spread": 0.0,
+        "n": {
+          "first": 40,
+          "middle": 40,
+          "last": 40
+        }
+      },
+      "positions": {
+        "shares": null,
+        "edges": null,
+        "mean_normalised": null,
+        "n": 0
+      }
+    }
+  },
+  "determinism": {},
+  "calibration": {
+    "jev/ag_news": {
+      "temperature": 1.988,
+      "ece_raw": 0.07049999999999998,
+      "ece_scaled": 0.07680237660800143,
+      "n_validation": 100,
+      "n_test": 300,
+      "n_bins": 15,
+      "min_validation": 30,
+      "fit_refused": false,
+      "model": "jev",
+      "task": "ag_news",
+      "reliability": {
+        "bin_centres": [
+          0.53,
+          0.5566666666666666,
+          0.633,
+          0.7083333333333334,
+          0.768,
+          0.8375,
+          0.8978571428571429,
+          0.995469387755102
+        ],
+        "accuracy": [
+          0.5,
+          0.6666666666666666,
+          0.5,
+          0.8333333333333334,
+          0.6,
+          0.8333333333333334,
+          0.7857142857142857,
+          0.9306122448979591
+        ],
+        "counts": [
+          2,
+          6,
+          10,
+          6,
+          5,
+          12,
+          14,
+          245
+        ]
+      }
+    },
+    "jev/clinc150": {
+      "temperature": null,
+      "ece_raw": 0.06740000000000011,
+      "ece_scaled": null,
+      "n_validation": 0,
+      "n_test": 300,
+      "n_bins": 15,
+      "min_validation": 30,
+      "fit_refused": true,
+      "model": "jev",
+      "task": "clinc150",
+      "reliability": {
+        "bin_centres": [
+          0.45,
+          0.51,
+          0.5661538461538462,
+          0.6246666666666666,
+          0.6933333333333334,
+          0.758,
+          0.835,
+          0.9083333333333334,
+          0.9915277777777779
+        ],
+        "accuracy": [
+          0.75,
+          0.1111111111111111,
+          0.6153846153846154,
+          0.6666666666666666,
+          0.6666666666666666,
+          0.4,
+          0.6428571428571429,
+          0.6666666666666666,
+          0.9675925925925926
+        ],
+        "counts": [
+          4,
+          9,
+          13,
+          15,
+          6,
+          5,
+          14,
+          18,
+          216
+        ]
+      }
+    },
+    "laya/ag_news": {
+      "temperature": 0.766,
+      "ece_raw": 0.02753066666666671,
+      "ece_scaled": 0.0524268732391666,
+      "n_validation": 100,
+      "n_test": 300,
+      "n_bins": 15,
+      "min_validation": 30,
+      "fit_refused": false,
+      "model": "laya",
+      "task": "ag_news",
+      "reliability": {
+        "bin_centres": [
+          0.2503,
+          0.3669,
+          0.4191,
+          0.5102,
+          0.5711,
+          0.63934,
+          0.71158,
+          0.77284,
+          0.8460300000000001,
+          0.9026125,
+          0.9763110091743119
+        ],
+        "accuracy": [
+          0.0,
+          0.0,
+          0.0,
+          0.5,
+          0.8,
+          0.8,
+          0.6,
+          0.6,
+          0.75,
+          0.875,
+          0.9770642201834863
+        ],
+        "counts": [
+          1,
+          1,
+          1,
+          2,
+          5,
+          5,
+          5,
+          10,
+          20,
+          32,
+          218
+        ]
+      }
+    }
+  },
+  "option_overhead": {
+    "glm/ag_news": {
+      "model_id": "z-ai/glm-5.3-flash",
+      "n_options": 4,
+      "prompt_tokens_with_options": 116,
+      "prompt_tokens_without_options": 104,
+      "option_tokens": 12,
+      "output_tokens": 8,
+      "cost_one_call": 1.819e-05
+    },
+    "phi/ag_news": {
+      "model_id": "microsoft/phi-4",
+      "n_options": 4,
+      "prompt_tokens_with_options": 111,
+      "prompt_tokens_without_options": 99,
+      "option_tokens": 12,
+      "output_tokens": 7,
+      "cost_one_call": 8.75e-06
+    },
+    "gemma/ag_news": {
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "n_options": 4,
+      "prompt_tokens_with_options": 118,
+      "prompt_tokens_without_options": 105,
+      "option_tokens": 13,
+      "output_tokens": 7,
+      "cost_one_call": 1.39e-05
+    },
+    "deepseek/ag_news": {
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "n_options": 4,
+      "prompt_tokens_with_options": 136,
+      "prompt_tokens_without_options": 173,
+      "option_tokens": -37,
+      "output_tokens": 31,
+      "cost_one_call": 7.8e-05
+    },
+    "llama/ag_news": {
+      "model_id": "meta-llama/llama-4-scout",
+      "n_options": 4,
+      "prompt_tokens_with_options": 114,
+      "prompt_tokens_without_options": 102,
+      "option_tokens": 12,
+      "output_tokens": 7,
+      "cost_one_call": 1.35e-05
+    },
+    "qwen/ag_news": {
+      "model_id": "qwen/qwen3.8-27b",
+      "n_options": 4,
+      "prompt_tokens_with_options": null,
+      "prompt_tokens_without_options": null,
+      "option_tokens": null,
+      "output_tokens": null,
+      "cost_one_call": null
+    },
+    "gpt/ag_news": {
+      "model_id": "openai/gpt-6-luna",
+      "n_options": 4,
+      "prompt_tokens_with_options": 144,
+      "prompt_tokens_without_options": 119,
+      "option_tokens": 25,
+      "output_tokens": 12,
+      "cost_one_call": 2.04e-05
+    },
+    "jev/ag_news": {
+      "model_id": "typesafe/jev-1.13-20260917",
+      "n_options": 4,
+      "prompt_tokens_with_options": null,
+      "prompt_tokens_without_options": null,
+      "option_tokens": null,
+      "output_tokens": null,
+      "cost_one_call": null
+    },
+    "laya/ag_news": {
+      "model_id": "laya (C:\\projects\\jev_demo\\arena\\models\\laya)",
+      "n_options": 4,
+      "prompt_tokens_with_options": null,
+      "prompt_tokens_without_options": null,
+      "option_tokens": null,
+      "output_tokens": null,
+      "cost_one_call": 0.0
+    },
+    "glm/clinc150": {
+      "model_id": "z-ai/glm-5.3-flash",
+      "n_options": 151,
+      "prompt_tokens_with_options": 928,
+      "prompt_tokens_without_options": 68,
+      "option_tokens": 860,
+      "output_tokens": 9,
+      "cost_one_call": 4.386e-05
+    },
+    "phi/clinc150": {
+      "model_id": "microsoft/phi-4",
+      "n_options": 151,
+      "prompt_tokens_with_options": 923,
+      "prompt_tokens_without_options": 63,
+      "option_tokens": 860,
+      "output_tokens": 8,
+      "cost_one_call": 6.573e-05
+    },
+    "gemma/clinc150": {
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "n_options": 151,
+      "prompt_tokens_with_options": 1040,
+      "prompt_tokens_without_options": 150,
+      "option_tokens": 890,
+      "output_tokens": 9,
+      "cost_one_call": 0.0001492
+    },
+    "deepseek/clinc150": {
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "n_options": 151,
+      "prompt_tokens_with_options": 1011,
+      "prompt_tokens_without_options": 59,
+      "option_tokens": 952,
+      "output_tokens": 9,
+      "cost_one_call": 2.36432e-05
+    },
+    "llama/clinc150": {
+      "model_id": "meta-llama/llama-4-scout",
+      "n_options": 151,
+      "prompt_tokens_with_options": 947,
+      "prompt_tokens_without_options": 64,
+      "option_tokens": 883,
+      "output_tokens": 8,
+      "cost_one_call": 9.71e-05
+    },
+    "qwen/clinc150": {
+      "model_id": "qwen/qwen3.8-27b",
+      "n_options": 151,
+      "prompt_tokens_with_options": null,
+      "prompt_tokens_without_options": null,
+      "option_tokens": null,
+      "output_tokens": null,
+      "cost_one_call": null
+    },
+    "gpt/clinc150": {
+      "model_id": "openai/gpt-6-luna",
+      "n_options": 151,
+      "prompt_tokens_with_options": 1457,
+      "prompt_tokens_without_options": 81,
+      "option_tokens": 1376,
+      "output_tokens": 13,
+      "cost_one_call": 2.134e-05
+    },
+    "jev/clinc150": {
+      "model_id": "typesafe/jev-1.13-20260917",
+      "n_options": 151,
+      "prompt_tokens_with_options": null,
+      "prompt_tokens_without_options": null,
+      "option_tokens": null,
+      "output_tokens": null,
+      "cost_one_call": null
+    },
+    "laya/clinc150": {
+      "model_id": "laya (C:\\projects\\jev_demo\\arena\\models\\laya)",
+      "n_options": 151,
+      "prompt_tokens_with_options": null,
+      "prompt_tokens_without_options": null,
+      "option_tokens": null,
+      "output_tokens": null,
+      "cost_one_call": 0.0
+    }
+  },
+  "tasks": {
+    "ag_news": {
+      "dataset": "fancyzhx/ag_news",
+      "config": "default",
+      "split": "test",
+      "licence": "unknown -- the hub lists `license: unknown` for this dataset. Recorded as unknown rather than assumed permissive.",
+      "source": "fancyzhx/ag_news (default config), test split",
+      "n_examples": 300,
+      "n_options": 4,
+      "n_validation": 100,
+      "bias_subset": 40,
+      "n_random_orders": 3
+    },
+    "clinc150": {
+      "dataset": "clinc/clinc_oos",
+      "config": "plus",
+      "split": "test",
+      "licence": "CC-BY-3.0",
+      "source": "clinc/clinc_oos (plus config), test split",
+      "n_examples": 300,
+      "n_options": 151,
+      "n_validation": 100,
+      "bias_subset": 40,
+      "n_random_orders": 3
+    }
+  },
+  "model_resolution": {
+    "glm": {
+      "model_id": null,
+      "tried": [
+        [
+          "z-ai/glm-5.3-flash",
+          false
+        ],
+        [
+          "z-ai/glm-5.3",
+          false
+        ],
+        [
+          "z-ai/glm-5.2",
+          false
+        ],
+        [
+          "z-ai/glm-5.1",
+          false
+        ],
+        [
+          "z-ai/glm-5",
+          false
+        ],
+        [
+          "z-ai/glm-4.7-flash",
+          false
+        ],
+        [
+          "z-ai/glm-4.7",
+          false
+        ],
+        [
+          "z-ai/glm-4.6",
+          false
+        ]
+      ],
+      "unavailable": "no model in this family is reachable by this account"
+    },
+    "phi": {
+      "model_id": null,
+      "tried": [
+        [
+          "microsoft/phi-4",
+          false
+        ]
+      ],
+      "unavailable": "no model in this family is reachable by this account"
+    },
+    "gemma": {
+      "model_id": null,
+      "tried": [
+        [
+          "google/gemma-4-26b-a4b-it",
+          false
+        ],
+        [
+          "google/gemma-4-31b-it",
+          false
+        ],
+        [
+          "google/gemma-3-12b-it",
+          false
+        ],
+        [
+          "google/gemma-3-4b-it",
+          false
+        ],
+        [
+          "google/gemma-3-27b-it",
+          false
+        ],
+        [
+          "google/gemma-2-27b-it",
+          false
+        ]
+      ],
+      "unavailable": "no model in this family is reachable by this account"
+    },
+    "deepseek": {
+      "model_id": null,
+      "tried": [
+        [
+          "deepseek/deepseek-v4.1-flash",
+          false
+        ],
+        [
+          "deepseek/deepseek-v4-flash-vision-exp",
+          false
+        ],
+        [
+          "deepseek/deepseek-v4-flash-0731",
+          false
+        ],
+        [
+          "deepseek/deepseek-v4-flash",
+          false
+        ],
+        [
+          "deepseek/deepseek-v3.2",
+          false
+        ],
+        [
+          "deepseek/deepseek-v3.1-terminus",
+          false
+        ],
+        [
+          "deepseek/deepseek-v3.2-exp",
+          false
+        ],
+        [
+          "deepseek/deepseek-chat-v3.1",
+          false
+        ],
+        [
+          "deepseek/deepseek-r1-0528",
+          false
+        ],
+        [
+          "deepseek/deepseek-chat-v3-0324",
+          false
+        ],
+        [
+          "deepseek/deepseek-chat",
+          false
+        ]
+      ],
+      "unavailable": "no model in this family is reachable by this account"
+    },
+    "llama": {
+      "model_id": null,
+      "tried": [
+        [
+          "meta-llama/llama-4-scout",
+          false
+        ],
+        [
+          "meta-llama/llama-4-maverick",
+          false
+        ],
+        [
+          "meta-llama/llama-3.3-70b-instruct",
+          false
+        ],
+        [
+          "meta-llama/llama-3.2-3b-instruct",
+          false
+        ],
+        [
+          "meta-llama/llama-3.1-8b-instruct",
+          false
+        ],
+        [
+          "meta-llama/llama-3.1-70b-instruct",
+          false
+        ]
+      ],
+      "unavailable": "no model in this family is reachable by this account"
+    },
+    "qwen": {
+      "model_id": null,
+      "tried": [
+        [
+          "qwen/qwen3.8-flash",
+          false
+        ],
+        [
+          "qwen/qwen3.8-27b",
+          false
+        ],
+        [
+          "qwen/qwen3.8-2.4t-a95b",
+          false
+        ],
+        [
+          "qwen/qwen3.7-plus",
+          false
+        ],
+        [
+          "qwen/qwen3.6-35b-a3b",
+          false
+        ],
+        [
+          "qwen/qwen3.6-flash",
+          false
+        ],
+        [
+          "qwen/qwen3.5-plus-20260420",
+          false
+        ],
+        [
+          "qwen/qwen3.6-27b",
+          false
+        ],
+        [
+          "qwen/qwen3.6-plus",
+          false
+        ],
+        [
+          "qwen/qwen3.5-9b",
+          false
+        ],
+        [
+          "qwen/qwen3.5-flash-02-23",
+          false
+        ],
+        [
+          "qwen/qwen3-coder-next",
+          false
+        ],
+        [
+          "qwen/qwen3.5-27b",
+          false
+        ],
+        [
+          "qwen/qwen3.5-122b-a10b",
+          false
+        ],
+        [
+          "qwen/qwen3.5-plus-02-15",
+          false
+        ],
+        [
+          "qwen/qwen3.5-35b-a3b",
+          false
+        ],
+        [
+          "qwen/qwen3.5-397b-a17b",
+          false
+        ],
+        [
+          "qwen/qwen3-vl-32b-instruct",
+          false
+        ],
+        [
+          "qwen/qwen3-vl-8b-instruct",
+          false
+        ],
+        [
+          "qwen/qwen3-vl-30b-a3b-instruct",
+          false
+        ],
+        [
+          "qwen/qwen3-next-80b-a3b-instruct",
+          false
+        ],
+        [
+          "qwen/qwen3-vl-235b-a22b-instruct",
+          false
+        ],
+        [
+          "qwen/qwen-plus-2025-07-28",
+          false
+        ],
+        [
+          "qwen/qwen3-coder-plus",
+          false
+        ],
+        [
+          "qwen/qwen3-coder-30b-a3b-instruct",
+          false
+        ],
+        [
+          "qwen/qwen3-235b-a22b-2507",
+          false
+        ],
+        [
+          "qwen/qwen3-30b-a3b-instruct-2507",
+          false
+        ],
+        [
+          "qwen/qwen3-coder",
+          false
+        ],
+        [
+          "qwen/qwen3-32b",
+          false
+        ],
+        [
+          "qwen/qwen3-14b",
+          false
+        ],
+        [
+          "qwen/qwen3-30b-a3b",
+          false
+        ],
+        [
+          "qwen/qwen-plus",
+          false
+        ],
+        [
+          "qwen/qwen2.5-vl-72b-instruct",
+          false
+        ],
+        [
+          "qwen/qwen-2.5-7b-instruct",
+          false
+        ],
+        [
+          "qwen/qwen-2.5-72b-instruct",
+          false
+        ]
+      ],
+      "unavailable": "no model in this family is reachable by this account"
+    },
+    "gpt": {
+      "model_id": null,
+      "tried": [
+        [
+          "openai/gpt-6-luna",
+          false
+        ],
+        [
+          "openai/gpt-6-sol",
+          false
+        ],
+        [
+          "openai/gpt-6-astra",
+          false
+        ],
+        [
+          "openai/gpt-5.6-luna",
+          false
+        ],
+        [
+          "openai/gpt-5.6-sol",
+          false
+        ],
+        [
+          "openai/gpt-5.6-terra",
+          false
+        ],
+        [
+          "openai/gpt-chat-latest",
+          false
+        ],
+        [
+          "openai/gpt-5.5",
+          false
+        ],
+        [
+          "openai/gpt-5.4-nano",
+          false
+        ],
+        [
+          "openai/gpt-5.4-mini",
+          false
+        ],
+        [
+          "openai/gpt-5.4",
+          false
+        ],
+        [
+          "openai/gpt-5.2",
+          false
+        ],
+        [
+          "openai/gpt-5.2-chat",
+          false
+        ],
+        [
+          "openai/gpt-5.1",
+          false
+        ],
+        [
+          "openai/gpt-5-nano",
+          false
+        ],
+        [
+          "openai/gpt-5-mini",
+          false
+        ],
+        [
+          "openai/gpt-5",
+          false
+        ],
+        [
+          "openai/gpt-4.1-nano",
+          false
+        ],
+        [
+          "openai/gpt-4.1-mini",
+          false
+        ],
+        [
+          "openai/gpt-4.1",
+          false
+        ],
+        [
+          "openai/gpt-4o-2024-11-20",
+          false
+        ],
+        [
+          "openai/gpt-4o-2024-08-06",
+          false
+        ],
+        [
+          "openai/gpt-4o-mini",
+          false
+        ],
+        [
+          "openai/gpt-4o-mini-2024-07-18",
+          false
+        ],
+        [
+          "openai/gpt-4o",
+          false
+        ],
+        [
+          "openai/gpt-4o-2024-05-13",
+          false
+        ],
+        [
+          "openai/gpt-4-turbo",
+          false
+        ],
+        [
+          "openai/gpt-3.5-turbo-0613",
+          false
+        ],
+        [
+          "openai/gpt-3.5-turbo-instruct",
+          false
+        ],
+        [
+          "openai/gpt-3.5-turbo-16k",
+          false
+        ],
+        [
+          "openai/gpt-3.5-turbo",
+          false
+        ],
+        [
+          "openai/gpt-4",
+          false
+        ]
+      ],
+      "unavailable": "no model in this family is reachable by this account"
+    },
+    "jev": {
+      "model_id": "typesafe/jev-1.13-20260917",
+      "route": "POST /api/v1/systemone",
+      "transport": "openrouter",
+      "structured_mode": "typed",
+      "returns_probability": true,
+      "generation": "2026-09",
+      "version": {
+        "id": "typesafe/jev-1.13",
+        "canonical_slug": "typesafe/jev-1.13-20260917",
+        "name": "TypeSafe: Jev 1.13",
+        "created": 1789689684,
+        "released": "2026-09",
+        "context_length": 32000,
+        "knowledge_cutoff": null,
+        "pricing": {
+          "prompt": "0.000000042",
+          "completion": "0"
+        },
+        "supported_parameters": []
+      },
+      "tried": []
+    },
+    "laya": {
+      "model_id": "laya (C:\\projects\\jev_demo\\arena\\models\\laya)",
+      "route": "local (cpu)",
+      "transport": "local-cpu",
+      "structured_mode": "typed",
+      "returns_probability": true,
+      "tried": [],
+      "cfg": {
+        "head_max_len": 192,
+        "max_len": 512
+      }
+    }
+  },
+  "total_recorded_spend_usd": 0.503142692,
+  "n_calls": 8493
+}
