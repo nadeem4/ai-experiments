@@ -1,6 +1,6 @@
 """What one typed decision costs, across model families. The task and the CLI.
 
-    python -m decision_cost.run --tasks highway --limit 10 --tag pilot
+    python -m typed_decisions.run --tasks highway --limit 10 --tag pilot
 
 Every (model, task, example) appends one line to `<run-dir>/calls.jsonl` holding
 the exact request, the exact response and the provider's own usage block, and a
@@ -27,7 +27,7 @@ from pathlib import Path
 
 from . import catalog, laya_local, openrouter, parse, prompts, stats, store, tasks
 
-RUN_DIR = Path("decision_cost/runs")
+RUN_DIR = Path("typed_decisions/runs")
 ROOT_ENV = Path(__file__).resolve().parents[1] / ".env"
 WARMUP_CALLS = 20
 SPEND_THRESHOLD_USD = 1.00  # above this, the run needs --yes-spend
@@ -328,7 +328,7 @@ def main(argv=None):
     p.add_argument("--models", default="all", help="comma-separated arms, optionally name=model-id")
     p.add_argument("--tasks", default="highway", help=f"comma-separated: {', '.join(tasks.NAMES)}")
     p.add_argument("--limit", type=int, default=0, help="first N examples per task (0 = all)")
-    p.add_argument("--tag", default="pilot", help="run directory under decision_cost/runs")
+    p.add_argument("--tag", default="pilot", help="run directory under typed_decisions/runs")
     p.add_argument("--seed", type=int, default=0)
     p.add_argument("--warmup", type=int, default=WARMUP_CALLS)
     p.add_argument("--threshold", type=float, default=SPEND_THRESHOLD_USD)

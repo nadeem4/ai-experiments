@@ -18,13 +18,13 @@ What changes depending on the answer: it decides whether a typed decision is wor
 
 The prediction and where it is recorded, all of it in the harness that produced the pilot:
 
-- **Options are free for a decision model and expensive for an LLM.** Recorded in the module docstring of `decision_cost/tasks.py`: *"The point of the pair is that options are free for a decision model and are charged for on every LLM call. So the same models answer the same kind of question twice, once with five options and once with seventy-seven, and the report shows how the cost of one decision scales with the length of the option list."* The same sentence heads the design section of this protocol, and commit `36047b5` states it again.
-- **There is a parsing tax, and it should show up where the option list is long.** Recorded in the module docstring of `decision_cost/parse.py`: *"a model that is fast and returns prose you cannot parse has not done the job"*, which is why validity is a first-class result and why nothing is repaired or re-asked.
+- **Options are free for a decision model and expensive for an LLM.** Recorded in the module docstring of `typed_decisions/tasks.py`: *"The point of the pair is that options are free for a decision model and are charged for on every LLM call. So the same models answer the same kind of question twice, once with five options and once with seventy-seven, and the report shows how the cost of one decision scales with the length of the option list."* The same sentence heads the design section of this protocol, and commit `36047b5` states it again.
+- **There is a parsing tax, and it should show up where the option list is long.** Recorded in the module docstring of `typed_decisions/parse.py`: *"a model that is fast and returns prose you cannot parse has not done the job"*, which is why validity is a first-class result and why nothing is repaired or re-asked.
 - **The account, not the model, is expected to dominate wall clock.** Recorded in commit `36047b5`: *"Latency is split across two clocks, the successful attempt, and wall clock including retry backoff, so a rate limit is never charged to a model's speed and never disappears either."*
 
 **What would falsify the first one:** the measured option-token overhead being a small share of the prompt at 77 options, or the per-decision cost of a decision model and an LLM staying within noise of each other as the option count grows. The two-task design exists so that this is a measurement rather than an argument: the same models answer the same kind of question at 5 options and at 77.
 
-**Git evidence, stated plainly.** `decision_cost/` arrived in the repository as one commit, `36047b5` (2026-09-24T16:22:58-05:00), which carries the harness, the docstrings quoted above, the pilot's run artifacts and the first version of this write-up together. So `git log` proves those records predate this documentation change, and it does **not**, on its own, prove each docstring was typed before the pilot ran. What it shows is that the quoted sentences live in the modules the pilot was executed through: `tasks.py` built the examples and `parse.py` classified every answer. The run's own `config.json` is stamped `2026-09-24T16:22:15`, 43 seconds before the commit.
+**Git evidence, stated plainly.** `typed_decisions/` arrived in the repository as one commit, `36047b5` (2026-09-24T16:22:58-05:00), which carries the harness, the docstrings quoted above, the pilot's run artifacts and the first version of this write-up together. So `git log` proves those records predate this documentation change, and it does **not**, on its own, prove each docstring was typed before the pilot ran. What it shows is that the quoted sentences live in the modules the pilot was executed through: `tasks.py` built the examples and `parse.py` classified every answer. The run's own `config.json` is stamped `2026-09-24T16:22:15`, 43 seconds before the commit.
 
 ## Data
 
@@ -86,7 +86,7 @@ These decide whether the result is worth publishing.
 
 ### Every call is on the wire
 
-One line per (model, task, example, pass) in `decision_cost/runs/<tag>/calls.jsonl`, holding the exact request, the exact response and the provider's own usage block, plus latency on both clocks, the validity verdict and its detail, retries, the **transport**, the repeat pass, and OpenRouter's per-call cost. `config.json` records every resolved model id, OpenRouter's version block and dated `canonical_slug` for it, **every id that was refused above it**, which arm it ran in, its temperature and reasoning effort, the option-overhead measurement, the seed and the library versions.
+One line per (model, task, example, pass) in `typed_decisions/runs/<tag>/calls.jsonl`, holding the exact request, the exact response and the provider's own usage block, plus latency on both clocks, the validity verdict and its detail, retries, the **transport**, the repeat pass, and OpenRouter's per-call cost. `config.json` records every resolved model id, OpenRouter's version block and dated `canonical_slug` for it, **every id that was refused above it**, which arm it ran in, its temperature and reasoning effort, the option-overhead measurement, the seed and the library versions.
 
 ## Metrics
 
@@ -116,14 +116,14 @@ One line per (model, task, example, pass) in `decision_cost/runs/<tag>/calls.jso
 
 ```bash
 # the pilot: 10 examples per model, 5-option task, 5 of them asked twice
-python -m decision_cost.run --models all --tasks highway --limit 10 --repeat 5 --tag or-pilot
-python -m decision_cost.report --tag or-pilot
+python -m typed_decisions.run --models all --tasks highway --limit 10 --repeat 5 --tag or-pilot
+python -m typed_decisions.report --tag or-pilot
 
 # price a run without paying for it
-python -m decision_cost.run --models all --tasks highway,banking77 --limit 300 --tag or-full --probe-only
+python -m typed_decisions.run --models all --tasks highway,banking77 --limit 300 --tag or-full --probe-only
 
 # one arm, pinned to an exact model id
-python -m decision_cost.run --models claude=anthropic/claude-haiku-4.5 --tasks highway --limit 50 --tag full
+python -m typed_decisions.run --models claude=anthropic/claude-haiku-4.5 --tasks highway --limit 50 --tag full
 ```
 
 | flag | what it does |
@@ -143,7 +143,7 @@ The run is **resumable**: every (model, task, example) already in `calls.jsonl` 
 ### Tests
 
 ```bash
-python -m pytest decision_cost/tests -q
+python -m pytest typed_decisions/tests -q
 ```
 
 The pure logic is test-driven: catalog ranking and family resolution, prompt rendering, validity classification, percentiles and the bootstrap CI, agreement, the spend estimate, the store's resume key, both task loaders, and the transport's retry behaviour against a fake HTTP post, including that the backoff never lands in the reported latency and that an answer is never asked for twice.

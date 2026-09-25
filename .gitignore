@@ -10,7 +10,7 @@ __pycache__/
 /runs/
 /banking77/runs/
 /banking77/.cache/
-/decision_cost/runs/
+/typed_decisions/runs/
 *.log
 
 # Node / Next.js (site/)

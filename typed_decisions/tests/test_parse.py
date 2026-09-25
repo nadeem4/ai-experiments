@@ -5,7 +5,7 @@ purpose: the answer is the `choice` field of a JSON object, spelled exactly as t
 option is spelled. Nothing is fuzzy-matched, nothing is retried, and a model that
 answers with prose or with a key of its own invention has not done the job.
 """
-from decision_cost import parse
+from typed_decisions import parse
 
 OPTIONS = ["LANE_LEFT", "IDLE", "LANE_RIGHT", "FASTER", "SLOWER"]
 

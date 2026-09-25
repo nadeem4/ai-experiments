@@ -4,7 +4,7 @@ Same shape as `rerank/store.py` and `banking77/store.py`; only the key differs -
 here a decision is one (model, task, example) -- which is why it is a separate
 twenty lines rather than a shared abstraction.
 """
-from decision_cost import store
+from typed_decisions import store
 
 
 def test_key_is_the_model_the_task_the_example_and_the_pass():

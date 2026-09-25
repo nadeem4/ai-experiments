@@ -5,7 +5,7 @@ handed the same thing as text. These tests pin that the instruction line and eve
 option key and description survive verbatim, and that the only thing added is the
 transport -- how to answer -- which is identical for every LLM.
 """
-from decision_cost import prompts
+from typed_decisions import prompts
 
 INSTRUCTIONS = "You are driving on a highway. Avoid crashing above all, then keep a high speed. Pick the next action."
 CRITERIA = {"LANE_LEFT": "Change to the lane on your left.", "IDLE": "Keep your lane and speed."}

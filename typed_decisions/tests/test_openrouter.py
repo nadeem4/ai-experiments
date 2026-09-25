@@ -14,7 +14,7 @@ import urllib.error
 
 import pytest
 
-from decision_cost import openrouter
+from typed_decisions import openrouter
 
 CRITERIA = {"IDLE": "Keep your lane and speed.", "FASTER": "Accelerate."}
 CHAT_OK = {

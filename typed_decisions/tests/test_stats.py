@@ -1,7 +1,7 @@
 """Percentiles, a bootstrap CI, agreement, and the spend estimate that guards a run."""
 import pytest
 
-from decision_cost import stats
+from typed_decisions import stats
 
 
 def test_p50_of_an_odd_sample_is_the_middle_value():

@@ -13,7 +13,7 @@ import datetime
 
 import pytest
 
-from decision_cost import catalog
+from typed_decisions import catalog
 
 
 def created(year, month):

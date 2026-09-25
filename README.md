@@ -24,9 +24,9 @@ One is finished. Two are half-built: their harnesses are complete and a pilot ha
 
 Inference only, nothing trained. **Finding so far.** A 200-example pilot of arm A reproduces the published number, 0.435 with a 95% interval of 0.365 to 0.505, and the truncation diagnostics show five pairs of labels collapsing onto the same string at the default budget. **The budget sweep itself has not run**, so the question is not answered yet.
 
-### 3. What one typed decision costs, `decision_cost/`
+### 3. What one typed decision costs, `typed_decisions/`
 
-**`piloted`.** [Protocol](decision_cost/README.md) · [Results](decision_cost/RESULTS.md)
+**`piloted`.** [Protocol](typed_decisions/README.md) · [Results](typed_decisions/RESULTS.md)
 
 *For the same decision, what does one answer cost in latency, tokens, money and validity, asked of a decision model against one LLM per family?*
 

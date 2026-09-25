@@ -1,6 +1,6 @@
 """Reads the call log and prints the tables.
 
-    python -m decision_cost.report --tag pilot
+    python -m typed_decisions.report --tag pilot
 
 Two things are kept apart everywhere, and both are in the grouping key so they
 cannot be merged by accident:
@@ -23,7 +23,7 @@ from pathlib import Path
 
 from . import stats, store
 
-RUN_DIR = Path("decision_cost/runs")
+RUN_DIR = Path("typed_decisions/runs")
 LOCAL = {"laya"}  # not comparable to a hosted call; grouped separately everywhere
 MEASURED_PASS = 0
 

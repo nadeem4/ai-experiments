@@ -141,7 +141,7 @@ Priced with `--probe-only` from the measured per-call tokens, both tasks, `--lim
 
 **One family is 84% of the bill.** `claude/*` alone is $2.91 of the $3.48, entirely because the current-generation Claude on this account is only available at the Opus tier. Pinning Claude to its cheap tier — `--models claude=anthropic/claude-haiku-4.5` — brings the projected total to roughly **$0.6**, at the cost of running one family a generation behind. That is a protocol decision, not a cleanup, so it is left open rather than taken unilaterally.
 
-Raw numbers: `decision_cost/runs/or-pilot/calls.jsonl` and `decision_cost/runs/or-pilot/config.json`; the pricing pass is `decision_cost/runs/or-full/config.json`. None committed.
+Raw numbers: `typed_decisions/runs/or-pilot/calls.jsonl` and `typed_decisions/runs/or-pilot/config.json`; the pricing pass is `typed_decisions/runs/or-full/config.json`. None committed.
 
 ## Did the prediction hold?
 
@@ -184,7 +184,7 @@ Raw numbers: `decision_cost/runs/or-pilot/calls.jsonl` and `decision_cost/runs/o
 | Seed | 0; 3 warm-up calls per model per task in the pilot; `max_tokens` 512; `--repeat 5` |
 | Library versions | numpy 2.5.3, laya 0.3.7, Python 3.12.14 |
 | Hardware | Windows-11-10.0.26200-SP0. Laya on CPU, no usable GPU |
-| Artifacts | `decision_cost/runs/or-pilot/`, `decision_cost/runs/or-full/config.json`, neither committed |
+| Artifacts | `typed_decisions/runs/or-pilot/`, `typed_decisions/runs/or-full/config.json`, neither committed |
 
 ---
 
@@ -192,7 +192,7 @@ Raw numbers: `decision_cost/runs/or-pilot/calls.jsonl` and `decision_cost/runs/o
 
 > **These numbers are not comparable to anything above**, and nothing from them is carried into the current result. They were measured over the Vercel AI Gateway on a free-tier key that refused every current-generation model, with `max_tokens` 64 and cost read from `marketCost`. That key has since been deleted. The full original write-up is in git history at `latency/RESULTS.md` before the rename; what follows is a summary kept for one reason only, which is that the option-overhead finding reproduced across both transports.
 
-**What it ran.** `--models all --tasks highway --limit 10 --tag pilot`, 20 warm-up calls, seed 0. Six arms, 5-option task only, 60 recorded calls. Raw records remain at `decision_cost/runs/pilot/calls.jsonl`; they carry no `transport` field, and the report groups a record with no transport as `unknown` so it can never merge with an OpenRouter row.
+**What it ran.** `--models all --tasks highway --limit 10 --tag pilot`, 20 warm-up calls, seed 0. Six arms, 5-option task only, 60 recorded calls. Raw records remain at `typed_decisions/runs/pilot/calls.jsonl`; they carry no `transport` field, and the report groups a record with no transport as `unknown` so it can never merge with an OpenRouter row.
 
 **Which models it could reach.** The free tier refused every newer tier, so the cheapest-first ladder resolved each family a generation or two back: `openai/gpt-4.1-nano`, `anthropic/claude-3-haiku` (a 2024 model), `google/gemini-2.5-flash-lite`, `google/gemma-4-26b-a4b-it`, `typesafe-ai/jev`.
 

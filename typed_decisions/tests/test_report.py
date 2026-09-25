@@ -1,7 +1,7 @@
 """Turning the call log into the per-model row the report prints."""
 import pytest
 
-from decision_cost import report
+from typed_decisions import report
 
 KEY = "gpt/highway@openrouter"
 

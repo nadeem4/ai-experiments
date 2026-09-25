@@ -6,7 +6,7 @@ states in the same order. Nothing here invents an example.
 """
 import pytest
 
-from decision_cost import tasks
+from typed_decisions import tasks
 
 QUESTIONS = {
     "action": {

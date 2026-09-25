@@ -90,6 +90,6 @@ What it does instead is compress the scale: the base checkpoint spreads its answ
 | Commit | `0bd0470`, recorded by the run itself in the results file |
 | Finished | full run `2026-09-24T00:16:10+00:00`; pilot files stamped `20260923-093316` through `20260923-140116` |
 | Hardware | CPU, `device: "cpu"` in the results file. No usable GPU on this machine |
-| Library versions | **not recorded.** This run predates the per-run `config.json` that the `banking77/` and `decision_cost/` harnesses write, and its results files carry no version block |
+| Library versions | **not recorded.** This run predates the per-run `config.json` that the `banking77/` and `typed_decisions/` harnesses write, and its results files carry no version block |
 | Results files | `results/test-top20-q323-*.json` (full run), `results/test-top50-q30-*.json` (pilot) |
 | Wire log | `runs/<tag>/scores.jsonl`, not committed |
