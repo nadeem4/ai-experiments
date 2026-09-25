@@ -1,11 +1,30 @@
 import Link from "next/link";
+import banking77 from "@/data/banking77.json";
 import results from "@/data/results.json";
 import examples from "@/data/examples.json";
+import typedDecisions from "@/data/typed-decisions.json";
+import { pct, points, type Banking, type TypedDecisions } from "@/lib/experiments";
 import { byMethod, signed, type Results } from "@/lib/results";
 
 const run = results as Results;
 const jev = byMethod(run, "jev-score")!;
 const laya = byMethod(run, "laya-score")!;
+
+const banking = banking77 as Banking;
+const typed = typedDecisions as unknown as TypedDecisions;
+
+const bankingDefault = banking.arms.find((a) => a.arm === banking.headline.default_arm)!;
+const bankingRaised = banking.arms.find((a) => a.arm === banking.headline.raised_arm)!;
+
+const jevRows = typed.models.filter((m) => m.model === "jev");
+const jevSmall = jevRows.reduce((a, b) => (a.n_options < b.n_options ? a : b));
+const jevWide = jevRows.reduce((a, b) => (a.n_options > b.n_options ? a : b));
+const jevRise = typed.latency_rise.find((r) => r.model === "jev")!;
+const jevAccuracyWins = typed.tasks.filter((task) => {
+  const scored = typed.models.filter((m) => m.task === task.task && m.accuracy !== null);
+  return scored.reduce((a, b) => (a.accuracy! > b.accuracy! ? a : b)).model === "jev";
+}).length;
+const movedByOrder = typed.position_bias.filter((b) => (b.spread ?? 0) > 0.1).length;
 
 export default function Page() {
   return (
@@ -18,6 +37,89 @@ export default function Page() {
 
       <h2 className="mt-16 border-t border-line pt-8 text-h3 font-semibold tracking-tight">Experiments</h2>
       <ul className="mt-6 grid gap-4">
+        <li>
+          <Link
+            href="/typed-decisions/"
+            className="group block border border-line bg-surface p-5 transition-colors hover:border-line-strong md:p-6"
+          >
+            <h3 className="max-w-[26ch] text-h3 font-semibold leading-tight tracking-tight underline decoration-transparent underline-offset-4 group-hover:decoration-line-strong">
+              What does a typed decision cost at {jevSmall.n_options} options and at{" "}
+              {`${jevWide.n_options}?`}
+            </h3>
+            <p className="mt-3 max-w-[68ch] text-body leading-relaxed text-ink-soft">
+              Nine models classify the same text against the same label list, first{" "}
+              {jevSmall.n_options} options wide and then {`${jevWide.n_options}.`} The decision model is the
+              fastest hosted one on the slate and its median hardly notices the wider list, and it is
+              the most accurate on neither task. The position bias the run was built to measure turns
+              up in {movedByOrder} model/task pair out of {typed.position_bias.length}.
+            </p>
+            <dl className="numeric mt-6 grid grid-cols-2 gap-x-6 gap-y-3 text-micro sm:grid-cols-4">
+              <Stat
+                term="Jev latency"
+                value={`${jevRise.rise >= 0 ? "+" : "−"}${Math.abs(jevRise.rise * 100).toFixed(0)}%`}
+                note={`for ${(jevWide.n_options / jevSmall.n_options).toFixed(0)}x the options`}
+                up
+              />
+              <Stat
+                term="Tasks Jev leads on"
+                value={`${jevAccuracyWins} of ${typed.tasks.length}`}
+                note="accuracy, against eight rivals"
+                down
+              />
+              <Stat
+                term="Order-sensitive"
+                value={`${movedByOrder} of ${typed.position_bias.length}`}
+                note="model/task pairs, paired test"
+              />
+              <Stat
+                term="Recorded calls"
+                value={typed.n_calls.toLocaleString()}
+                note={`$${typed.spend_usd.toFixed(4)} spent`}
+              />
+            </dl>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/banking77/"
+            className="group block border border-line bg-surface p-5 transition-colors hover:border-line-strong md:p-6"
+          >
+            <h3 className="max-w-[26ch] text-h3 font-semibold leading-tight tracking-tight underline decoration-transparent underline-offset-4 group-hover:decoration-line-strong">
+              Does Laya&apos;s Banking77 failure come from its token budget?
+            </h3>
+            <p className="mt-3 max-w-[68ch] text-body leading-relaxed text-ink-soft">
+              The model card blames a shared option budget that leaves {bankingDefault.n_options}{" "}
+              intents about four tokens each. Raising it removes every truncation collision and buys
+              back {pct(banking.headline.share_of_deficit, 1)} of the gap to the published Jev number,
+              then stops buying anything. The documented workaround scored below doing nothing at all.
+            </p>
+            <dl className="numeric mt-6 grid grid-cols-2 gap-x-6 gap-y-3 text-micro sm:grid-cols-4">
+              <Stat
+                term="Room buys"
+                value={points(banking.headline.budget_gain_points)}
+                note="accuracy points, paired"
+                up
+              />
+              <Stat
+                term="Still behind"
+                value={banking.headline.remaining_points.toFixed(1)}
+                note="points, published Jev"
+                down
+              />
+              <Stat
+                term="The workaround"
+                value={points(banking.headline.workaround_vs_default_points)}
+                note="points vs doing nothing"
+                down
+              />
+              <Stat
+                term="Test rows"
+                value={bankingRaised.n_test.toLocaleString()}
+                note={`BANKING77, ${banking.device.toUpperCase()}`}
+              />
+            </dl>
+          </Link>
+        </li>
         <li>
           <Link
             href="/rerank/"

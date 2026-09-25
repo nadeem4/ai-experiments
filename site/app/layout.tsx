@@ -23,7 +23,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 const DESCRIPTION =
-  "Measured experiments on AI models, each one carrying the raw wire it was measured from. First: does a decision model re-rank retrieval better than BM25?";
+  "Measured experiments on AI models, each one carrying the raw wire it was measured from: what a typed decision costs at 4 options and at 151, whether a token budget explains Laya's Banking77 score, and whether a decision model re-ranks retrieval better than BM25.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://lab.codewithnk.com"),

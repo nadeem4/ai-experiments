@@ -1,5 +1,8 @@
-import results from "@/data/results.json";
-
+/**
+ * The site now carries three experiments with three different runs, so the
+ * footer states what is true of all of them and nothing that belongs to one.
+ * Each page carries its own run's date, hardware and provenance.
+ */
 export function SiteFooter() {
   return (
     <footer className="border-t border-line bg-surface">
@@ -9,11 +12,8 @@ export function SiteFooter() {
           <a href="https://github.com/nadeem4/ai-experiments" className="underline decoration-line-strong underline-offset-4 hover:decoration-ink">
             the code that ran the experiment
           </a>
-          . Nothing on this site is illustrative.
-        </p>
-        <p className="numeric">
-          Run finished {new Date(results.finished).toISOString().slice(0, 10)}
-          {results.commit ? ` at commit ${results.commit}` : ""}, on {results.device.toUpperCase()}.
+          , and every chart is one that experiment&apos;s report step drew from the same file. Nothing
+          on this site is illustrative.
         </p>
       </div>
     </footer>
