@@ -373,3 +373,94 @@ class TestGoldPlacementExcludesFailedCalls:
         assert gold["accuracy"]["first"] == 1.0, "the failed call must not count as a miss"
         assert gold["n"]["first"] == 1, "and must not inflate the denominator"
         assert gold["spread"] == 0.0
+
+
+class TestTheResultsFileDoesNotPublishALocalPath:
+    """`results/full.json` and the site are public; the machine's directory layout
+    is not a measurement and does not belong in either.
+
+    The local model records its weights directory in `model_id`, which is useful
+    in the raw store and wrong in a published file. The reporter is the boundary
+    where that gets normalised, so old records stay readable without a re-run.
+    """
+
+    def test_a_weights_directory_is_replaced_with_a_plain_label(self):
+        assert report.public_model_id(r"laya (C:\projects\jev_demo\arena\models\laya)") \
+            == "laya (local weights)"
+        assert report.public_model_id("laya (/home/me/models/laya)") == "laya (local weights)"
+
+    def test_a_hosted_model_id_is_left_exactly_as_it_is(self):
+        for model_id in ("typesafe/jev-1.13-20260917", "openai/gpt-6-luna", "microsoft/phi-4"):
+            assert report.public_model_id(model_id) == model_id
+
+    def test_no_summary_row_carries_a_filesystem_path(self):
+        rows = [_rec(model="laya", model_id=r"laya (C:\projects\jev_demo\arena\models\laya)",
+                     transport="local-cpu", correct=1)]
+        for row in report.summarise(rows).values():
+            assert ":\\" not in row["model_id"] and not row["model_id"].count("/") > 1
+
+
+class TestTheGoldPlacementCarriesItsSignificance:
+    """The spread alone invites reading a one-example difference as an effect.
+
+    At 40 examples per placement most spreads are noise, so the results file
+    carries the paired test beside the spread rather than leaving every reader to
+    recompute it -- and leaving the site to publish a number no file contains.
+    """
+
+    def _placement_rows(self, model, first_correct, last_correct):
+        rows = []
+        for i, (f, l) in enumerate(zip(first_correct, last_correct)):
+            rows += [
+                _rec(model=model, task="clinc150", arm="gold:first", example=f"e{i}", correct=f),
+                _rec(model=model, task="clinc150", arm="gold:middle", example=f"e{i}", correct=f),
+                _rec(model=model, task="clinc150", arm="gold:last", example=f"e{i}", correct=l),
+            ]
+        return rows
+
+    def test_a_lopsided_effect_is_reported_as_significant(self):
+        rows = self._placement_rows("phi", [1] * 11 + [0] * 2, [0] * 11 + [1] * 2)
+        sig = report.position_bias(rows)["phi/clinc150"]["gold"]["significance"]
+        assert sig["n_discordant"] == 13
+        assert sig["p_value"] == pytest.approx(0.02246, abs=1e-5)
+        assert sig["comparison"] == "gold:first vs gold:last"
+
+    def test_agreement_between_the_placements_is_not_an_effect(self):
+        rows = self._placement_rows("jev", [1, 1, 0, 1], [1, 1, 0, 1])
+        sig = report.position_bias(rows)["jev/clinc150"]["gold"]["significance"]
+        assert sig["n_discordant"] == 0 and sig["p_value"] == 1.0
+
+    def test_a_failed_call_is_not_a_discordant_pair(self):
+        """Same rule as everywhere else: a call that never returned is not evidence."""
+        rows = self._placement_rows("qwen", [1, 1], [1, 1])
+        rows += [_rec(model="qwen", task="clinc150", arm="gold:first", example="x",
+                      validity="api_error", choice=None, correct=0),
+                 _rec(model="qwen", task="clinc150", arm="gold:last", example="x", correct=1)]
+        sig = report.position_bias(rows)["qwen/clinc150"]["gold"]["significance"]
+        assert sig["n_discordant"] == 0, "the api_error pair must not count as a flip to correct"
+
+
+class TestNothingPublishedCarriesALocalPath:
+    """Patching each site that copies a model id is whack-a-mole: this one is an
+    invariant over the whole structure, checked once before it is written."""
+
+    def test_every_model_id_in_the_tree_is_scrubbed(self):
+        raw = r"laya (C:\projects\jev_demo\arena\models\laya)"
+        results = {
+            "summary": {"laya/ag_news": {"model_id": raw}},
+            "option_overhead": {"laya/ag_news": {"model_id": raw}},
+            "model_resolution": {"laya": {"model_id": raw, "tried": [[raw, True]]}},
+            "models": ["laya"],
+        }
+        out = report.scrub_local_paths(results)
+        assert out["summary"]["laya/ag_news"]["model_id"] == "laya (local weights)"
+        assert out["option_overhead"]["laya/ag_news"]["model_id"] == "laya (local weights)"
+        assert out["model_resolution"]["laya"]["model_id"] == "laya (local weights)"
+
+    def test_it_leaves_hosted_ids_and_other_fields_alone(self):
+        results = {"summary": {"jev/ag_news": {"model_id": "typesafe/jev-1.13-20260917",
+                                               "note": "runs at C:\somewhere"}}}
+        out = report.scrub_local_paths(results)
+        row = out["summary"]["jev/ag_news"]
+        assert row["model_id"] == "typesafe/jev-1.13-20260917"
+        assert row["note"] == "runs at C:\somewhere", "only model_id is normalised"

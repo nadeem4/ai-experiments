@@ -22,7 +22,10 @@ QUESTION_ID = "decision"
 
 class LayaModel:
     def __init__(self, name="laya", weights=WEIGHTS, agent=None):
-        self.name, self.model_id, self.weights = name, f"laya ({weights})", weights
+        # The published id says "local weights", not where they are: results/ and
+        # the site are public and the machine's directory layout is not a
+        # measurement. The path itself stays on `self.weights` for the run log.
+        self.name, self.model_id, self.weights = name, f"{name} (local weights)", weights
         self._agent = agent
 
     @property

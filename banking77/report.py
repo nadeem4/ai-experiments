@@ -163,6 +163,24 @@ def main(argv=None):
         print(f"McNemar {c['a']} vs {c['b']}: n10={c['n10']} n01={c['n01']} p={c['p_value']:.3g}")
     print(f"\nwrote {out}")
 
+    # Always, so a chart cannot drift from the table it was printed beside.
+    from . import figures
+
+    figure_dir = RESULTS_DIR / "figures"
+    drawn = figures.write_all(report, figure_dir)
+    for written in drawn["written"]:
+        print(f"  figure: {figure_dir / written}")
+    for name, reason in drawn["skipped"].items():
+        print(f"  figure {name} SKIPPED: {reason}")
+
+    # Same reason as the figures: the lab site reads a generated file, so no
+    # number on the page can drift from the table above. The pilot writes beside
+    # the full run's results and must not export over its data.
+    if out.name == "full.json":
+        from .scripts import export_site_data
+
+        print(f"  site data: {export_site_data.write(report, source=figure_dir)}")
+
 
 if __name__ == "__main__":
     main()

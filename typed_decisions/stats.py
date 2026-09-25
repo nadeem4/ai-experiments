@@ -183,6 +183,32 @@ def position_histogram(positions, n_options, n_bins=None):
 # --- paired comparison -------------------------------------------------------
 
 
+def mcnemar(a, b):
+    """-> {n01, n10, n_discordant, p_value}. Exact binomial, two-sided.
+
+    For two arms run over the SAME examples, which is what the gold-placement
+    arm is. Only the pairs that disagree carry information: if an example is
+    right under both placements, or wrong under both, the placement did not move
+    it. The test asks whether the disagreements fall one way.
+
+    Exact rather than the chi-square approximation because the subset is 40
+    examples and the discordant counts are single digits, where the
+    approximation is not trustworthy. At this size an effect must move six
+    examples the same way before it can clear 0.05, which is a fact about the
+    arm worth knowing before reading anything into a spread.
+    """
+    if len(a) != len(b):
+        raise ValueError(f"paired vectors must be the same length, got {len(a)} and {len(b)}")
+    n01 = sum(1 for x, y in zip(a, b) if not x and y)
+    n10 = sum(1 for x, y in zip(a, b) if x and not y)
+    n = n01 + n10
+    if n == 0:
+        return {"n01": 0, "n10": 0, "n_discordant": 0, "p_value": 1.0}
+    tail = sum(math.comb(n, k) for k in range(min(n01, n10) + 1))
+    return {"n01": n01, "n10": n10, "n_discordant": n,
+            "p_value": min(1.0, 2 * tail / 2 ** n)}
+
+
 def paired(a, b, n=1000, seed=0, alpha=0.05):
     """-> {"n", "mean_diff", "ci"} over the examples **both** models answered.
 

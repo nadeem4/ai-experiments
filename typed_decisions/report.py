@@ -50,6 +50,41 @@ def _mean(values):
     return sum(values) / len(values) if values else None
 
 
+def public_model_id(model_id):
+    """Strip a local weights directory out of a model id.
+
+    The local model records where its weights live, which is worth having in the
+    raw store and does not belong in `results/<tag>.json` or on the site: the
+    machine's directory layout is not a measurement. Normalised here, at the
+    boundary between the store and anything published, so existing records stay
+    readable without re-running the model."""
+    if model_id and ("\\" in model_id or "/" in model_id) and model_id.endswith(")"):
+        name, _, _ = model_id.partition(" (")
+        return f"{name} (local weights)"
+    return model_id
+
+
+def scrub_local_paths(results):
+    """Normalise every `model_id` in the results tree, in place.
+
+    Several blocks copy a model id out of the store -- the summary, the option
+    overhead, the resolved catalogue -- and patching each one is whack-a-mole:
+    the next block someone adds will carry the path again. This runs once over
+    the finished structure, just before it is written, so the file that gets
+    committed and the site built from it cannot contain a path whatever else
+    changes."""
+    if isinstance(results, dict):
+        for key, value in results.items():
+            if key == "model_id" and isinstance(value, str):
+                results[key] = public_model_id(value)
+            else:
+                scrub_local_paths(value)
+    elif isinstance(results, list):
+        for item in results:
+            scrub_local_paths(item)
+    return results
+
+
 def group_key(record):
     """Model, task and **transport**. The transport is in the key so OpenRouter and
     the older Vercel records can never end up averaged into one row."""
@@ -185,7 +220,7 @@ def summarise(records, models=None):
         cost_per_call = (sum(costs) / len(rows)) if costs else None
         out[name] = {
             "model": rows[0]["model"],
-            "model_id": rows[0]["model_id"],
+            "model_id": public_model_id(rows[0]["model_id"]),
             "task": rows[0]["task"],
             "transport": rows[0].get("transport", "unknown"),
             "n_options": rows[0]["n_options"],
@@ -257,6 +292,30 @@ def bias_key(record):
     return f"{record['model']}/{record['task']}"
 
 
+def gold_placement(placements, by_example):
+    """Accuracy at each gold position, plus the paired test between the extremes.
+
+    The spread on its own is the number most easily over-read: at 40 examples per
+    placement, 0.025 is one example. The test goes in the results file beside it
+    so a reader -- or a page built from this file -- does not have to recompute it
+    to know whether a row means anything.
+
+    `gold:first` against `gold:last` because those are the extremes the
+    prediction is about. Only examples both placements actually answered are
+    paired; a call that never returned is not evidence about where the option
+    sat."""
+    out = stats.accuracy_by_position(placements)
+    first, last = by_example.get("first", {}), by_example.get("last", {})
+    shared = sorted(i for i in set(first) & set(last)
+                    if first[i] is not None and last[i] is not None)
+    out["significance"] = {
+        "comparison": "gold:first vs gold:last",
+        "n_paired": len(shared),
+        **stats.mcnemar([first[i] for i in shared], [last[i] for i in shared]),
+    }
+    return out
+
+
 def position_bias(records, models=None):
     """-> {"<model>/<task>": {flip, gold, positions, n_examples}}.
 
@@ -284,6 +343,10 @@ def position_bias(records, models=None):
     for name, rows in groups.items():
         random_answers = defaultdict(list)
         placements = {p: [] for p in spec_module.PLACEMENTS}
+        # The same scores keyed by example, so first and last can be paired. The
+        # flat lists above cannot be: they only line up if every placement saw
+        # every example, which a failed call is enough to break.
+        by_example = {p: {} for p in spec_module.PLACEMENTS}
         positions, n_options = [], rows[0].get("n_options") or 0
         for r in sorted(rows, key=lambda r: (r["example_id"], r["arm"])):
             kind, _, which = r["arm"].partition(":")
@@ -295,8 +358,9 @@ def position_bias(records, models=None):
                 # nothing about where the gold option sat. `correct` is stored as
                 # 0 for those, so pass None and let accuracy_by_position drop it
                 # rather than let an outage read as a position effect.
-                placements[which].append(
-                    None if r["validity"] == "api_error" else r["correct"])
+                scored = None if r["validity"] == "api_error" else r["correct"]
+                placements[which].append(scored)
+                by_example[which][r["example_id"]] = scored
             shown = r.get("options_shown")
             if shown:
                 positions.append(stats.chosen_position(r["choice"], shown))
@@ -313,7 +377,7 @@ def position_bias(records, models=None):
             # carried so the table and the figure can say so instead of drawing it.
             "n_valid": sum(1 for r in rows if r.get("choice") is not None),
             "flip": stats.flip_rate(random_answers, n_orders=n_orders or 1),
-            "gold": stats.accuracy_by_position(placements),
+            "gold": gold_placement(placements, by_example),
             "positions": stats.position_histogram(
                 positions, n_options=n_options or 1,
                 n_bins=min(n_options or 1, 10)),
@@ -655,6 +719,9 @@ def main(argv=None):
     results_dir.mkdir(parents=True, exist_ok=True)
     name = results_name(args.tag, models)
     results_path = results_dir / f"{name}.json"
+    # Once, over the finished structure: the committed file and the public site
+    # built from it must not carry this machine's directory layout.
+    scrub_local_paths(results)
     results_path.write_text(json.dumps(results, indent=2, default=str) + "\n", encoding="utf-8")
     print(f"\nwrote {results_path}")
 
@@ -667,6 +734,14 @@ def main(argv=None):
         print(f"  figure: {figure_dir / written}")
     for skipped, reason in out["skipped"].items():
         print(f"  figure {skipped}: NOT drawn -- {reason}")
+
+    # Same reason as the figures: the lab site reads a generated file, so nothing
+    # on the page can drift from the table it was printed beside. A subset report
+    # writes beside the full one and must not export over it.
+    if results_path.name == "full.json":
+        from .scripts import export_site_data
+
+        print(f"  site data: {export_site_data.write(results, source=figure_dir)}")
 
 
 if __name__ == "__main__":

@@ -429,3 +429,39 @@ class TestReliabilityCurve:
 
     def test_nothing_to_plot_gives_no_curve(self):
         assert stats.reliability([], [], n_bins=15) is None
+
+
+class TestMcNemar:
+    """The paired test the gold-placement arm needs.
+
+    Two placements are run over the same examples, so the question is not whether
+    two rates differ but whether the examples that changed changed in one
+    direction. Only the discordant pairs carry information; the exact binomial
+    over them is what the 40-example subset can support.
+    """
+
+    def test_no_discordant_pairs_cannot_show_an_effect(self):
+        out = stats.mcnemar([1, 1, 0, 0], [1, 1, 0, 0])
+        assert out == {"n01": 0, "n10": 0, "n_discordant": 0, "p_value": 1.0}
+
+    def test_a_lopsided_split_is_significant_and_a_balanced_one_is_not(self):
+        lopsided = stats.mcnemar([1] * 6 + [0] * 6, [0] * 6 + [0] * 6)
+        assert lopsided["n_discordant"] == 6
+        assert lopsided["p_value"] == pytest.approx(0.03125), "six one-sided pairs clear 0.05"
+
+        balanced = stats.mcnemar([1, 0, 1, 0], [0, 1, 0, 1])
+        assert balanced["n_discordant"] == 4
+        assert balanced["p_value"] == 1.0
+
+    def test_it_reproduces_the_run_s_one_significant_result(self):
+        """phi/clinc150: 11 examples right only when the gold option was first,
+        2 right only when it was last. The single effect the run detected."""
+        a = [1] * 11 + [0] * 2
+        b = [0] * 11 + [1] * 2
+        out = stats.mcnemar(a, b)
+        assert out["n_discordant"] == 13
+        assert out["p_value"] == pytest.approx(0.02246, abs=1e-5)
+
+    def test_it_refuses_vectors_of_different_lengths(self):
+        with pytest.raises(ValueError):
+            stats.mcnemar([1, 0], [1, 0, 1])

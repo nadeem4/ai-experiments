@@ -6,7 +6,7 @@ The protocol is [README.md](README.md). Its prediction about position bias was c
 
 ## The finding, one sentence
 
-Jev is the fastest model on the slate on both tasks — 1.7x to 15.6x ahead of the rest depending on the model — the only one whose latency barely moves between 4 options and 151, and one of only two that return a probability at all — and it wins on accuracy **nowhere**; meanwhile the position bias this experiment was built to measure turns out to be statistically detectable in **exactly one** of the eight models that could answer.
+Jev is the fastest model on the slate on both tasks — 1.7x to 15.6x ahead of the rest depending on the model — and one of only two that return a probability at all — and it wins on accuracy **nowhere**; meanwhile the position bias this experiment was built to measure turns out to be statistically detectable in **exactly one** of the eight models that could answer.
 
 ## What the run was
 
@@ -86,6 +86,8 @@ The speed result is unambiguous and it is the clearest thing in the run. Jev's m
 | gemma | 658 | 1144 | +74% |
 | gpt | 1392 | 1626 | +17% |
 | qwen | 2860 | 3879 | +36% |
+
+**Jev is not the only model whose median holds steady**, and the table says so: `glm` rises 4% and `phi` actually falls 8%. What is true of Jev alone is the combination — it is both the flattest *and* the fastest, where `glm` and `phi` hold steady at roughly twice its median. The models that pay heavily for options are the ones in the middle of the pack.
 
 Jev also has the **lowest tail ratio on both tasks** (1.4 and 1.3, against 5.0 and 5.4 for `glm` and `deepseek`), which in production is worth more than a median.
 

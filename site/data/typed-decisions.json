@@ -1,0 +1,909 @@
+{
+  "tag": "full",
+  "written_at": "2026-09-25T13:49:08",
+  "n_calls": 10120,
+  "spend_usd": 0.7245369964,
+  "tasks": [
+    {
+      "task": "ag_news",
+      "dataset": "fancyzhx/ag_news",
+      "config": "default",
+      "split": "test",
+      "licence": "unknown -- the hub lists `license: unknown` for this dataset. Recorded as unknown rather than assumed permissive.",
+      "source": "fancyzhx/ag_news (default config), test split",
+      "n_examples": 300,
+      "n_options": 4,
+      "n_validation": 100,
+      "bias_subset": 40,
+      "n_random_orders": 3
+    },
+    {
+      "task": "clinc150",
+      "dataset": "clinc/clinc_oos",
+      "config": "plus",
+      "split": "test",
+      "licence": "CC-BY-3.0",
+      "source": "clinc/clinc_oos (plus config), test split",
+      "n_examples": 300,
+      "n_options": 151,
+      "n_validation": 100,
+      "bias_subset": 40,
+      "n_random_orders": 3
+    }
+  ],
+  "models": [
+    {
+      "model": "jev",
+      "model_id": "typesafe/jev-1.13-20260917",
+      "task": "ag_news",
+      "n_options": 4,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 230.41169997304678,
+      "p95_ms": 329.5704999472946,
+      "tail_ratio": 1.430354882090828,
+      "accuracy": 0.89,
+      "accuracy_ci": [
+        0.8533333333333334,
+        0.9234166666666666
+      ],
+      "valid_rate": 1.0,
+      "validity": {
+        "valid": 300
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.015299059999999998,
+      "cost_per_correct_usd": 1.7189955056179772e-05,
+      "mean_input_tokens": 364.2633333333333,
+      "mean_output_tokens": 47.46666666666667,
+      "returns_probability": true
+    },
+    {
+      "model": "glm",
+      "model_id": "z-ai/glm-5.3-flash",
+      "task": "ag_news",
+      "n_options": 4,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 408.58470008242875,
+      "p95_ms": 2043.014399940148,
+      "tail_ratio": 5.0002224741356835,
+      "accuracy": 0.91,
+      "accuracy_ci": [
+        0.8766666666666667,
+        0.94
+      ],
+      "valid_rate": 1.0,
+      "validity": {
+        "valid": 300
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.020530589999999998,
+      "cost_per_correct_usd": 2.256108791208791e-05,
+      "mean_input_tokens": 113.91,
+      "mean_output_tokens": 9.17,
+      "returns_probability": false
+    },
+    {
+      "model": "phi",
+      "model_id": "microsoft/phi-4",
+      "task": "ag_news",
+      "n_options": 4,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 481.571999960579,
+      "p95_ms": 971.7440000968054,
+      "tail_ratio": 2.0178581814896868,
+      "accuracy": 0.85,
+      "accuracy_ci": [
+        0.8099166666666667,
+        0.89
+      ],
+      "valid_rate": 1.0,
+      "validity": {
+        "valid": 300
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.008523666666666667,
+      "cost_per_correct_usd": 1.0027843137254903e-05,
+      "mean_input_tokens": 107.02,
+      "mean_output_tokens": 7.373333333333333,
+      "returns_probability": false
+    },
+    {
+      "model": "deepseek",
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "task": "ag_news",
+      "n_options": 4,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 539.6097999764606,
+      "p95_ms": 2926.5758999390528,
+      "tail_ratio": 5.423503983928236,
+      "accuracy": 0.88,
+      "accuracy_ci": [
+        0.8433333333333334,
+        0.9133333333333333
+      ],
+      "valid_rate": 0.9966666666666667,
+      "validity": {
+        "valid": 299,
+        "unparseable": 1
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.040175616666666664,
+      "cost_per_correct_usd": 4.565410984848485e-05,
+      "mean_input_tokens": 115.53333333333333,
+      "mean_output_tokens": 21.246666666666666,
+      "returns_probability": false
+    },
+    {
+      "model": "llama",
+      "model_id": "meta-llama/llama-4-scout",
+      "task": "ag_news",
+      "n_options": 4,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 571.2464000098407,
+      "p95_ms": 1289.147299947217,
+      "tail_ratio": 2.256727219506345,
+      "accuracy": 0.8566666666666667,
+      "accuracy_ci": [
+        0.8133333333333334,
+        0.8934166666666665
+      ],
+      "valid_rate": 1.0,
+      "validity": {
+        "valid": 300
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.013093,
+      "cost_per_correct_usd": 1.528365758754864e-05,
+      "mean_input_tokens": 108.81,
+      "mean_output_tokens": 7.373333333333333,
+      "returns_probability": false
+    },
+    {
+      "model": "gemma",
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "task": "ag_news",
+      "n_options": 4,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 658.3509999327362,
+      "p95_ms": 2259.3518000794575,
+      "tail_ratio": 3.43183469047711,
+      "accuracy": 0.86,
+      "accuracy_ci": [
+        0.8166666666666667,
+        0.8967499999999998
+      ],
+      "valid_rate": 1.0,
+      "validity": {
+        "valid": 300
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.012295153333333333,
+      "cost_per_correct_usd": 1.4296689922480621e-05,
+      "mean_input_tokens": 156.49333333333334,
+      "mean_output_tokens": 6.973333333333334,
+      "returns_probability": false
+    },
+    {
+      "model": "gpt",
+      "model_id": "openai/gpt-6-luna",
+      "task": "ag_news",
+      "n_options": 4,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 1391.7920000385493,
+      "p95_ms": 2885.21950005088,
+      "tail_ratio": 2.0730249203695426,
+      "accuracy": 0.8666666666666667,
+      "accuracy_ci": [
+        0.8266666666666667,
+        0.9033333333333333
+      ],
+      "valid_rate": 1.0,
+      "validity": {
+        "valid": 300
+      },
+      "retries": 73,
+      "cost_per_1k_usd": 0.020900333333333333,
+      "cost_per_correct_usd": 2.411576923076923e-05,
+      "mean_input_tokens": 138.42,
+      "mean_output_tokens": 14.116666666666667,
+      "returns_probability": false
+    },
+    {
+      "model": "qwen",
+      "model_id": "qwen/qwen3.8-flash",
+      "task": "ag_news",
+      "n_options": 4,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 2860.42149993591,
+      "p95_ms": 5478.260700008832,
+      "tail_ratio": 1.9151935126104933,
+      "accuracy": 0.8996655518394648,
+      "accuracy_ci": [
+        0.862876254180602,
+        0.9331103678929766
+      ],
+      "valid_rate": 0.9966666666666667,
+      "validity": {
+        "valid": 299,
+        "api_error": 1
+      },
+      "retries": 2,
+      "cost_per_1k_usd": 0.06662926666666667,
+      "cost_per_correct_usd": 7.406003990086742e-05,
+      "mean_input_tokens": 167.79333333333332,
+      "mean_output_tokens": 88.21333333333334,
+      "returns_probability": false
+    },
+    {
+      "model": "laya",
+      "model_id": "laya (local weights)",
+      "task": "ag_news",
+      "n_options": 4,
+      "transport": "local-cpu",
+      "local": true,
+      "n": 300,
+      "p50_ms": 210.49059997312725,
+      "p95_ms": 321.80989999324083,
+      "tail_ratio": 1.5288563956505679,
+      "accuracy": 0.9133333333333333,
+      "accuracy_ci": [
+        0.88,
+        0.9433333333333334
+      ],
+      "valid_rate": 1.0,
+      "validity": {
+        "valid": 300
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.0,
+      "cost_per_correct_usd": 0.0,
+      "mean_input_tokens": null,
+      "mean_output_tokens": null,
+      "returns_probability": true
+    },
+    {
+      "model": "jev",
+      "model_id": "typesafe/jev-1.13-20260917",
+      "task": "clinc150",
+      "n_options": 151,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 248.3799000037834,
+      "p95_ms": 326.9944000057876,
+      "tail_ratio": 1.31650910561123,
+      "accuracy": 0.86,
+      "accuracy_ci": [
+        0.82,
+        0.8966666666666666
+      ],
+      "valid_rate": 1.0,
+      "validity": {
+        "valid": 300
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.09508506,
+      "cost_per_correct_usd": 0.00011056402325581395,
+      "mean_input_tokens": 2263.93,
+      "mean_output_tokens": 1301.48,
+      "returns_probability": true
+    },
+    {
+      "model": "glm",
+      "model_id": "z-ai/glm-5.3-flash",
+      "task": "clinc150",
+      "n_options": 151,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 425.3896999871358,
+      "p95_ms": 2258.0330000491813,
+      "tail_ratio": 5.308151561068513,
+      "accuracy": 0.8833333333333333,
+      "accuracy_ci": [
+        0.8466666666666667,
+        0.9166666666666666
+      ],
+      "valid_rate": 1.0,
+      "validity": {
+        "valid": 300
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.14071575833333333,
+      "cost_per_correct_usd": 0.00015930085849056604,
+      "mean_input_tokens": 938.6833333333333,
+      "mean_output_tokens": 9.34,
+      "returns_probability": false
+    },
+    {
+      "model": "phi",
+      "model_id": "microsoft/phi-4",
+      "task": "clinc150",
+      "n_options": 151,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 442.71020009182394,
+      "p95_ms": 846.6369999805465,
+      "tail_ratio": 1.9123955124705572,
+      "accuracy": 0.7366666666666667,
+      "accuracy_ci": [
+        0.6833333333333333,
+        0.7866666666666666
+      ],
+      "valid_rate": 1.0,
+      "validity": {
+        "valid": 300
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.0660989,
+      "cost_per_correct_usd": 8.972701357466063e-05,
+      "mean_input_tokens": 927.7833333333333,
+      "mean_output_tokens": 8.243333333333334,
+      "returns_probability": false
+    },
+    {
+      "model": "llama",
+      "model_id": "meta-llama/llama-4-scout",
+      "task": "clinc150",
+      "n_options": 151,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 707.5955000473186,
+      "p95_ms": 1309.452599962242,
+      "tail_ratio": 1.8505666017868623,
+      "accuracy": 0.8033333333333333,
+      "accuracy_ci": [
+        0.7566666666666667,
+        0.8466666666666667
+      ],
+      "valid_rate": 1.0,
+      "validity": {
+        "valid": 300
+      },
+      "retries": 13,
+      "cost_per_1k_usd": 0.09768266666666665,
+      "cost_per_correct_usd": 0.0001215966804979253,
+      "mean_input_tokens": 951.7866666666666,
+      "mean_output_tokens": 8.346666666666666,
+      "returns_probability": false
+    },
+    {
+      "model": "deepseek",
+      "model_id": "deepseek/deepseek-v4.1-flash",
+      "task": "clinc150",
+      "n_options": 151,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 863.947800011374,
+      "p95_ms": 4673.078100080602,
+      "tail_ratio": 5.408982001017978,
+      "accuracy": 0.8859060402684564,
+      "accuracy_ci": [
+        0.8489932885906041,
+        0.9194630872483222
+      ],
+      "valid_rate": 0.99,
+      "validity": {
+        "valid": 297,
+        "api_error": 2,
+        "unparseable": 1
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.2382193566666667,
+      "cost_per_correct_usd": 0.0002688991222979798,
+      "mean_input_tokens": 1068.2866666666666,
+      "mean_output_tokens": 47.39666666666667,
+      "returns_probability": false
+    },
+    {
+      "model": "gemma",
+      "model_id": "google/gemma-4-26b-a4b-it",
+      "task": "clinc150",
+      "n_options": 151,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 1143.5211999341846,
+      "p95_ms": 3180.7939999271184,
+      "tail_ratio": 2.7815785139009135,
+      "accuracy": 0.8966666666666666,
+      "accuracy_ci": [
+        0.86,
+        0.93
+      ],
+      "valid_rate": 1.0,
+      "validity": {
+        "valid": 300
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.08821164499999999,
+      "cost_per_correct_usd": 9.837729925650557e-05,
+      "mean_input_tokens": 1310.88,
+      "mean_output_tokens": 8.456666666666667,
+      "returns_probability": false
+    },
+    {
+      "model": "gpt",
+      "model_id": "openai/gpt-6-luna",
+      "task": "clinc150",
+      "n_options": 151,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 1626.0694999946281,
+      "p95_ms": 3217.7877000067383,
+      "tail_ratio": 1.9788746422077093,
+      "accuracy": 0.9063545150501672,
+      "accuracy_ci": [
+        0.8729096989966555,
+        0.939799331103679
+      ],
+      "valid_rate": 0.9966666666666667,
+      "validity": {
+        "valid": 299,
+        "api_error": 1
+      },
+      "retries": 66,
+      "cost_per_1k_usd": 0.19410441666666667,
+      "cost_per_correct_usd": 0.0002141594855473555,
+      "mean_input_tokens": 1461.6923076923076,
+      "mean_output_tokens": 24.234113712374583,
+      "returns_probability": false
+    },
+    {
+      "model": "qwen",
+      "model_id": "qwen/qwen3.8-flash",
+      "task": "clinc150",
+      "n_options": 151,
+      "transport": "openrouter",
+      "local": false,
+      "n": 300,
+      "p50_ms": 3878.7448999937624,
+      "p95_ms": 9640.4778000433,
+      "tail_ratio": 2.485463222925231,
+      "accuracy": 0.8659420289855072,
+      "accuracy_ci": [
+        0.822463768115942,
+        0.9057971014492754
+      ],
+      "valid_rate": 0.92,
+      "validity": {
+        "valid": 276,
+        "api_error": 24
+      },
+      "retries": 25,
+      "cost_per_1k_usd": 0.22681229333333336,
+      "cost_per_correct_usd": 0.0002619254935564854,
+      "mean_input_tokens": 988.8566666666667,
+      "mean_output_tokens": 167.71666666666667,
+      "returns_probability": false
+    },
+    {
+      "model": "laya",
+      "model_id": "laya (local weights)",
+      "task": "clinc150",
+      "n_options": 151,
+      "transport": "local-cpu",
+      "local": true,
+      "n": 300,
+      "p50_ms": null,
+      "p95_ms": null,
+      "tail_ratio": null,
+      "accuracy": null,
+      "accuracy_ci": null,
+      "valid_rate": 0.0,
+      "validity": {
+        "api_error": 300
+      },
+      "retries": 0,
+      "cost_per_1k_usd": 0.0,
+      "cost_per_correct_usd": null,
+      "mean_input_tokens": null,
+      "mean_output_tokens": null,
+      "returns_probability": false
+    }
+  ],
+  "latency_rise": [
+    {
+      "model": "phi",
+      "small_p50_ms": 481.571999960579,
+      "large_p50_ms": 442.71020009182394,
+      "rise": -0.08069779777880826
+    },
+    {
+      "model": "glm",
+      "small_p50_ms": 408.58470008242875,
+      "large_p50_ms": 425.3896999871358,
+      "rise": 0.04112978264070288
+    },
+    {
+      "model": "jev",
+      "small_p50_ms": 230.41169997304678,
+      "large_p50_ms": 248.3799000037834,
+      "rise": 0.07798301923399942
+    },
+    {
+      "model": "gpt",
+      "small_p50_ms": 1391.7920000385493,
+      "large_p50_ms": 1626.0694999946281,
+      "rise": 0.16832795414084134
+    },
+    {
+      "model": "llama",
+      "small_p50_ms": 571.2464000098407,
+      "large_p50_ms": 707.5955000473186,
+      "rise": 0.23868701848296814
+    },
+    {
+      "model": "qwen",
+      "small_p50_ms": 2860.42149993591,
+      "large_p50_ms": 3878.7448999937624,
+      "rise": 0.3560046657741416
+    },
+    {
+      "model": "deepseek",
+      "small_p50_ms": 539.6097999764606,
+      "large_p50_ms": 863.947800011374,
+      "rise": 0.6010602476994711
+    },
+    {
+      "model": "gemma",
+      "small_p50_ms": 658.3509999327362,
+      "large_p50_ms": 1143.5211999341846,
+      "rise": 0.7369476161667838
+    }
+  ],
+  "position_bias": [
+    {
+      "model": "glm",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip_rate": 0.075,
+      "gold_first": 0.925,
+      "gold_middle": 0.95,
+      "gold_last": 0.975,
+      "spread": 0.04999999999999993,
+      "mean_position": 0.5194444444444445
+    },
+    {
+      "model": "phi",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip_rate": 0.05,
+      "gold_first": 0.925,
+      "gold_middle": 0.925,
+      "gold_last": 0.925,
+      "spread": 0.0,
+      "mean_position": 0.5416666666666666
+    },
+    {
+      "model": "gemma",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip_rate": 0.025,
+      "gold_first": 0.925,
+      "gold_middle": 0.95,
+      "gold_last": 0.925,
+      "spread": 0.02499999999999991,
+      "mean_position": 0.5402777777777777
+    },
+    {
+      "model": "deepseek",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 239,
+      "flip_rate": 0.0,
+      "gold_first": 0.95,
+      "gold_middle": 0.9743589743589743,
+      "gold_last": 0.975,
+      "spread": 0.025000000000000022,
+      "mean_position": 0.5383542538354255
+    },
+    {
+      "model": "llama",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 238,
+      "flip_rate": 0.07894736842105263,
+      "gold_first": 0.925,
+      "gold_middle": 0.925,
+      "gold_last": 0.95,
+      "spread": 0.02499999999999991,
+      "mean_position": 0.5364145658263305
+    },
+    {
+      "model": "qwen",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 238,
+      "flip_rate": 0.025,
+      "gold_first": 0.9743589743589743,
+      "gold_middle": 0.9743589743589743,
+      "gold_last": 0.95,
+      "spread": 0.024358974358974383,
+      "mean_position": 0.5378151260504201
+    },
+    {
+      "model": "gpt",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip_rate": 0.025,
+      "gold_first": 0.95,
+      "gold_middle": 0.975,
+      "gold_last": 0.975,
+      "spread": 0.025000000000000022,
+      "mean_position": 0.5361111111111111
+    },
+    {
+      "model": "jev",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip_rate": 0.0,
+      "gold_first": 0.975,
+      "gold_middle": 0.975,
+      "gold_last": 0.975,
+      "spread": 0.0,
+      "mean_position": 0.5361111111111111
+    },
+    {
+      "model": "glm",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip_rate": 0.15,
+      "gold_first": 0.775,
+      "gold_middle": 0.725,
+      "gold_last": 0.75,
+      "spread": 0.050000000000000044,
+      "mean_position": 0.4895
+    },
+    {
+      "model": "phi",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip_rate": 0.325,
+      "gold_first": 0.725,
+      "gold_middle": 0.75,
+      "gold_last": 0.5,
+      "spread": 0.25,
+      "mean_position": 0.42969444444444443
+    },
+    {
+      "model": "gemma",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip_rate": 0.15,
+      "gold_first": 0.875,
+      "gold_middle": 0.875,
+      "gold_last": 0.85,
+      "spread": 0.025000000000000022,
+      "mean_position": 0.46688888888888885
+    },
+    {
+      "model": "deepseek",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 234,
+      "flip_rate": 0.08108108108108109,
+      "gold_first": 0.85,
+      "gold_middle": 0.825,
+      "gold_last": 0.875,
+      "spread": 0.050000000000000044,
+      "mean_position": 0.4805982905982906
+    },
+    {
+      "model": "llama",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip_rate": 0.225,
+      "gold_first": 0.725,
+      "gold_middle": 0.725,
+      "gold_last": 0.7,
+      "spread": 0.025000000000000022,
+      "mean_position": 0.4165833333333333
+    },
+    {
+      "model": "qwen",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 205,
+      "flip_rate": 0.03571428571428571,
+      "gold_first": 0.78125,
+      "gold_middle": 0.8055555555555556,
+      "gold_last": 0.8055555555555556,
+      "spread": 0.02430555555555558,
+      "mean_position": 0.49209756097560975
+    },
+    {
+      "model": "gpt",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip_rate": 0.05,
+      "gold_first": 0.85,
+      "gold_middle": 0.85,
+      "gold_last": 0.825,
+      "spread": 0.025000000000000022,
+      "mean_position": 0.48008333333333336
+    },
+    {
+      "model": "laya",
+      "task": "ag_news",
+      "n_options": 4,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip_rate": 0.025,
+      "gold_first": 0.95,
+      "gold_middle": 0.975,
+      "gold_last": 0.95,
+      "spread": 0.025000000000000022,
+      "mean_position": 0.5333333333333333
+    },
+    {
+      "model": "jev",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 240,
+      "flip_rate": 0.05,
+      "gold_first": 0.825,
+      "gold_middle": 0.825,
+      "gold_last": 0.85,
+      "spread": 0.025000000000000022,
+      "mean_position": 0.49872222222222223
+    },
+    {
+      "model": "laya",
+      "task": "clinc150",
+      "n_options": 151,
+      "n_examples": 40,
+      "n_calls": 240,
+      "n_valid": 0,
+      "flip_rate": null,
+      "gold_first": null,
+      "gold_middle": null,
+      "gold_last": null,
+      "spread": null,
+      "mean_position": null
+    }
+  ],
+  "option_share": [
+    {
+      "task": "ag_news",
+      "n_options": 4,
+      "n_models": 6,
+      "min_share": 0.07602339181286549,
+      "max_share": 0.1736111111111111,
+      "unusable": [
+        "deepseek/ag_news"
+      ]
+    },
+    {
+      "task": "clinc150",
+      "n_options": 151,
+      "n_models": 7,
+      "min_share": 0.8557692307692307,
+      "max_share": 0.9444063143445436,
+      "unusable": []
+    }
+  ],
+  "calibration": [
+    {
+      "model": "jev",
+      "task": "ag_news",
+      "temperature": 1.988,
+      "ece_raw": 0.07049999999999998,
+      "ece_scaled": 0.07680237660800143,
+      "n_test": 300,
+      "n_validation": 100
+    },
+    {
+      "model": "jev",
+      "task": "clinc150",
+      "temperature": 2.758,
+      "ece_raw": 0.06740000000000011,
+      "ece_scaled": 0.08355286386267465,
+      "n_test": 300,
+      "n_validation": 100
+    },
+    {
+      "model": "laya",
+      "task": "ag_news",
+      "temperature": 0.766,
+      "ece_raw": 0.02753066666666671,
+      "ece_scaled": 0.0524268732391666,
+      "n_test": 300,
+      "n_validation": 100
+    }
+  ],
+  "probability": {
+    "returns": [
+      "jev",
+      "laya"
+    ],
+    "label_only": [
+      "deepseek",
+      "gemma",
+      "glm",
+      "gpt",
+      "llama",
+      "phi",
+      "qwen"
+    ]
+  },
+  "laya_cfg": {
+    "head_max_len": 192,
+    "max_len": 512
+  },
+  "figures": {
+    "latency": {
+      "src": "/typed-decisions-latency.png",
+      "width": 1501,
+      "height": 877
+    },
+    "position_bias": {
+      "src": "/typed-decisions-position-bias.png",
+      "width": 1503,
+      "height": 1072
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Does Laya's Banking77 failure come from its token budget?
 
-**Status:** `piloted`
+**Status:** `complete`. Results in [RESULTS.md](RESULTS.md).
 
 Results so far: [RESULTS.md](RESULTS.md). This file is the protocol. An inference-only experiment: **nothing here is trained.**
 
@@ -185,3 +185,25 @@ Nothing here is hosted, so the money cost is zero. From the pilot's steady-state
 | **total** | | **~3.2 hours**, or up to ~10 hours if the machine stays as contended as it was for the pilot's first third |
 
 Runnable here overnight. It does not need a GPU.
+
+## Protocol amendments
+
+**2026-09-25 — the audited `laya` version is not the version that ran.** The
+audit under "What was verified before any code was written" was performed
+against the installed `laya` **0.3.7**. The package moved to **0.3.20** between
+the pilot and the full sweep, so that section is stale about the version it
+names. Re-checked against the installed 0.3.20: the mechanism the hypothesis
+rests on is verbatim present,
+
+    per = max(4, (head_max_len - 16) // max(1, len(opt_ids)))
+
+so the audit's conclusions stand and only the version string is wrong. Recorded
+rather than edited in place, because which version produced which number is a
+fact about the experiment. `RESULTS.md` provenance carries the versions that
+actually ran.
+
+**2026-09-25 — a plotting step was added after the run.** `banking77/figures.py`
+generates three figures from `results/full.json` as part of `report.py`, which
+the protocol did not originally specify. It reads the committed results file and
+re-running the report rebuilds `full.json` byte-identically, so no measurement
+changed; only the reporting did.
