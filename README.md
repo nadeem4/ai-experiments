@@ -26,13 +26,15 @@ Inference only, nothing trained. **Finding so far.** A 200-example pilot of arm 
 
 ### 3. Many models, one job, `typed_decisions/`
 
-**`designed`.** [Protocol](typed_decisions/README.md) · [Results](typed_decisions/RESULTS.md)
+**`piloted`.** [Protocol](typed_decisions/README.md) · [Results](typed_decisions/RESULTS.md)
 
 *For one job — assign a piece of text to exactly one of a fixed list of labels — how do a decision model and a wide slate of hosted LLMs compare on accuracy, latency, cost, validity, positional robustness and whether they return a probability at all, at 4 options and at 151?*
 
 Nine models — GLM, Phi, Gemma, DeepSeek, Llama, Qwen, GPT, Jev and Laya — on **AG News** (4 labels) and **CLINC150** (151 labels), with ids resolved from OpenRouter's live catalogue rather than written down.
 
 Two things make it different from the two above. **Every model reads its inputs off one frozen run spec** — the example ids, the instruction text, the option texts and every option ordering — hashed with SHA-256, with that hash on every stored call, so a model added next month is comparable against today's numbers without re-running anything, and the report **refuses** to mix records from two specs. And **position bias is measured causally**: the same example under three seeded orderings for a flip rate, plus the correct option placed deliberately first, middle and last for accuracy by position. The protocol records a falsifiable prediction about that before the run.
+
+**Finding so far.** A 358-call pilot confirms every transport on both tasks for $0.0293, and confirms two things the protocol got wrong: **Jev is not free on options** (363 to 2,264 input tokens and 47 to 1,301 *output* tokens between 4 options and 151 — a shallower slope from a higher floor, not a flat one), and **Laya cannot take a 151-option list at all**, since 151 intent names exceed its 192-token option budget. At 151 options the option list is 90–96% of what an LLM is billed for. **Position bias is not yet measured**: the pilot's bias subset was 2 examples. The full run is priced at $0.60–$1.00 and has not been launched.
 
 *Transport note:* this experiment ran over the Vercel AI Gateway before 2026-09-24 and over OpenRouter after it. The two sets of numbers are not comparable, every call record carries its `transport`, and the report will not merge them. It has also been renamed twice, from `latency/` to `decision_cost/` to `typed_decisions/`; `git log --follow` traces it.
 
