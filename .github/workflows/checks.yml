@@ -1,0 +1,40 @@
+name: Checks
+
+# Lint and tests for the lab site, on every push and pull request that touches it.
+#
+# Deployment is NOT here. Vercel's GitHub integration builds site/ and publishes
+# to lab.codewithnk.com on its own, so a deploy job here would need a token for
+# work that already happens. What Vercel does not do is fail loudly when the
+# tests break: it will happily publish a site whose suite is red. That is the gap
+# this fills.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "site/**"
+      - ".github/workflows/checks.yml"
+  pull_request:
+    paths:
+      - "site/**"
+  workflow_dispatch:
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
