@@ -1,116 +1,126 @@
-"""Two tasks, five options and seventy-seven, both built from data that already
-exists in this repo or next to it.
+"""Two classification tasks, four options and one hundred and fifty-one.
 
-The point of the pair is that options are free for a decision model and are charged
-for on every LLM call. So the same models answer the same kind of question twice,
-once with five options and once with seventy-seven, and the report shows how the
-cost of one decision scales with the length of the option list.
+Both are public, labelled, and loaded by this experiment's own `data.py`. **This
+module imports nothing from another experiment.** It used to pull its 77-option
+task out of `banking77/`, which was a mistake: that experiment deliberately
+*varies* its option texts as part of its method, so this experiment's task
+silently changed whenever that one ran an arm. One experiment, one directory,
+self-contained -- the same choice `rerank/` makes when it copies from `arena/`
+rather than importing.
 
-  * **highway** -- the arena's recorded highway-env episodes. The states and the
-    question, word for word including all five option descriptions, are lifted out
-    of `arena/runs/highway/jev/seed-*.json`. No reference policy ships with that
-    game -- only `idle` and `random` baselines -- so there is no ground truth and
-    the report gives model-to-model agreement instead of accuracy.
-  * **banking77** -- the existing harness in `banking77/`. Its loader, its frozen
-    option texts and its seeded shuffle are imported rather than reimplemented, so
-    the examples are identical to the ones that experiment ran on, and the
-    benchmark label is ground truth.
+| task | options | rows | licence |
+| --- | --- | --- | --- |
+| `ag_news` | 4 | 7,600 test | **unknown** -- the hub says so; recorded as unknown |
+| `clinc150` | 151 | 5,500 test | CC-BY-3.0 |
+
+The pair brackets the option count as widely as public labelled data allows, and
+that is the axis everything here is measured along: options are free for a
+decision model and are charged for on every LLM call, so a 151-option list is
+where the difference should show.
+
+**The option texts are mechanical.** The key is the dataset's own label string,
+so the gold answer is the label and nothing is mapped. The description is the
+label made readable -- underscores to spaces for CLINC's `oil_change_how`, and
+nothing at all for AG News, whose four labels are already words. Writing prose
+descriptions would be the one place this experiment could put a thumb on the
+scale, so it does not.
+
+The old `highway` task is gone. It had no ground truth, so it could only produce
+model-to-model agreement, and 4-against-151 brackets the option count far better
+than 5 did.
 """
-import json
-import random
-from pathlib import Path
+from . import data, spec
 
-from banking77 import data as b77_data
-from banking77 import options as b77_options
-from banking77.run import INSTRUCTIONS as BANKING77_INSTRUCTIONS
+NAMES = ("ag_news", "clinc150")
+CACHE = "typed_decisions/.cache"
 
-NAMES = ("highway", "banking77")
-ARENA_HIGHWAY = Path(r"C:\projects\jev_demo\arena\runs\highway\jev")
-BANKING77_CACHE = Path("banking77/.cache")
-BANKING77_OPTIONS = Path("banking77/option_texts/options.json")
+# One instruction line per task, verbatim on every call to every model. It is in
+# the spec and therefore in the hash, so rewording one is a new experiment and
+# the report refuses to mix the two.
+INSTRUCTIONS = {
+    "ag_news": "Classify the news article below into exactly one of the topics listed.",
+    "clinc150": "Classify the user's utterance below into exactly one of the intents listed. "
+                "Answer 'oos' if it matches none of them.",
+}
 
+# How many of the leading examples the position-bias arms cover. A subset on
+# purpose -- at 151 options that arm is six extra calls per example per model --
+# and the size is stated everywhere the numbers are reported.
+BIAS_SUBSET = 40
+N_RANDOM_ORDERS = 3
 
-def shuffled(rows, seed):
-    """One fixed permutation, shared by every model, so `--limit` is a sample.
-
-    Episodes are recorded in step order and BANKING77 ships ordered by label, so an
-    unshuffled limit would be ten near-identical highway states or five intents out
-    of seventy-seven."""
-    out = list(rows)
-    random.Random(seed).shuffle(out)
-    return out
-
-
-def highway_question(events):
-    """The instruction line and all five options, taken out of the recording.
-
-    Every episode carries the question it was asked. They must all be the same
-    words, or the models in this experiment would not all be answering the same
-    question, so a disagreement is refused rather than resolved."""
-    questions = [e["questions"]["action"] for e in events if e["type"] == "start"]
-    if not questions:
-        raise ValueError("no start event: the recording does not carry the question")
-    first = questions[0]
-    for q in questions[1:]:
-        if (q["instructions"], q["criteria"]) != (first["instructions"], first["criteria"]):
-            raise ValueError("recorded episodes disagree about the question")
-    return first["instructions"], first["criteria"]
+# Carved out of *train*, never out of test, and used only to fit the one
+# temperature in `calibration.py`.
+VALIDATION_N = 100
+VALIDATION_FRACTION = 0.1
 
 
-def highway_examples(events, seed):
-    """Every step of one episode is one example. `gold` is None everywhere: the
-    action the recording holds is another model's answer, not a label."""
-    return [
-        {"id": f"seed-{seed}:t{e['t']}", "state": e["state"], "gold": None}
-        for e in events if e["type"] == "step"
-    ]
+def describe(label):
+    """The readable form of a dataset label. `oil_change_how` -> `oil change
+    how`; a label that is already words gets no description, which `prompts.py`
+    renders as the bare key -- exactly how laya renders it, so the typed and the
+    text transports still show the same thing."""
+    readable = label.replace("_", " ")
+    return None if readable == label else readable
 
 
-def load_highway(runs_dir=ARENA_HIGHWAY, seed=0):
-    paths = sorted(Path(runs_dir).glob("seed-*.json"), key=lambda p: int(p.stem.split("-")[1]))
-    if not paths:
-        raise SystemExit(f"no recorded highway episodes under {runs_dir}")
-    all_events, examples = [], []
-    for path in paths:
-        events = json.loads(path.read_text(encoding="utf-8"))
-        all_events += events
-        examples += highway_examples(events, int(path.stem.split("-")[1]))
-    instructions, criteria = highway_question(all_events)
+def option_texts(labels):
+    """-> an ordered {label: description or None}, in the dataset's index order.
+
+    The dataset's order: not alphabetical, not shuffled. It is the canonical
+    order the spec pins, and every position-bias arm is a permutation of it."""
+    return {label: describe(label) for label in labels}
+
+
+def build(name, rows, labels, limit=0, seed=0, bias_subset=BIAS_SUBSET,
+          n_random_orders=N_RANDOM_ORDERS, validation=(), source=""):
+    """The task dict plus its frozen spec. Pure: no network, no disk.
+
+    `rows` arrive in file order and are shuffled **here**, before the limit, with
+    the seed that goes into the spec. CLINC's test split ships sorted by intent,
+    so a limit applied to the raw order would measure two intents out of 151."""
+    if name not in NAMES:
+        raise SystemExit(f"unknown task {name!r}; known: {', '.join(NAMES)}")
+    shuffled = data.shuffled(rows, seed)
+    cut = limit or len(shuffled)
+    examples, warmup_pool = shuffled[:cut], shuffled[cut:]
+    criteria = option_texts(labels)
+    dataset = data.DATASETS[name]
+    frozen = spec.build(
+        task=name, dataset=dataset["repo"], config=dataset["config"], split="test",
+        seed=seed, examples=examples, instructions=INSTRUCTIONS[name],
+        option_texts=criteria, bias_subset=min(bias_subset, len(examples)),
+        n_random_orders=n_random_orders, validation=list(validation),
+    )
     return {
-        "name": "highway",
-        "instructions": instructions,
+        "name": name,
+        "instructions": INSTRUCTIONS[name],
         "criteria": criteria,
-        "examples": shuffled(examples, seed),
-        "has_gold": False,
-        "source": str(runs_dir),
-    }
-
-
-def banking77_examples(rows):
-    """Gold is the option *text*, because that is the alphabet an answer comes back
-    in: the 77 labels with underscores replaced by spaces, and nothing else."""
-    return [
-        {"id": r["id"], "state": r["text"], "gold": b77_options.option_text(r["label"])}
-        for r in rows
-    ]
-
-
-def load_banking77(cache_dir=BANKING77_CACHE, seed=0):
-    labels = b77_options.load(BANKING77_OPTIONS) if Path(BANKING77_OPTIONS).exists() else b77_options.ALL_LABELS
-    rows = b77_data.shuffled(b77_data.load(cache_dir, "test"), seed)
-    return {
-        "name": "banking77",
-        "instructions": BANKING77_INSTRUCTIONS,
-        "criteria": b77_options.criteria(b77_options.option_texts(labels)),
-        "examples": banking77_examples(rows),
+        "examples": examples,
+        "warmup_pool": warmup_pool,
+        "validation": list(validation),
+        "spec": frozen,
         "has_gold": True,
-        "source": "banking77/ (same loader, same frozen options, same seeded shuffle)",
+        "licence": dataset["licence"],
+        "source": source or f"{dataset['repo']} ({dataset['config']} config), test split",
     }
 
 
-def load(name, seed=0):
-    if name == "highway":
-        return load_highway(seed=seed)
-    if name == "banking77":
-        return load_banking77(seed=seed)
-    raise SystemExit(f"unknown task {name!r}; known: {', '.join(NAMES)}")
+def load(name, limit=0, seed=0, cache_dir=CACHE, bias_subset=BIAS_SUBSET,
+         n_random_orders=N_RANDOM_ORDERS, validation_n=VALIDATION_N):
+    """Downloads the splits once, then `build`.
+
+    The option list comes from the dataset's own `ClassLabel` names, so 4 and 151
+    are the files' counts rather than mine. The validation rows come out of
+    **train**, stratified, and are the only thing anything is ever fitted on."""
+    if name not in NAMES:
+        raise SystemExit(f"unknown task {name!r}; known: {', '.join(NAMES)}")
+    rows = data.load(name, "test", cache_dir)
+    labels = data.options(name, cache_dir)
+    validation = []
+    if validation_n:
+        train = data.load(name, "train", cache_dir)
+        _, held_out = data.stratified_split(train, VALIDATION_FRACTION, seed)
+        validation = data.shuffled(held_out, seed)[:validation_n]
+    return build(name, rows, labels, limit=limit, seed=seed, bias_subset=bias_subset,
+                 n_random_orders=n_random_orders, validation=validation)

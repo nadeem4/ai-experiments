@@ -32,21 +32,22 @@ import urllib.request
 MODELS_URL = "https://openrouter.ai/api/v1/models"
 DECISIONS_URL = f"{MODELS_URL}?output_modalities=decisions"
 
-FAMILIES = {
-    "gpt": "openai/gpt-",
-    "claude": "anthropic/claude-",
-    "gemini": "google/gemini-",
-    "gemma": "google/gemma-",
-}
+# Which families this experiment runs is `registry.HOSTED`, not this file; the
+# alias is kept so anything still importing `catalog.FAMILIES` gets the slate.
+from .registry import HOSTED as FAMILIES  # noqa: E402  (a re-export, not a cycle)
 
 # Variants that are the same family at a different price or a different job. Left
 # in, the "cheapest" pick would be arbitrary -- a `-fast` mirror, a reasoning tier,
 # an image model -- rather than the family's ordinary decision-making model.
 # `batch` is here because `:batch` is an asynchronous queue at half price: a
 # different product with a different latency, which must never be averaged into a
-# latency table.
+# latency table, and `:free` is the same objection at a rate-limited mirror.
+# `-max` and `prime` are the flagship tiers: left in, Qwen's current generation
+# resolved to a $2/M `-max` and a $4/M `-prime`, which is the opposite of the
+# cheapest-tier rule every other family gets.
 DENY = ("-fast", "-pro", "codex", "thinking", "image", "safeguard", "realtime",
-        "oss", "preview", "omni", "batch", "search", "audio", "tts")
+        "oss", "preview", "omni", "batch", "search", "audio", "tts",
+        "-max", "prime", ":free")
 
 # Pinned, not ranked. `typesafe/jev-1.13` is the floating minor and
 # `~typesafe/jev-latest` is the alias; neither is safe to benchmark against.

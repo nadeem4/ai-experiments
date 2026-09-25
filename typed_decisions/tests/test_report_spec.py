@@ -1,0 +1,271 @@
+"""The report's side of the frozen run spec, and the position-bias tables.
+
+The design promise is that a model added next month is comparable against today's
+numbers without re-running anything. These tests are what make the promise
+checkable rather than asserted:
+
+  * a subset report equals the full report restricted to the same models, so
+    adding rows for a new model cannot move an existing model's number;
+  * records carrying different spec hashes are refused, with an error naming what
+    differs, so a reworded instruction fails loudly instead of producing a
+    quietly invalid table;
+  * paired comparisons run over the intersection and say how big it was.
+"""
+import pytest
+
+from typed_decisions import report
+
+HASH_A = "a" * 64
+HASH_B = "b" * 64
+KEY_AG = "gpt/ag_news@openrouter"
+
+
+def _rec(model="gpt", task="ag_news", arm="main", example="test-1", spec_hash=HASH_A,
+         latency=100.0, validity="valid", choice="World", **kw):
+    base = {"model": model, "model_id": f"vendor/{model}", "task": task, "arm": arm,
+            "spec_hash": spec_hash, "example_id": example, "latency_ms": latency,
+            "wall_ms": latency, "input_tokens": 110, "output_tokens": 7, "cost": 1e-05,
+            "validity": validity, "choice": choice, "correct": None, "retries": 0,
+            "failed": False, "structured": True, "n_options": 4,
+            "transport": "openrouter", "repeat": 0}
+    base.update(kw)
+    return base
+
+
+def _payload(**over):
+    base = {"task": "ag_news", "dataset": "fancyzhx/ag_news", "config": "default",
+            "split": "test", "seed": 0, "instructions": "Classify it.",
+            "canonical_order": ["World", "Sports"],
+            "option_texts": [["World", None], ["Sports", None]],
+            "example_ids": ["test-1", "test-2"],
+            "gold": {"test-1": "World", "test-2": "Sports"},
+            "validation_example_ids": [], "validation_gold": {},
+            "position_bias": {"n_random_orders": 3, "subset_size": 1, "subset": ["test-1"],
+                              "random": {}, "gold": {}}}
+    base.update(over)
+    return base
+
+
+class TestRefusingToMixSpecs:
+    def test_one_spec_hash_is_fine(self):
+        assert report.require_one_spec([_rec(), _rec(model="phi")],
+                                       {HASH_A: _payload()}) == HASH_A
+
+    def test_two_spec_hashes_are_refused(self):
+        """A quietly invalid comparison must fail loudly. This is the whole
+        safety property of the design."""
+        records = [_rec(spec_hash=HASH_A), _rec(model="phi", spec_hash=HASH_B)]
+        with pytest.raises(SystemExit) as caught:
+            report.require_one_spec(records, {HASH_A: _payload(),
+                                              HASH_B: _payload(instructions="Pick one.")})
+        assert "instructions" in str(caught.value)
+
+    def test_the_refusal_names_which_models_are_on_which_spec(self):
+        records = [_rec(model="gpt", spec_hash=HASH_A), _rec(model="phi", spec_hash=HASH_B)]
+        with pytest.raises(SystemExit) as caught:
+            report.require_one_spec(records, {HASH_A: _payload(), HASH_B: _payload(seed=1)})
+        message = str(caught.value)
+        assert "gpt" in message and "phi" in message
+
+    def test_a_record_with_no_spec_hash_is_refused_alongside_one_that_has_it(self):
+        """An older record cannot be shown to have seen the same inputs, so it
+        cannot be compared. Unknown is not a free pass."""
+        records = [_rec(spec_hash=HASH_A), _rec(model="phi", spec_hash=None)]
+        with pytest.raises(SystemExit, match="unknown"):
+            report.require_one_spec(records, {HASH_A: _payload()})
+
+    def test_a_missing_spec_file_is_named_rather_than_silently_skipped(self):
+        with pytest.raises(SystemExit, match="aaaaaaaaaaaa"):
+            report.require_one_spec([_rec(spec_hash=HASH_A)], {})
+
+    def test_the_difference_is_reported_even_when_only_the_orderings_moved(self):
+        other = _payload()
+        other["position_bias"] = dict(other["position_bias"], subset=["test-2"])
+        with pytest.raises(SystemExit, match="subset"):
+            report.require_one_spec([_rec(spec_hash=HASH_A), _rec(spec_hash=HASH_B)],
+                                    {HASH_A: _payload(), HASH_B: other})
+
+    def test_a_reworded_instruction_is_named_in_the_error(self):
+        with pytest.raises(SystemExit, match="Classify it"):
+            report.require_one_spec([_rec(spec_hash=HASH_A), _rec(spec_hash=HASH_B)],
+                                    {HASH_A: _payload(),
+                                     HASH_B: _payload(instructions="Pick a topic.")})
+
+
+class TestSubsetReports:
+    def test_a_named_subset_is_computed_over_only_those_models(self):
+        records = [_rec(model="gpt"), _rec(model="phi"), _rec(model="jev")]
+        summary = report.summarise(records, models=["gpt", "jev"])
+        assert {s["model"] for s in summary.values()} == {"gpt", "jev"}
+
+    def test_a_subset_report_equals_the_full_report_restricted_to_those_models(self):
+        """The property that makes 'add a model later' sound: adding rows for a
+        new model must not move any existing model's number by a hair."""
+        records = ([_rec(model="gpt", example=f"e{i}", latency=float(i + 1), correct=i % 2)
+                    for i in range(20)]
+                   + [_rec(model="phi", example=f"e{i}", latency=float(i * 3 + 1), correct=1)
+                      for i in range(20)])
+        full = report.summarise(records)
+        subset = report.summarise(records, models=["gpt"])
+        assert subset == {k: v for k, v in full.items() if v["model"] == "gpt"}
+
+    def test_asking_for_a_model_with_no_records_is_an_error_not_an_empty_row(self):
+        with pytest.raises(SystemExit, match="deepseek"):
+            report.summarise([_rec(model="gpt")], models=["gpt", "deepseek"])
+
+    def test_no_subset_means_every_model_in_the_store(self):
+        records = [_rec(model="gpt"), _rec(model="phi")]
+        assert {s["model"] for s in report.summarise(records).values()} == {"gpt", "phi"}
+
+
+class TestOnlyTheMainArmIsMeasured:
+    def test_the_position_bias_arms_are_excluded_from_latency_and_cost(self):
+        """Those calls re-ask examples that are already in the main arm, so
+        folding them in would weight those examples several times over and drag
+        the headline cost with them."""
+        records = [_rec(arm="main", latency=10.0, cost=1e-05),
+                   _rec(arm="rand:0", latency=9999.0, cost=1.0),
+                   _rec(arm="gold:last", latency=9999.0, cost=1.0)]
+        summary = report.summarise(records)[KEY_AG]
+        assert summary["n"] == 1
+        assert summary["cost_usd"] == pytest.approx(1e-05)
+
+
+class TestProbabilityCapability:
+    def test_a_model_that_returned_a_distribution_is_flagged(self):
+        records = [_rec(model="jev", probabilities={"World": 0.7, "Sports": 0.3})]
+        assert report.summarise(records)["jev/ag_news@openrouter"]["returns_probability"] is True
+
+    def test_an_llm_that_returned_only_a_label_is_flagged_as_not(self):
+        """Without a probability you cannot threshold, so 'ask a human when
+        unsure' is not on the menu at any price. It is a column, not a
+        footnote."""
+        assert report.summarise([_rec(model="gpt")])[KEY_AG]["returns_probability"] is False
+
+    def test_the_flag_is_measured_from_the_records_rather_than_declared(self):
+        """A model that is supposed to return probabilities and did not must show
+        as not, or the column is documentation rather than a measurement."""
+        records = [_rec(model="jev", probabilities=None)]
+        assert report.summarise(records)["jev/ag_news@openrouter"]["returns_probability"] is False
+
+
+class TestPositionBias:
+    def test_the_flip_rate_is_over_the_three_random_orders(self):
+        records = [_rec(model="gpt", arm=f"rand:{i}", example="test-1", choice=c)
+                   for i, c in enumerate(["World", "Sports", "World"])]
+        out = report.position_bias(records)["gpt/ag_news"]
+        assert out["flip"]["rate"] == 1.0 and out["flip"]["n"] == 1
+
+    def test_a_stable_model_has_a_flip_rate_of_zero(self):
+        records = [_rec(model="jev", arm=f"rand:{i}", example="test-1", choice="World")
+                   for i in range(3)]
+        assert report.position_bias(records)["jev/ag_news"]["flip"]["rate"] == 0.0
+
+    def test_accuracy_is_reported_at_each_gold_placement_with_the_spread(self):
+        records = [_rec(model="gpt", arm="gold:first", example="e1", correct=1),
+                   _rec(model="gpt", arm="gold:middle", example="e1", correct=1),
+                   _rec(model="gpt", arm="gold:last", example="e1", correct=0)]
+        out = report.position_bias(records)["gpt/ag_news"]
+        assert out["gold"]["accuracy"] == {"first": 1.0, "middle": 1.0, "last": 0.0}
+        assert out["gold"]["spread"] == 1.0
+
+    def test_the_distribution_of_chosen_positions_is_reported_per_model(self):
+        """How much a model moves is not the same question as which positions it
+        favours. A model that always answers with whatever is listed first has a
+        flip rate near one and a completely characteristic distribution."""
+        records = [_rec(model="gpt", arm=f"rand:{i}", example=f"e{i}", choice="World",
+                        options_shown=["World", "Sports", "Business", "Sci/Tech"])
+                   for i in range(3)]
+        out = report.position_bias(records)["gpt/ag_news"]
+        assert out["positions"]["mean_normalised"] == 0.0
+        assert out["positions"]["n"] == 3
+
+    def test_a_model_that_always_picks_the_last_option_shows_as_one(self):
+        records = [_rec(model="gpt", arm=f"rand:{i}", example=f"e{i}", choice="Sci/Tech",
+                        options_shown=["World", "Sports", "Business", "Sci/Tech"])
+                   for i in range(3)]
+        assert report.position_bias(records)["gpt/ag_news"]["positions"]["mean_normalised"] == 1.0
+
+    def test_the_subset_size_is_carried_so_it_can_be_stated_everywhere(self):
+        records = [_rec(model="gpt", arm=f"rand:{i}", example="test-1", choice="World")
+                   for i in range(3)]
+        assert report.position_bias(records)["gpt/ag_news"]["n_examples"] == 1
+
+    def test_a_run_with_no_bias_arms_reports_nothing_rather_than_zero_bias(self):
+        assert report.position_bias([_rec(arm="main")]) == {}
+
+    def test_the_bias_arms_are_kept_apart_per_task(self):
+        records = ([_rec(model="gpt", task="ag_news", arm=f"rand:{i}", example="e",
+                         choice="World") for i in range(3)]
+                   + [_rec(model="gpt", task="clinc150", arm=f"rand:{i}", example="e",
+                           choice=["a", "b", "c"][i]) for i in range(3)])
+        out = report.position_bias(records)
+        assert out["gpt/ag_news"]["flip"]["rate"] == 0.0
+        assert out["gpt/clinc150"]["flip"]["rate"] == 1.0
+
+
+class TestPairedComparisons:
+    def test_two_models_are_compared_on_the_examples_both_answered(self):
+        records = ([_rec(model="gpt", example=f"e{i}", correct=1) for i in range(10)]
+                   + [_rec(model="phi", example=f"e{i}", correct=0) for i in range(6)])
+        out = report.paired_accuracy(records, "gpt", "phi", "ag_news")
+        assert out["n"] == 6
+        assert out["mean_diff"] == pytest.approx(1.0)
+
+    def test_the_count_is_reported_because_the_intersection_can_be_small(self):
+        records = [_rec(model="gpt", example="e1", correct=1),
+                   _rec(model="phi", example="e2", correct=1)]
+        assert report.paired_accuracy(records, "gpt", "phi", "ag_news")["n"] == 0
+
+    def test_only_the_main_arm_feeds_a_paired_comparison(self):
+        records = [_rec(model="gpt", example="e1", correct=1),
+                   _rec(model="phi", example="e1", correct=0),
+                   _rec(model="phi", example="e1", arm="gold:last", correct=1)]
+        out = report.paired_accuracy(records, "gpt", "phi", "ag_news")
+        assert out["n"] == 1 and out["mean_diff"] == 1.0
+
+    def test_an_interval_that_crosses_zero_is_reported_as_such(self):
+        records = ([_rec(model="gpt", example=f"e{i}", correct=i % 2) for i in range(30)]
+                   + [_rec(model="phi", example=f"e{i}", correct=i % 2) for i in range(30)])
+        out = report.paired_accuracy(records, "gpt", "phi", "ag_news")
+        assert out["ci"][0] <= 0 <= out["ci"][1]
+
+
+class TestCalibrationFromTheStore:
+    def _rows(self, model, arm, n, p, gold="World"):
+        return [_rec(model=model, arm=arm, example=f"{arm}-{i}", choice="World",
+                     correct=int(gold == "World"), gold=gold,
+                     probabilities={"World": p, "Sports": 1 - p})
+                for i in range(n)]
+
+    def test_only_models_that_returned_probabilities_are_calibrated(self):
+        records = (self._rows("jev", "validation", 20, 0.99)
+                   + self._rows("jev", "main", 20, 0.99)
+                   + [_rec(model="gpt", arm="main", example="e1")])
+        out = report.calibrations(records)
+        assert set(out) == {"jev/ag_news"}
+
+    def test_the_temperature_is_fitted_on_the_validation_arm_only(self):
+        """The validation rows come out of train. Nothing is ever fitted on
+        test, and the arm is what keeps the two apart in one store."""
+        records = (self._rows("jev", "validation", 20, 0.99, gold="World")
+                   + self._rows("jev", "validation", 20, 0.99, gold="Sports")
+                   + self._rows("jev", "main", 10, 0.99))
+        out = report.calibrations(records)["jev/ag_news"]
+        assert out["n_validation"] == 40 and out["n_test"] == 10
+        assert out["temperature"] > 1
+
+    def test_a_model_with_no_validation_rows_reports_a_raw_ece_and_no_temperature(self):
+        """Better than quietly fitting on test, which is the one thing that must
+        never happen."""
+        out = report.calibrations(self._rows("jev", "main", 10, 0.9))["jev/ag_news"]
+        assert out["ece_raw"] is not None
+        assert out["temperature"] is None
+        assert out["ece_scaled"] is None
+
+    def test_a_reliability_curve_is_carried_for_the_figure(self):
+        records = self._rows("jev", "main", 10, 0.9)
+        assert report.calibrations(records)["jev/ag_news"]["reliability"]["accuracy"]
+
+    def test_a_store_with_no_probabilities_calibrates_nothing(self):
+        assert report.calibrations([_rec(model="gpt")]) == {}

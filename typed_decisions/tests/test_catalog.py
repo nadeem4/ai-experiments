@@ -173,8 +173,13 @@ def test_accepts_reasoning_effort_is_read_from_the_catalog_not_assumed():
     assert catalog.accepts_reasoning_effort(catalog.find(CATALOG, "google/gemma-4-31b-it")) is False
 
 
-def test_families_cover_the_four_hosted_llm_families_the_experiment_wants():
-    assert set(catalog.FAMILIES) == {"gpt", "claude", "gemini", "gemma"}
+def test_the_families_are_the_registry_slate_and_nothing_else():
+    """The slate lives in `registry.py` so that adding a model is one line of
+    configuration. `catalog.FAMILIES` is that same mapping, re-exported."""
+    from typed_decisions import registry
+
+    assert catalog.FAMILIES is registry.HOSTED
+    assert set(catalog.FAMILIES) == {"glm", "phi", "gemma", "deepseek", "llama", "qwen", "gpt"}
 
 
 def test_jev_is_pinned_to_an_explicit_dated_version():
@@ -187,3 +192,32 @@ def test_jev_is_pinned_to_an_explicit_dated_version():
                                     "openai/gpt-6-luna-pro", "openai/gpt-6-luna:batch"])
 def test_the_deny_list_is_a_substring_match_on_the_id(denied):
     assert catalog.denied(denied)
+
+
+# --- the flagship tiers, denied so "cheapest in the current generation" means it
+
+
+@pytest.mark.parametrize("flagship", ["qwen/qwen3.8-max-0902", "qwen/qwen3.8-max-prime",
+                                      "openai/gpt-6-astra-max"])
+def test_the_flagship_tiers_are_denied(flagship):
+    """Every family is represented by the cheap tier of its current generation.
+    Left in, Qwen resolved to a $2/M `-max` and a $4/M `-prime`, which is not the
+    tier anybody classifies support intents with."""
+    assert catalog.denied(flagship)
+
+
+@pytest.mark.parametrize("free", ["qwen/qwen3.8-27b:free", "z-ai/glm-5.3-flash:free"])
+def test_the_free_mirrors_are_denied(free):
+    """A `:free` mirror is a rate-limited queue at a different latency, the same
+    objection as `:batch`. It must never appear in a latency table."""
+    assert catalog.denied(free)
+
+
+@pytest.mark.parametrize("kept", ["qwen/qwen3.8-flash", "z-ai/glm-5.3-flash",
+                                  "deepseek/deepseek-v4.1-flash", "microsoft/phi-4",
+                                  "google/gemma-4-26b-a4b-it", "meta-llama/llama-4-scout",
+                                  "openai/gpt-6-luna"])
+def test_the_slate_itself_survives_the_deny_list(kept):
+    """A deny list wide enough to remove the flagships and narrow enough to keep
+    the models the experiment actually runs."""
+    assert not catalog.denied(kept)

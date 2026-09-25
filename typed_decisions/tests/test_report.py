@@ -79,11 +79,6 @@ def test_retries_and_failures_are_carried_through():
     assert summary["retries"] == 2 and summary["failed"] == 1
 
 
-def test_choices_by_example_feed_the_agreement_matrix():
-    rows = [_call(example_id="e1"), _call(example_id="e2", validity="unparseable", choice=None)]
-    assert report.choices(rows, "gpt", "highway") == {"e1": "IDLE", "e2": None}
-
-
 # --- the transport tag -------------------------------------------------------
 
 
