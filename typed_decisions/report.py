@@ -415,6 +415,16 @@ def _rows_table(summary, keys):
               f"{s['valid_rate']:>5.0%} {acc:>16} {s['retries']:>5}")
 
 
+def results_name(tag, models):
+    """Where a report writes its results file and its figures.
+
+    A subset report writes **beside** the full one, never over it: running
+    `report --models jev,laya` must not silently replace the full run's results
+    and its five committed charts with a two-model slice of them. Sorted, so the
+    name does not depend on the order the models were typed."""
+    return tag if not models else f"{tag}-{'+'.join(sorted(models))}"
+
+
 def load_specs(run_dir):
     """Every spec file in the run directory, keyed by hash and hash-checked.
 
@@ -626,18 +636,20 @@ def main(argv=None):
 
     results_dir = RESULTS_DIR
     results_dir.mkdir(parents=True, exist_ok=True)
-    results_path = results_dir / f"{args.tag}.json"
+    name = results_name(args.tag, models)
+    results_path = results_dir / f"{name}.json"
     results_path.write_text(json.dumps(results, indent=2, default=str) + "\n", encoding="utf-8")
     print(f"\nwrote {results_path}")
 
     # Always, so a chart cannot drift from the table it was printed beside.
     from . import figures
 
-    out = figures.write_all(results, results_dir / "figures")
-    for name in out["written"]:
-        print(f"  figure: {results_dir / 'figures' / name}")
-    for name, reason in out["skipped"].items():
-        print(f"  figure {name}: NOT drawn -- {reason}")
+    figure_dir = results_dir / "figures" / name if models else results_dir / "figures"
+    out = figures.write_all(results, figure_dir)
+    for written in out["written"]:
+        print(f"  figure: {figure_dir / written}")
+    for skipped, reason in out["skipped"].items():
+        print(f"  figure {skipped}: NOT drawn -- {reason}")
 
 
 if __name__ == "__main__":

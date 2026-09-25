@@ -307,3 +307,16 @@ class TestCalibrationFromTheStore:
 
     def test_a_store_with_no_probabilities_calibrates_nothing(self):
         assert report.calibrations([_rec(model="gpt")]) == {}
+
+
+class TestWhereTheResultsAreWritten:
+    def test_a_full_report_writes_under_the_tag(self):
+        assert report.results_name("pilot", None) == "pilot"
+
+    def test_a_subset_report_writes_beside_it_rather_than_over_it(self):
+        """`report --models jev,laya` must not silently replace the full run's
+        results file and its figures with a three-model slice of them."""
+        assert report.results_name("pilot", ["jev", "laya"]) == "pilot-jev+laya"
+
+    def test_the_subset_name_does_not_depend_on_the_order_they_were_typed(self):
+        assert report.results_name("pilot", ["laya", "jev"]) ==                report.results_name("pilot", ["jev", "laya"])
