@@ -19,7 +19,10 @@ SECRET = "OPENROUTER_API_KEY"
 
 def run(*command, **kwargs):
     print(f"\n$ {' '.join(str(c) for c in command)}", flush=True)
-    subprocess.run([str(c) for c in command], check=True, **kwargs)
+    # Unbuffered, or the child's progress only reaches the Kaggle log when it
+    # exits, which for this run is an hour of silence.
+    env = {**os.environ, "PYTHONUNBUFFERED": "1"}
+    subprocess.run([str(c) for c in command], check=True, env=env, **kwargs)
 
 
 def load_key():
