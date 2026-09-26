@@ -1,4 +1,4 @@
-# Can a decision model re-rank retrieval better than BM25?
+# Can a decision model re-rank retrieval better than hybrid search?
 
 ## The question
 
@@ -14,7 +14,7 @@ Re-ranking is a real stage in a real pipeline, and today it is served either by 
 
 **Nothing is trained here.** This is deliberately zero-shot: the numbers are the baseline that makes a later fine-tune interpretable. Laya's own model card is blunt that its base checkpoints are near chance on typed decisions zero-shot, so a low number for Laya is expected information, not a bug.
 
-What changes depending on the answer: if a decision model beats BM25, re-ranking is a place to put one, and the cost per thousand calls decides whether it beats the cross-encoder in production. If it does not, the open-weights case needs a fine-tune before it is worth anything here at all.
+What changes depending on the answer: if a decision model beats the retriever's own order, re-ranking is a place to put one, and the cost per thousand calls decides whether it beats the cross-encoder in production. If it does not, the open-weights case needs a fine-tune before it is worth anything here at all.
 
 ## Data
 
@@ -114,20 +114,20 @@ flowchart TB
 
 The 323 queries are health questions; the 3,633 documents are PubMed abstracts. Humans have already marked which documents answer which question.
 
-Take `PLAIN-102`, **"Stopping Heart Disease in Childhood"**. The first stage searches all 3,633 documents and returns its best 20. Ranked by BM25 alone they come out like this:
+Take `PLAIN-102`, **"Stopping Heart Disease in Childhood"**. The first stage searches all 3,633 documents and returns its best 20, in this order:
 
 ```
 rank  doc        relevant?  title
    1  MED-3954   no         Does childhood meat eating contribute to sex differences...
-   2  MED-4247   no         Can lifestyle changes reverse coronary heart disease?...
-   3  MED-4616   no         Can lifestyle changes reverse coronary heart disease?...
-   4  MED-1999   no         Strategies for preventing type 2 diabetes...
-   5  MED-3253   YES        Pathobiological determinants of atherosclerosis in youth...
-   6  MED-4160   no         Risks and benefits of estrogen plus progestin...
+   2  MED-3253   YES        Pathobiological determinants of atherosclerosis in youth...
+   3  MED-1366   no         Mediterranean diet and public health: personal reflections...
+   4  MED-2590   no         Reversing heart disease in the new millennium...
+   5  MED-4247   no         Can lifestyle changes reverse coronary heart disease?...
+   6  MED-4616   no         Can lifestyle changes reverse coronary heart disease?...
  ...                        (20 in total)
 ```
 
-One of the 20 is relevant, and BM25 put it fifth. **The experiment is whether a model can move it to first.** Better order, better score; worse order, worse score.
+One of the 20 is relevant, and the retriever put it second. **The experiment is whether a model can move it to first.** Better order, better score; worse order, worse score.
 
 The model cannot see the list. It scores one pair at a time, so it is asked 20 separate questions:
 
@@ -135,7 +135,7 @@ The model cannot see the list. It scores one pair at a time, so it is asked 20 s
 
 Twenty questions, twenty numbers, sort by the numbers. That is the only way to get an order out of a model that scores pairs rather than lists.
 
-Then the new order is graded against the human judgements, and BM25's untouched order is graded the same way.
+Then the new order is graded against the human judgements, and the retriever's untouched order is graded the same way.
 
 **323 queries x 20 candidates = 6,460 questions per method**, and the exact request and response of every one is kept.
 
@@ -143,14 +143,13 @@ Then the new order is graded against the human judgements, and BM25's untouched 
 
 **Every method re-ranks the identical candidate list**, so the comparison is paired per query: subtract the floor's nDCG@10 on a query from a method's on the same query and you have that method's effect on that query. A mean of those differences is a far sharper instrument than two overlapping averages, because the query-to-query variation -- some queries are simply easier -- cancels.
 
-**BM25 is the floor, not a rival.** Its own order is what you get for doing nothing, so the question each method answers is "is this better than not bothering", which is the question that decides whether to run a re-ranker in production at all.
+**The retriever is the floor, not a rival.** Its own order is what you get for doing nothing, so the question each method answers is "is this better than not bothering", which is what decides whether to run a re-ranker in production at all.
 
 **What varies is the scorer and nothing else.**
 
 | Method | What it is | Model calls |
 |---|---|---|
 | `hybrid` | **the floor**: the fused order, untouched. What doing nothing gives you | none |
-| `bm25` | the same candidates re-ranked by lexical score alone, which retrieval already computed | none |
 | `jev-score` | Jev over HTTP, the `score` question | 6,460 |
 | `cross-encoder` | `cross-encoder/ms-marco-MiniLM-L-6-v2`, locally | 6,460 |
 | `laya-score` | Laya's base English checkpoint, the `score` question | 6,460 |
@@ -160,9 +159,9 @@ Then the new order is graded against the human judgements, and BM25's untouched 
 
 **What re-ranking cannot fix.** On some queries none of the 20 candidates is judged relevant at all -- 71 of 323 with the hybrid first stage, 91 with BM25 alone. Every method scores zero on those whatever order it picks, so they contribute nothing but denominator to every mean. The per-query table carries a `can_move` column for exactly this.
 
-**Seeds:** none. BM25, the cross-encoder and both Laya checkpoints are deterministic here. Jev is a hosted service and is not under this repository's control.
+**Seeds:** none. Retrieval, the cross-encoder and both Laya checkpoints are deterministic here. Jev is a hosted service and is not under this repository's control.
 
-**Candidates:** top 20 per query. The pilot used 50; a shallower pool is a cleaner one and it moves BM25's own floor with it, so the two are not directly comparable.
+**Candidates:** top 20 per query. The pilot used 50; a shallower pool is a cleaner one and it moves the floor with it, so the two are not directly comparable.
 
 ### The two question formulations
 
@@ -184,7 +183,8 @@ Jev is the only method that leaves the machine, and the only one needing a key: 
 | File | What it does |
 |---|---|
 | `data.py` | loads the corpus, the queries and the qrels |
-| `bm25.py` | builds the candidates. Its order is both the BM25 ranking and every other method's tie-break |
+| `retrieve.py` | builds the candidates: both halves and the fusion. Its order is the floor and every method's tie-break |
+| `bm25.py` | the lexical half |
 | `rerankers/` | one module per model, all `score(query, passage) -> {score, request, response, latency_ms}`. `make_reranker(name)` is the only place a model is chosen by name |
 | `rank.py` | turns scores into a ranking |
 | `metrics.py` | wraps `pytrec_eval` (the trec_eval C code). It has no MRR@10, so the run is cut to the top 10 before `recip_rank` is asked for |
@@ -239,18 +239,18 @@ A re-ranker that emitted only a score would not be enough: without the exchange 
 - **nDCG@10**, the primary measure. The standard BEIR headline number, so the floor and the methods can be read against published work.
 - **Recall@10**, because a re-ranker can raise nDCG by reordering the same relevant passages without finding any more, and this separates the two.
 - **MRR@10**, because a search user reads from the top and the rank of the first relevant passage is what they feel.
-- **The paired nDCG@10 difference against BM25, with a 95% t interval.** Every method re-ranks the same candidates for the same queries, so the difference is paired per query. A mean is a result only when the interval stays on one side of zero. This is the number the experiment turns on.
+- **The paired nDCG@10 difference against the floor, with a 95% t interval.** Every method re-ranks the same candidates for the same queries, so the difference is paired per query. A mean is a result only when the interval stays on one side of zero. This is the number the experiment turns on.
 - **Latency p50 and p95 per call**, to price the stage, with the hardware caveat below.
 - **Cost**, taken from the provider's own per-call figure, never tokens times a rate from a pricing page.
-- **Call accounting**: retries, failures, and how many scored passages sit in a tie, because a tie is BM25's judgement counted inside a re-ranker's score.
+- **Call accounting**: retries, failures, and how many scored passages sit in a tie, because a tie is the retriever's judgement counted inside a re-ranker's score.
 
 ## Assumptions and limits
 
-- **On 91 of the 323 queries, no re-ranker could have changed anything.** BM25 retrieved 20 candidates per query, and for 91 of them not one is judged relevant by the official qrels. nDCG@10 is zero for BM25 and zero for every re-ranker on those queries whatever order they choose, so they contribute nothing but denominator. Re-ranking was possible on 232 queries, and the means are reported over all 323.
+- **On some queries no re-ranker can change anything.** For 71 of the 323, not one of the 20 candidates is judged relevant by the official qrels. nDCG@10 is zero for the floor and zero for every re-ranker on those queries whatever order they choose, so they contribute nothing but denominator. The means are reported over all 323, and the per-query table marks which could move.
 - **Laya and the cross-encoder run on CPU. There is no usable GPU on this machine**, so their latencies are CPU latencies and are not comparable to Laya's published 39.5 ms on a T4. Jev runs over the network, so its latency is a round trip and not a comparable quantity at all. Nothing here is a speed claim.
-- **Jev is never compared with the cross-encoder.** Each interval is against the common BM25 floor, and two intervals that both exclude zero do not establish that one method beats the other. The paired difference would, and it is not measured.
-- **The pilot and the full run are not directly comparable**, and where they disagree the full run is the one to believe. The pilot used top-50 candidates and the full run top-20, and a shallower pool is a cleaner one, which moves BM25's own floor with it.
-- **A tie is not an opinion.** `rank_by_score` leaves tied passages in the order BM25 gave them, and Jev's answers come back rounded to two decimals, so a 0-to-4 score has at most 401 places to land. Coarse steps mean ties, and the rounding is not something a client can switch off.
+- **Jev is never compared with the cross-encoder.** Each interval is against the common floor, and two intervals that both exclude zero do not establish that one method beats the other. The paired difference would, and it is not measured.
+- **The pilot and the full run are not directly comparable**, and where they disagree the full run is the one to believe. The pilot used top-50 candidates and the full run top-20, and a shallower pool is a cleaner one, which moves the floor with it.
+- **A tie is not an opinion.** `rank_by_score` leaves tied passages in the order the retriever gave them, and Jev's answers come back rounded to two decimals, so a 0-to-4 score has at most 401 places to land. Coarse steps mean ties, and the rounding is not something a client can switch off.
 - **Passages are cut to 1,000 characters.** NFCorpus abstracts are longer than the English checkpoint's roughly 320-token state budget, so they are cut where it is visible in the recorded request. Nothing here measures what the tail would have added.
-- **A failed call keeps BM25's position.** Nothing is invented for a call that never succeeded, which means those passages are BM25's judgement counted inside the re-ranker's score.
+- **A failed call keeps the retriever's position.** Nothing is invented for a call that never succeeded, which means those passages are the retriever's judgement counted inside the re-ranker's score.
 - **The Laya passes and the Jev pass overlap in time.** Jev is network-bound and Laya is CPU-bound so they do not contend, but the Laya latencies are slightly pessimistic. They remain comparable to each other, which is what the base-versus-fine-tune question needs.

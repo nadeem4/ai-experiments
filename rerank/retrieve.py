@@ -55,11 +55,7 @@ def dense_index(corpus, device=None, log=lambda *_: None):
 
 
 def build_candidates(corpus, queries, top_k, log=lambda *_: None, device=None):
-    """-> ({query_id: [doc_id]}, seconds, {query_id: {doc_id: bm25 score}}).
-
-    The BM25 scores come back too: re-ranking the fused candidates by lexical
-    score alone is then a baseline that costs nothing, since they are already
-    computed."""
+    """-> ({query_id: [doc_id best first]}, seconds)."""
     import time
 
     import numpy as np
@@ -69,24 +65,21 @@ def build_candidates(corpus, queries, top_k, log=lambda *_: None, device=None):
     started = time.perf_counter()
     lexical = BM25Index(corpus)
     doc_ids, vectors, model = dense_index(corpus, device, log)
-    index_of = {d: i for i, d in enumerate(doc_ids)}
 
     query_ids = list(queries)
     query_vectors = model.encode([queries[q] for q in query_ids],
                                  normalize_embeddings=True, show_progress_bar=False)
     similarity = np.asarray(query_vectors) @ vectors.T
 
-    candidates, bm25_scores = {}, {}
+    candidates = {}
     for position, query_id in enumerate(query_ids):
         raw = lexical.bm25.get_scores(tokenize(queries[query_id]))
         order = sorted(range(len(lexical.doc_ids)), key=lambda i: (-raw[i], i))[:DEPTH]
         lexical_top = [lexical.doc_ids[i] for i in order]
         dense_top = [doc_ids[i] for i in np.argsort(-similarity[position])[:DEPTH]]
 
-        fused = fuse({"lexical": lexical_top, "dense": dense_top})[:top_k]
-        candidates[query_id] = fused
-        bm25_scores[query_id] = {d: float(raw[index_of[d]]) for d in fused}
+        candidates[query_id] = fuse({"lexical": lexical_top, "dense": dense_top})[:top_k]
 
     seconds = time.perf_counter() - started
     log(f"hybrid top-{top_k} for {len(queries)} queries in {seconds:.1f}s")
-    return candidates, seconds, bm25_scores
+    return candidates, seconds

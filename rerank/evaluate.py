@@ -29,11 +29,10 @@ from .rerankers import RERANKER_NAMES, make_reranker
 # used to sit at the repository root because it was the only experiment here.
 EXPERIMENT_DIR = Path(__file__).resolve().parent
 
-# `hybrid` is the first stage's own order: what doing nothing gives you, and
-# therefore the floor. `bm25` re-ranks those same candidates by lexical score,
-# which costs nothing because retrieval already computed them.
+# The first stage's own order: what doing nothing gives you, and therefore the
+# floor. It needs no model calls, so it is not scored, only graded.
 FLOOR = "hybrid"
-FREE = (FLOOR, "bm25")
+FREE = (FLOOR,)
 METHODS = list(FREE) + RERANKER_NAMES
 
 
@@ -42,15 +41,10 @@ def pending(candidates, method, done):
     return [(qid, doc) for qid, docs in candidates.items() for doc in docs if (method, qid, doc) not in done]
 
 
-def rankings_for(method, candidates, records, bm25_scores):
+def rankings_for(method, candidates, records):
     """The ranking a method produced over the pinned candidate set."""
-    if method == "hybrid":
+    if method == FLOOR:
         return dict(candidates)
-    if method == "bm25":
-        # No scores means they were not recorded, and the fused order is not a
-        # lexical result: report nothing rather than something else's ranking.
-        return {qid: rank_by_score(docs, [bm25_scores[qid][doc] for doc in docs])
-                for qid, docs in candidates.items() if qid in bm25_scores}
     return rankings_from_records(candidates, records, method)
 
 
@@ -248,20 +242,14 @@ def _setup(limit, top_k, out_dir, tag, split, cache_dir, log):
 
     run_dir = Path(out_dir) / "runs" / tag
     candidates_path, config_path = run_dir / "candidates.json", run_dir / "config.json"
-    scores_by_query = run_dir / "bm25.json"
 
     if candidates_path.exists():
         candidates = json.loads(candidates_path.read_text())
         log(f"reusing {candidates_path}")
     else:
-        candidates, bm25_seconds, lexical = retrieve.build_candidates(
-            corpus, queries, top_k, log)
+        candidates, bm25_seconds = retrieve.build_candidates(corpus, queries, top_k, log)
         candidates_path.parent.mkdir(parents=True, exist_ok=True)
         candidates_path.write_text(json.dumps(candidates))
-        # Part of the pinned candidate set: the lexical baseline is a re-ranking
-        # of it, and recomputing the scores later would not be the same numbers
-        # unless the corpus were identical.
-        scores_by_query.write_text(json.dumps(lexical))
         # BM25's own wall clock is measured while building the candidates and is
         # wanted by the report, which runs later and never builds them. Without
         # persisting it here the number is simply lost.
@@ -272,8 +260,7 @@ def _setup(limit, top_k, out_dir, tag, split, cache_dir, log):
             **retrieve.settings(),
         }, indent=2))
 
-    lexical = json.loads(scores_by_query.read_text()) if scores_by_query.exists() else {}
-    return corpus, queries, qrels, run_dir, candidates, lexical
+    return corpus, queries, qrels, run_dir, candidates
 
 
 def score(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None,
@@ -283,7 +270,7 @@ def score(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None,
     A method whose pairs are all already in the store is skipped entirely -- the
     model is never constructed, so a fully-scored re-run needs no API key, no
     network and no weights on disk."""
-    corpus, queries, qrels, run_dir, candidates, _ = _setup(
+    corpus, queries, qrels, run_dir, candidates = _setup(
         limit, top_k, out_dir, tag, split, cache_dir, log)
     scores_path = run_dir / "scores.jsonl"
 
@@ -305,7 +292,7 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
 
     Loads no model and makes no network call, which is what lets it be re-run
     for free every time a number's definition changes."""
-    corpus, queries, qrels, run_dir, candidates, lexical = _setup(
+    corpus, queries, qrels, run_dir, candidates = _setup(
         limit, top_k, out_dir, tag, split, cache_dir, log)
     scores_path = run_dir / "scores.jsonl"
     config = json.loads((run_dir / "config.json").read_text()) if (run_dir / "config.json").exists() else {}
@@ -318,7 +305,7 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
 
     summaries, deltas = [], {}
     for method in methods:
-        rankings = rankings_for(method, candidates, records, lexical)
+        rankings = rankings_for(method, candidates, records)
         summary = summarize(method, records, qrels, rankings, floor)
         if method == "hybrid" and config.get("retrieval_seconds") is not None:
             summary["scoring_wall_clock_s"] = config["retrieval_seconds"]

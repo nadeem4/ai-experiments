@@ -13,8 +13,7 @@ from pathlib import Path
 REPO = "https://github.com/nadeem4/ai-experiments.git"
 CHECKOUT = Path("/kaggle/working/ai-experiments")
 OUT = Path("/kaggle/working/rerank")
-METHODS = ["hybrid", "bm25", "laya-score", "laya-typed-score", "jev-score",
-           "cross-encoder"]
+METHODS = ["hybrid", "laya-score", "laya-typed-score", "jev-score", "cross-encoder"]
 SECRET = "OPENROUTER_API_KEY"
 
 
