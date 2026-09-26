@@ -1,4 +1,0 @@
-method,ndcg@10,recall@10,mrr@10,vs_bm25_mean,vs_bm25_low,vs_bm25_high,better,worse,same,latency_p50_ms,latency_p95_ms,calls,failed,cost_usd,distinct_scores,tied
-bm25,0.3067,0.1523,0.5092,,,,,,,,,,,,,
-jev-score,0.3443,0.1572,0.5678,0.0376,0.0244,0.0507,121,52,150,245.1,342.8,6460,0,0.161149,394,1877
-cross-encoder,0.3272,0.1499,0.5656,0.0204,0.0092,0.0317,97,67,159,24.3,31.4,6460,0,0.0,6389,136

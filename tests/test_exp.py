@@ -106,3 +106,14 @@ class TestAFullyScoredRunNeedsNothing:
         assert source.index("outstanding") < source.index("no OPENROUTER_API_KEY"), (
             "the key is demanded before the pending check, so a re-run of a "
             "finished experiment would fail without one")
+
+
+def test_the_cli_runs_as_a_module_without_being_installed():
+    """`python -m exp` has to work where the console script is not on PATH,
+    which is every fresh container and every Kaggle kernel."""
+    import subprocess
+    import sys
+    out = subprocess.run([sys.executable, "-m", "exp", "list"],
+                         capture_output=True, text=True, cwd=".")
+    assert out.returncode == 0, out.stderr
+    assert "rerank" in out.stdout and "banking77" in out.stdout
