@@ -88,14 +88,21 @@ def _input_tokens(record):
 
 
 def market_cost(record):
-    """What the gateway itself charged for this one call, in dollars.
+    """What the provider itself charged for this one call, in dollars.
 
-    Not a token count multiplied by a published rate: the AI Gateway puts the
-    price of the call on the call, and that is the number the run's cost is the
-    sum of. A local model has none, and neither does a call that failed."""
-    gateway = (record["response"].get("providerMetadata") or {}).get("gateway") or {}
+    Not a token count multiplied by a rate from a pricing page: the provider puts
+    the price of the call on the call, and the run's cost is the sum of those. A
+    local model has none, and neither does a call that failed.
+
+    The two transports report it in different places -- OpenRouter under
+    `usage.cost`, the Vercel AI Gateway under `providerMetadata.gateway.marketCost`
+    -- so both are read. Reading only one of them prices a real run at zero, which
+    is a number that looks like an answer."""
+    response = record["response"]
+    usage = response.get("usage") or {}
+    gateway = (response.get("providerMetadata") or {}).get("gateway") or {}
     try:
-        return float(gateway.get("marketCost") or 0.0)
+        return float(usage.get("cost") or gateway.get("marketCost") or 0.0)
     except (TypeError, ValueError):
         return 0.0
 
@@ -148,7 +155,10 @@ def summarize(method, records, qrels, rankings, floor=None):
     ok = [r for r in mine if not r.get("failed")]
     out["latency"] = latency([r["latency_ms"] for r in ok])
     out["scoring_wall_clock_s"] = round(sum(r["latency_ms"] for r in ok) / 1000, 1)
-    if any("retries" in r or r.get("failed") for r in mine):
+    # Always, not only when something went wrong. A clean run still made calls
+    # and still cost money, and reporting the accounting only on failure prices
+    # a successful run at nothing.
+    if mine:
         out["calls"] = {"n": len(mine), "retries": sum(r.get("retries", 0) for r in mine),
                         "failed": sum(bool(r.get("failed")) for r in mine),
                         "input_tokens": sum(_input_tokens(r) for r in ok),

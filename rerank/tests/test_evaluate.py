@@ -3,6 +3,7 @@ score, turn the records back into rankings, and read the two things the
 full-scale run exists to check -- what the calls cost, and how many passages the
 scores leave tied."""
 from rerank.evaluate import market_cost, pending, rankings_from_records, ties
+import pytest
 
 CANDIDATES = {"q1": ["d1", "d2"], "q2": ["d3"]}
 
@@ -126,3 +127,51 @@ class TestOutputLandsInsideTheExperiment:
         assert (export_examples.EXPERIMENT / "results").is_dir()
         assert (export_examples.REPO / "site").is_dir(), "the site is the repo's, not the experiment's"
         assert export_examples.REPO.name == "ai-experiments"
+
+
+class TestCostComesFromWhicheverProviderAnswered:
+    """The price of a call is put on the call, and the two transports put it in
+    different places. Reading only one of them reports a real run as free."""
+
+    def test_openrouter_reports_it_under_usage(self):
+        from rerank.evaluate import market_cost
+        record = {"response": {"usage": {"input_tokens": 589, "output_tokens": 19,
+                                         "cost": 2.4738e-05}}}
+        assert market_cost(record) == pytest.approx(2.4738e-05)
+
+    def test_the_gateway_reported_it_under_provider_metadata(self):
+        """The recorded run used this shape; reading it keeps old logs scoreable."""
+        from rerank.evaluate import market_cost
+        record = {"response": {"providerMetadata": {"gateway": {"marketCost": "0.000025"}}}}
+        assert market_cost(record) == pytest.approx(0.000025)
+
+    def test_a_local_model_and_a_failed_call_cost_nothing(self):
+        from rerank.evaluate import market_cost
+        assert market_cost({"response": {"usage": {"input_tokens": 233}}}) == 0.0
+        assert market_cost({"response": {"error": "HTTP 503"}}) == 0.0
+
+
+class TestCallAccountingIsAlwaysReported:
+    """A run with no retries and no failures still made calls and still cost
+    money. Reporting the accounting only when something went wrong means a clean
+    run prices itself at nothing."""
+
+    def _summary(self, records):
+        from rerank.evaluate import summarize
+        qrels = {"q1": {"d1": 1}}
+        return summarize("jev-score", records, qrels, {"q1": ["d1"]})
+
+    def test_a_clean_hosted_run_still_reports_its_cost(self):
+        records = [{"method": "jev-score", "query_id": "q1", "doc_id": "d1", "score": 2.0,
+                    "latency_ms": 260.0,
+                    "response": {"usage": {"input_tokens": 589, "cost": 2.4738e-05}}}]
+        calls = self._summary(records)["calls"]
+        assert calls["n"] == 1 and calls["retries"] == 0 and calls["failed"] == 0
+        assert calls["market_cost_usd"] == pytest.approx(2.5e-05, abs=1e-6)
+        assert calls["input_tokens"] == 589
+
+    def test_a_local_model_reports_its_calls_and_a_true_zero(self):
+        records = [{"method": "jev-score", "query_id": "q1", "doc_id": "d1", "score": 2.0,
+                    "latency_ms": 900.0, "response": {"usage": {"input_tokens": 233}}}]
+        calls = self._summary(records)["calls"]
+        assert calls["n"] == 1 and calls["market_cost_usd"] == 0.0
