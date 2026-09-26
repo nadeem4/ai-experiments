@@ -12,7 +12,6 @@ from . import run as run_module
 
 NAME = "typed_decisions"
 TITLE = "What does a typed decision cost at 4 options and at 151?"
-STATUS = "complete"
 COSTS_MONEY = True  # every hosted call goes over OpenRouter
 EXPERIMENT_DIR = Path(__file__).resolve().parent
 

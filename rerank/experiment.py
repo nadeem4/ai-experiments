@@ -12,7 +12,6 @@ from . import evaluate
 
 NAME = "rerank"
 TITLE = "Can a decision model re-rank retrieval better than BM25?"
-STATUS = "complete"
 COSTS_MONEY = True  # the Jev pass is hosted; everything else runs locally
 EXPERIMENT_DIR = Path(__file__).resolve().parent
 

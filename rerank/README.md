@@ -1,10 +1,10 @@
 # Can a decision model re-rank retrieval better than BM25?
 
-**Status:** `re-running`. The completed run was measured on this machine's CPU
+**Being measured again.** The completed run was measured on this machine's CPU
 over the Vercel AI Gateway, whose key no longer exists, so it cannot be
-reproduced. Its results files have been removed and it is being measured again
-on a Kaggle GPU. [RESULTS.md](RESULTS.md) still describes the old run and says so
-at the top.
+reproduced. Its results files have been removed and it is being re-measured on a
+Kaggle GPU. [RESULTS.md](RESULTS.md) still describes the old run and says so at
+the top.
 
 This file says what the experiment is and how to run it. Nothing here is a result.
 

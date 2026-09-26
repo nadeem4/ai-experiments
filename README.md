@@ -40,39 +40,15 @@ The split is what makes "the results reproduce byte-identically" a checkable cla
 
 ## The experiments
 
-Two are finished. The third has been measured once and is being measured again.
+Status is not written down anywhere: an experiment with no `results/` has not run, a `pilot/` alone means piloted, and `full/` means complete. `uv run cli list` reads it off disk.
 
-### 1. Re-ranking retrieval with a decision model, `rerank/`
+| | Dataset | Question | Where it got to |
+|---|---|---|---|
+| **[`rerank/`](rerank/README.md)**<br>[results](rerank/RESULTS.md) | [BEIR NFCorpus](https://huggingface.co/datasets/BeIR/nfcorpus), official test split<br><sub>3,633 documents, 323 queries, top-20 candidates</sub> | Does putting a decision model in front of a retrieval ranking make the ranking better, and what does it cost? | **Measured once, being measured again.** The first run put Jev **+0.0347** nDCG@10 over the BM25 floor and a MiniLM cross-encoder **+0.0204**, with both Laya checkpoints re-ranking **worse than doing nothing**. It ran on CPU over a gateway whose key is gone, so it cannot be reproduced; the results files were removed and it is being re-measured on a Kaggle GPU. |
+| **[`banking77/`](banking77/README.md)**<br>[results](banking77/RESULTS.md) | [BANKING77](https://github.com/PolyAI-LDN/task-specific-datasets), test split<br><sub>3,080 rows, 77 intents, 40 rows each</sub> | Is Laya's published 0.425 on Banking77 explained by the shared `head_max_len` option budget? | **No.** Giving every option the room it needs buys **4.8 points** (0.4403 → 0.4883, McNemar p = 2.7e-12) — a ninth of the 43-point gap to Jev — and then stops: 384, 512 and 768 are identical to every decimal. Accuracy falls 0.743 → 0.440 as options go 10 → 77 **with the budget untouched**. The documented workaround scored **below doing nothing**. |
+| **[`typed_decisions/`](typed_decisions/README.md)**<br>[results](typed_decisions/RESULTS.md) | [AG News](https://huggingface.co/datasets/fancyzhx/ag_news) test, 4 labels<br>[CLINC150](https://huggingface.co/datasets/clinc/clinc_oos) `plus` test, 151 labels<br><sub>300 examples each</sub> | For one job — assign text to exactly one of a fixed list of labels — how do a decision model and eight hosted LLMs compare on accuracy, latency, cost, validity, positional robustness, and whether they return a probability at all, at 4 options and at 151? | **Jev is fastest on both tasks and leads on accuracy on neither.** 1.7–15.6x ahead, lowest tail, median rising 8% from 4 options to 151 against `gemma`'s 74%. It and Laya are the only two that return a probability at all. The position bias the run was built to measure appears in **one model/task pair out of eighteen** (`phi`, p = 0.0225); the other seventeen rest on 0–4 discordant examples, so the decision-model half of the prediction is **untested rather than confirmed**. |
 
-**`re-running`.** [What it is](rerank/README.md) · [Results](rerank/RESULTS.md)
-
-*Does putting a decision model in front of a retrieval ranking make the ranking better, and what does it cost?*
-
-**Measured once and being measured again.** The first run found Jev moving nDCG@10 **+0.0347** against the BM25 floor and a MiniLM cross-encoder **+0.0204**, with both Laya checkpoints re-ranking **worse than doing nothing**. It was measured on CPU over the Vercel AI Gateway, whose key has since been deleted, so it cannot be reproduced; its results files were removed and the whole thing is being re-measured on a Kaggle GPU, where `laya` runs float16 rather than float32. Those numbers stand as the account of the first run and nothing else.
-
-### 2. The Banking77 token budget, `banking77/`
-
-**`complete`.** [What it is](banking77/README.md) · [Results](banking77/RESULTS.md)
-
-*Is Laya's published 0.425 on Banking77 explained by the shared `head_max_len` option budget?*
-
-Inference only, nothing trained. **Finding: no.** Giving every option all the room it needs removes every truncation collision and buys **4.8 points**, 0.4403 to 0.4883 across all 3,080 test rows (McNemar p = 2.7e-12) — about a ninth of the 43-point gap to Jev's published 0.870, and then it stops buying anything: 384, 512 and 768 are identical to every decimal. Meanwhile accuracy falls from 0.743 to 0.440 as options go from ten to seventy-seven **with the budget untouched**. The documented coarse-to-fine workaround scored **below doing nothing**, 0.344 against 0.440.
-
-### 3. Many models, one job, `typed_decisions/`
-
-**`complete`.** [What it is](typed_decisions/README.md) · [Results](typed_decisions/RESULTS.md)
-
-*For one job — assign a piece of text to exactly one of a fixed list of labels — how do a decision model and a wide slate of hosted LLMs compare on accuracy, latency, cost, validity, positional robustness and whether they return a probability at all, at 4 options and at 151?*
-
-Nine models — GLM, Phi, Gemma, DeepSeek, Llama, Qwen, GPT, Jev and Laya — on **AG News** (4 labels) and **CLINC150** (151 labels), with ids resolved from OpenRouter's live catalogue rather than written down.
-
-Two things make it different from the two above. **Every model reads its inputs off one frozen run spec** — the example ids, the instruction text, the option texts and every option ordering — hashed with SHA-256, with that hash on every stored call, so a model added next month is comparable against today's numbers without re-running anything, and the report **refuses** to mix records from two specs. And **position bias is measured causally**: the same example under three seeded orderings for a flip rate, plus the correct option placed deliberately first, middle and last for accuracy by position. The prediction about that was committed before the run, and `git log` shows it.
-
-**Finding.** 10,120 calls for $0.72. Jev is the **fastest model on both tasks** — 1.7x to 15.6x ahead, with the lowest tail ratio and a median that rises 8% from 4 options to 151 while `gemma`'s rises 74% — and it **leads on accuracy on neither**. It and Laya are the only two models that return a probability at all, which is a capability the other seven simply lack.
-
-The position bias the experiment was built to measure turns up in **one model/task pair out of eighteen**: `phi` loses 22.5 points when the correct option moves to the bottom of a 151-item list, 13 discordant pairs splitting 11 to 2, p = 0.0225. Every other pair rests on nought to four discordant examples and the 40-example subset cannot resolve them. So the prediction's LLM half did not hold, and its decision-model half "held" in a run where almost nothing moved — which makes it untested rather than confirmed. Laya cannot take a 151-option list at all: 151 intent names exceed its 192-token budget, and all 300 calls fail structurally.
-
-*Transport note:* this experiment ran over the Vercel AI Gateway before 2026-09-24 and over OpenRouter after it. The two sets of numbers are not comparable, every call record carries its `transport`, and the report will not merge them. It has also been renamed twice, from `latency/` to `decision_cost/` to `typed_decisions/`; `git log --follow` traces it.
+10,120 calls for $0.72 in `typed_decisions`, 28,181 in `banking77`, 25,840 in `rerank`. Every one of them kept its exact request and response.
 
 ## What a decision model is
 

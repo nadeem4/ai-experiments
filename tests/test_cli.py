@@ -30,7 +30,6 @@ class TestEveryExperimentHonoursTheContract:
         experiment = cli.load(name)
         assert experiment.NAME == name
         assert experiment.TITLE and experiment.TITLE[0].isupper()
-        assert experiment.STATUS in {"designed", "piloted", "complete"}
         assert isinstance(experiment.COSTS_MONEY, bool)
 
     def test_it_exposes_run_report_and_its_own_flags(self, name):
@@ -137,3 +136,22 @@ class TestAnExperimentThatIsNotCheckedOut:
         out = capsys.readouterr().out
         assert "rerank" in out
         assert "not checked out" in out, "an absent experiment is stated, not hidden"
+
+
+class TestStatusIsDerivedNotDeclared:
+    """A hand-set status field went stale three times in one file. The results
+    on disk cannot: an experiment with no results has not been run, whatever a
+    constant says."""
+
+    def test_no_results_means_it_has_not_run(self):
+        assert cli.status_from_tags([]) == "not run"
+
+    def test_a_pilot_alone_means_piloted(self):
+        assert cli.status_from_tags(["pilot"]) == "piloted"
+
+    def test_a_full_run_means_complete(self):
+        assert cli.status_from_tags(["full", "pilot"]) == "complete"
+
+    def test_any_other_tag_still_counts_as_run(self):
+        """A tag named for a machine or a variant is a real measurement."""
+        assert cli.status_from_tags(["gpu"]) == "complete"

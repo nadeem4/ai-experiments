@@ -31,6 +31,17 @@ import sys
 EXPERIMENTS = ("rerank", "banking77", "typed_decisions")
 
 
+def status_from_tags(tags):
+    """What the results on disk say about how far an experiment got.
+
+    Derived rather than declared: a status field has to be remembered, and one
+    that is not stays confidently wrong. Results cannot lie about whether they
+    exist."""
+    if not tags:
+        return "not run"
+    return "piloted" if tags == ["pilot"] else "complete"
+
+
 def load(name):
     """-> the experiment's `experiment` module, or a SystemExit naming what exists."""
     if name not in EXPERIMENTS:
@@ -107,9 +118,9 @@ def list_experiments():
             # what a Kaggle kernel does. Say so rather than fail the listing.
             print(f"{name:<18} {'not checked out':<10}")
             continue
-        tags = ", ".join(experiment.tags()) or "(none yet)"
-        print(f"{name:<18} {experiment.STATUS:<10} {experiment.TITLE}")
-        print(f"{'':<18} {'':<10} results: {tags}")
+        tags = experiment.tags()
+        print(f"{name:<18} {status_from_tags(tags):<10} {experiment.TITLE}")
+        print(f"{'':<18} {'':<10} results: {', '.join(tags) or '(none yet)'}")
     return 0
 
 

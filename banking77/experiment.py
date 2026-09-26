@@ -12,7 +12,6 @@ from . import run as run_module
 
 NAME = "banking77"
 TITLE = "Does Laya's Banking77 failure come from its token budget?"
-STATUS = "complete"
 COSTS_MONEY = False  # Laya runs on local CPU; nothing here is hosted
 EXPERIMENT_DIR = Path(__file__).resolve().parent
 

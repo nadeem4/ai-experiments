@@ -1,6 +1,6 @@
 # Does Laya's Banking77 failure come from its token budget?
 
-**Status:** `complete`. Results in [RESULTS.md](RESULTS.md).
+Results: [RESULTS.md](RESULTS.md).
 
 Results so far: [RESULTS.md](RESULTS.md). This file is the protocol. An inference-only experiment: **nothing here is trained.**
 

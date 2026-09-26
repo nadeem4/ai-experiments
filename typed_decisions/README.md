@@ -1,6 +1,6 @@
 # Many models, one job: what a typed decision costs at 4 options and at 151
 
-**Status:** `complete`. Results in [RESULTS.md](RESULTS.md).
+Results: [RESULTS.md](RESULTS.md).
 
 Results, once there are any: [RESULTS.md](RESULTS.md). This file is the protocol, and it is written before the run.
 

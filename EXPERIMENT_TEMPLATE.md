@@ -26,7 +26,8 @@ section has no material, write one honest line saying so rather than padding it.
 ````markdown
 # <the experiment, written as its question>
 
-**Status:** `designed`
+Results: [RESULTS.md](RESULTS.md), once there are some. How far this got is
+read off `results/` by `uv run cli list`, not written down here.
 <!-- designed: nothing has run. piloted: a small run has. complete: the full run has. -->
 
 ## The question
