@@ -19,7 +19,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import store
+from . import figures, store, tables
 from .bm25 import BM25Index
 from .data import load_nfcorpus
 from .metrics import evaluate as score_run
@@ -280,13 +280,17 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
     floor = {qid: s["ndcg@10"] for qid, s in per_query(qrels, build_run(candidates)).items()}
     records = store.load(scores_path)
 
-    summaries = []
+    summaries, deltas = [], {}
     for method in methods:
         rankings = candidates if method == "bm25" else rankings_from_records(candidates, records, method)
         summary = summarize(method, records, qrels, rankings, floor)
         if method == "bm25" and config.get("bm25_seconds") is not None:
             summary["scoring_wall_clock_s"] = config["bm25_seconds"]
         summaries.append(summary)
+        if method != "bm25":
+            scored = per_query(qrels, build_run(rankings))
+            deltas[method] = {qid: round(s["ndcg@10"] - floor[qid], 4)
+                              for qid, s in scored.items() if qid in floor}
         log(format_table([summary]))
 
     results = {"dataset": f"BEIR NFCorpus ({split})", "tag": tag, "queries": len(queries),
@@ -296,6 +300,26 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
     results_dir = Path(out_dir) / "results" / tag
     results_dir.mkdir(parents=True, exist_ok=True)
     (results_dir / "summary.json").write_text(json.dumps(results, indent=2) + "\n")
+
+    # How many of a query's candidates the qrels actually judge relevant. A query
+    # with none cannot be re-ranked into a better score by anybody, so the tables
+    # carry the count rather than leaving it to be rediscovered.
+    relevant = {qid: sum(1 for doc in docs if qrels.get(qid, {}).get(doc, 0) > 0)
+                for qid, docs in candidates.items()}
+    written = [tables.write_methods(summaries, results_dir),
+               tables.write_per_query(floor, deltas, relevant, results_dir),
+               tables.write_scores(records, results_dir),
+               tables.write_latency(records, results_dir)]
+    for path in written:
+        log(f"  table: {path}")
+
+    figure_dir = results_dir / "figures"
+    drawn = figures.write_all(results, deltas, relevant, records, figure_dir)
+    for name in drawn["written"]:
+        log(f"  figure: {figure_dir / name}")
+    for name, reason in drawn["skipped"].items():
+        log(f"  figure {name} SKIPPED: {reason}")
+
     results["path"] = results_dir / "summary.json"
     return results
 
