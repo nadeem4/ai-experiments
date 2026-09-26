@@ -17,13 +17,13 @@ rather than through a legend, so the figures survive a grayscale print.
 
 ## What is drawn, and why each earns its place
 
-  * **per-query-delta** -- every query's nDCG@10 change against the BM25 floor,
+  * **per-query-delta** -- every query's nDCG@10 change against the floor,
     sorted, with the queries that could not move counted separately. This is the
     experiment's central claim in one picture: a mean is a summary of this shape.
   * **score-distribution** -- how many distinct values each scorer actually used.
     A model answering on a coarse grid leaves passages tied, and a tie keeps
-    BM25's order, so this is what says how much of the ranking is really the
-    model's.
+    the first stage's order, so this is what says how much of the ranking is
+    really the model's.
   * **latency** -- p50 with a whisker to p95, network and CPU grouped apart
     because they are not the same measurement.
   * **win-loss** -- how many queries each method improved, hurt and left alone.
@@ -79,8 +79,8 @@ def _save(fig, out_dir, name):
 
 
 def _reranked(results):
-    """The methods measured against the floor. BM25 is the floor, not a rival."""
-    return [s for s in results["methods"] if s.get("ndcg@10_vs_bm25")]
+    """The methods measured against the floor, which is not one of them."""
+    return [s for s in results["methods"] if s.get("ndcg@10_vs_floor")]
 
 
 def split_by_movability(deltas, relevant):
@@ -112,7 +112,7 @@ def per_query_delta_plot(results, deltas, relevant, out_dir):
         gained = sum(1 for v in values if v > 0)
         lost = sum(1 for v in values if v < 0)
         _style(ax, method, f"{len(values)} queries that could move, sorted",
-               "nDCG@10 against BM25" if index == 0 else "")
+               "nDCG@10 against the floor" if index == 0 else "")
         ax.text(0.02, 0.96, f"better on {gained}\nworse on {lost}\n"
                             f"{len(stuck)} could not move at all",
                 transform=ax.transAxes, va="top", fontsize=8, color=SHADES[1])
@@ -147,7 +147,7 @@ def score_distribution_plot(results, records, out_dir):
     _style(ax, "How many different answers each scorer actually gave",
            "distinct score values (log)", "")
     ax.text(0.5, -0.16,
-            "Fewer distinct values means more tied passages, and a tie keeps BM25's order.",
+            "Fewer distinct values means more tied passages, and a tie keeps the first stage's order.",
             transform=ax.transAxes, ha="center", fontsize=8, color=SHADES[1])
     return _save(fig, out_dir, "score-distribution")
 
@@ -183,7 +183,7 @@ def latency_plot(results, out_dir):
 def win_loss_plot(results, out_dir):
     rows = _reranked(results)
     if not rows:
-        raise NothingToPlot("no method was measured against the BM25 floor")
+        raise NothingToPlot("no method was measured against the floor")
 
     plt = _plt()
     fig, ax = plt.subplots(figsize=FIGSIZE)
@@ -191,7 +191,7 @@ def win_loss_plot(results, out_dir):
     parts = [("better", SHADES[1], ""), ("same", SHADES[3], "..."), ("worse", SHADES[2], "///")]
     left = [0] * len(rows)
     for label, shade, hatch in parts:
-        widths = [s["ndcg@10_vs_bm25"][label] for s in rows]
+        widths = [s["ndcg@10_vs_floor"][label] for s in rows]
         ax.barh(names, widths, left=left, color=shade, hatch=hatch,
                 edgecolor=SHADES[0], linewidth=0.8, label=label)
         for i, (w, l) in enumerate(zip(widths, left)):

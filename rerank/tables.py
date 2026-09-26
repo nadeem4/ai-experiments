@@ -23,7 +23,8 @@ def write_scores(records, out_dir):
     """A row per (method, distinct score) with how many calls landed on it.
 
     This is the table behind "a tie is not an opinion": a scorer that answers on
-    a coarse grid leaves passages tied, and tied passages keep BM25's order, so
+    a coarse grid leaves passages tied, and tied passages keep the first stage's
+    order, so
     part of the ranking credited to the model is still BM25's. The shape of this
     table is what separates a model answering in 401 steps from one answering in
     thousands."""
@@ -52,23 +53,23 @@ def write_latency(records, out_dir):
 
 
 def write_per_query(floor, deltas, relevant, out_dir):
-    """A row per query: BM25's own nDCG@10, each method's difference from it, and
-    whether the query could have moved at all.
+    """A row per query: the first stage's own nDCG@10, each method's difference
+    from it, and whether the query could have moved at all.
 
-    `can_move` is the column that keeps the means honest. BM25 retrieved no
-    relevant passage for 91 of the 323 queries, so every method scores zero on
-    them whatever order it picks; they contribute nothing but denominator."""
+    `can_move` is the column that keeps the means honest. For many queries the
+    first stage retrieves nothing relevant, so every method scores zero on them
+    whatever order it picks; they contribute nothing but denominator."""
     methods = sorted(deltas)
     rows = []
     for query_id in sorted(floor):
-        row = {"query_id": query_id, "bm25_ndcg@10": floor[query_id],
+        row = {"query_id": query_id, "floor_ndcg@10": floor[query_id],
                "relevant": relevant.get(query_id, 0),
                "can_move": bool(relevant.get(query_id, 0))}
         for method in methods:
             row[method] = deltas[method].get(query_id)
         rows.append(row)
     return _write(out_dir / "per-query.csv",
-                  ["query_id", "bm25_ndcg@10", "relevant", "can_move", *methods], rows)
+                  ["query_id", "floor_ndcg@10", "relevant", "can_move", *methods], rows)
 
 
 def write_methods(summaries, out_dir):
@@ -78,14 +79,14 @@ def write_methods(summaries, out_dir):
     nested one a program wants."""
     rows = []
     for s in summaries:
-        delta = s.get("ndcg@10_vs_bm25") or {}
+        delta = s.get("ndcg@10_vs_floor") or {}
         interval = delta.get("ci95") or [None, None]
         rows.append({
             "method": s["method"],
             "ndcg@10": s.get("ndcg@10"), "recall@10": s.get("recall@10"),
             "mrr@10": s.get("mrr@10"),
-            "vs_bm25_mean": delta.get("mean"),
-            "vs_bm25_low": interval[0], "vs_bm25_high": interval[1],
+            "vs_floor_mean": delta.get("mean"),
+            "vs_floor_low": interval[0], "vs_floor_high": interval[1],
             "better": delta.get("better"), "worse": delta.get("worse"),
             "same": delta.get("same"),
             "latency_p50_ms": (s.get("latency") or {}).get("p50_ms"),

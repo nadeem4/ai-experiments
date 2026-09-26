@@ -19,8 +19,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from . import figures, store, tables
-from .bm25 import BM25Index
+from . import figures, retrieve, store, tables
 from .data import load_nfcorpus
 from .metrics import evaluate as score_run
 from .metrics import latency, mean_ci, per_query
@@ -30,12 +29,29 @@ from .rerankers import RERANKER_NAMES, make_reranker
 # used to sit at the repository root because it was the only experiment here.
 EXPERIMENT_DIR = Path(__file__).resolve().parent
 
-METHODS = ["bm25"] + RERANKER_NAMES
+# `hybrid` is the first stage's own order: what doing nothing gives you, and
+# therefore the floor. `bm25` re-ranks those same candidates by lexical score,
+# which costs nothing because retrieval already computed them.
+FLOOR = "hybrid"
+FREE = (FLOOR, "bm25")
+METHODS = list(FREE) + RERANKER_NAMES
 
 
 def pending(candidates, method, done):
     """The (query, passage) pairs this method has not scored yet."""
     return [(qid, doc) for qid, docs in candidates.items() for doc in docs if (method, qid, doc) not in done]
+
+
+def rankings_for(method, candidates, records, bm25_scores):
+    """The ranking a method produced over the pinned candidate set."""
+    if method == "hybrid":
+        return dict(candidates)
+    if method == "bm25":
+        # No scores means they were not recorded, and the fused order is not a
+        # lexical result: report nothing rather than something else's ranking.
+        return {qid: rank_by_score(docs, [bm25_scores[qid][doc] for doc in docs])
+                for qid, docs in candidates.items() if qid in bm25_scores}
+    return rankings_from_records(candidates, records, method)
 
 
 def rankings_from_records(candidates, records, method):
@@ -144,11 +160,12 @@ def summarize(method, records, qrels, rankings, floor=None):
     if ndcg:
         _, low, high = mean_ci(list(ndcg.values()))
         out["ndcg@10_ci95"] = [round(low, 4), round(high, 4)] if low is not None else None
-    if floor and ndcg and method != "bm25":
+    # The floor is not compared with itself.
+    if floor and ndcg and method != FLOOR:
         shared = [qid for qid in ndcg if qid in floor]
         deltas = [ndcg[qid] - floor[qid] for qid in shared]
         mean, low, high = mean_ci(deltas)
-        out["ndcg@10_vs_bm25"] = {"mean": round(mean, 4),
+        out["ndcg@10_vs_floor"] = {"mean": round(mean, 4),
                                   "ci95": [round(low, 4), round(high, 4)] if low is not None else None,
                                   "better": sum(d > 0 for d in deltas), "worse": sum(d < 0 for d in deltas),
                                   "same": sum(d == 0 for d in deltas)}
@@ -206,11 +223,11 @@ def format_table(summaries):
                        if sc else " (candidate order)")
                     + (f"; {s['calls']['retries']} retries, {s['calls']['failed']} failed, "
                        f"${s['calls']['market_cost_usd']:.4f}" if s.get("calls") else ""))
-    deltas = [s for s in summaries if s.get("ndcg@10_vs_bm25")]
+    deltas = [s for s in summaries if s.get("ndcg@10_vs_floor")]
     if deltas:
-        rows += ["", "nDCG@10 against the BM25 floor, paired per query:"]
+        rows += ["", f"nDCG@10 against the {FLOOR} floor, paired per query:"]
         for s in deltas:
-            d = s["ndcg@10_vs_bm25"]
+            d = s["ndcg@10_vs_floor"]
             ci = f" [{d['ci95'][0]:+.4f}, {d['ci95'][1]:+.4f}]" if d["ci95"] else ""
             rows.append(f"  {s['method']:<18} {d['mean']:+.4f}{ci}   better on {d['better']}, "
                         f"worse on {d['worse']}, unchanged on {d['same']} queries")
@@ -231,24 +248,32 @@ def _setup(limit, top_k, out_dir, tag, split, cache_dir, log):
 
     run_dir = Path(out_dir) / "runs" / tag
     candidates_path, config_path = run_dir / "candidates.json", run_dir / "config.json"
+    scores_by_query = run_dir / "bm25.json"
 
     if candidates_path.exists():
         candidates = json.loads(candidates_path.read_text())
         log(f"reusing {candidates_path}")
     else:
-        candidates, bm25_seconds = build_candidates(corpus, queries, top_k, log)
+        candidates, bm25_seconds, lexical = retrieve.build_candidates(
+            corpus, queries, top_k, log)
         candidates_path.parent.mkdir(parents=True, exist_ok=True)
         candidates_path.write_text(json.dumps(candidates))
+        # Part of the pinned candidate set: the lexical baseline is a re-ranking
+        # of it, and recomputing the scores later would not be the same numbers
+        # unless the corpus were identical.
+        scores_by_query.write_text(json.dumps(lexical))
         # BM25's own wall clock is measured while building the candidates and is
         # wanted by the report, which runs later and never builds them. Without
         # persisting it here the number is simply lost.
         config_path.write_text(json.dumps({
             "tag": tag, "split": split, "top_k": top_k, "limit": limit,
             "queries": len(queries),
-            "bm25_seconds": round(bm25_seconds, 1),
+            "retrieval_seconds": round(bm25_seconds, 1),
+            **retrieve.settings(),
         }, indent=2))
 
-    return corpus, queries, qrels, run_dir, candidates
+    lexical = json.loads(scores_by_query.read_text()) if scores_by_query.exists() else {}
+    return corpus, queries, qrels, run_dir, candidates, lexical
 
 
 def score(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None,
@@ -258,12 +283,12 @@ def score(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None,
     A method whose pairs are all already in the store is skipped entirely -- the
     model is never constructed, so a fully-scored re-run needs no API key, no
     network and no weights on disk."""
-    corpus, queries, qrels, run_dir, candidates = _setup(
+    corpus, queries, qrels, run_dir, candidates, _ = _setup(
         limit, top_k, out_dir, tag, split, cache_dir, log)
     scores_path = run_dir / "scores.jsonl"
 
     for method in methods:
-        if method == "bm25":
+        if method in FREE:
             continue
         if not pending(candidates, method, store.scored_keys(scores_path)):
             log(f"{method}: every pair is already in the store, nothing to score")
@@ -280,24 +305,25 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
 
     Loads no model and makes no network call, which is what lets it be re-run
     for free every time a number's definition changes."""
-    corpus, queries, qrels, run_dir, candidates = _setup(
+    corpus, queries, qrels, run_dir, candidates, lexical = _setup(
         limit, top_k, out_dir, tag, split, cache_dir, log)
     scores_path = run_dir / "scores.jsonl"
     config = json.loads((run_dir / "config.json").read_text()) if (run_dir / "config.json").exists() else {}
 
     # BM25's per-query nDCG@10 is the floor every method is measured against, so
     # it is computed whether or not bm25 was asked for.
+    # The first stage's own order is the floor: it is what doing nothing gives.
     floor = {qid: s["ndcg@10"] for qid, s in per_query(qrels, build_run(candidates)).items()}
     records = store.load(scores_path)
 
     summaries, deltas = [], {}
     for method in methods:
-        rankings = candidates if method == "bm25" else rankings_from_records(candidates, records, method)
+        rankings = rankings_for(method, candidates, records, lexical)
         summary = summarize(method, records, qrels, rankings, floor)
-        if method == "bm25" and config.get("bm25_seconds") is not None:
-            summary["scoring_wall_clock_s"] = config["bm25_seconds"]
+        if method == "hybrid" and config.get("retrieval_seconds") is not None:
+            summary["scoring_wall_clock_s"] = config["retrieval_seconds"]
         summaries.append(summary)
-        if method != "bm25":
+        if method not in FREE:
             scored = per_query(qrels, build_run(rankings))
             deltas[method] = {qid: round(s["ndcg@10"] - floor[qid], 4)
                               for qid, s in scored.items() if qid in floor}

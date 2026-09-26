@@ -175,3 +175,26 @@ class TestCallAccountingIsAlwaysReported:
                     "latency_ms": 900.0, "response": {"usage": {"input_tokens": 233}}}]
         calls = self._summary(records)["calls"]
         assert calls["n"] == 1 and calls["market_cost_usd"] == 0.0
+
+
+class TestTheFloorAndTheFreeBaseline:
+    """With a hybrid first stage, the fused order is what doing nothing gives
+    you, so that is the floor. BM25's own scores are already computed during
+    retrieval, so re-ranking by them costs no model calls."""
+
+    def test_the_hybrid_order_is_taken_unchanged(self):
+        from rerank.evaluate import rankings_for
+        candidates = {"q1": ["d3", "d1", "d2"]}
+        assert rankings_for("hybrid", candidates, [], {}) == {"q1": ["d3", "d1", "d2"]}
+
+    def test_bm25_re_ranks_those_candidates_by_lexical_score(self):
+        from rerank.evaluate import rankings_for
+        candidates = {"q1": ["d3", "d1", "d2"]}
+        scores = {"q1": {"d3": 0.5, "d1": 9.0, "d2": 4.0}}
+        assert rankings_for("bm25", candidates, [], scores) == {"q1": ["d1", "d2", "d3"]}
+
+    def test_bm25_with_no_recorded_scores_cannot_rank(self):
+        """Rather than silently falling back to the fused order and reporting it
+        as a lexical result."""
+        from rerank.evaluate import rankings_for
+        assert rankings_for("bm25", {"q1": ["d1"]}, [], {}) == {}

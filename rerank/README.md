@@ -35,12 +35,15 @@ NFCorpus qrels grade 0, 1 or 2; anything above 0 counts as relevant. Passages ar
 
 ## Method
 
-Retrieval in two stages. **BM25 retrieves; a re-ranker re-orders what BM25 retrieved.** The second stage cannot add a document or remove one -- it only changes the order of the candidates it is given, which is the constraint the whole experiment sits inside.
+Retrieval in two stages. **The first stage retrieves; a re-ranker re-orders what it retrieved.** The second stage cannot add a document or remove one -- it only changes the order of the candidates it is given, which is the constraint the whole experiment sits inside.
+
+The first stage is **hybrid**: BM25 and a dense encoder each retrieve 100, and the two are combined by reciprocal rank fusion. BM25 alone is not how retrieval is served, and on this corpus it is worth 20 queries -- with BM25 alone, 91 of the 323 had nothing relevant in the top 20 and no re-ranker could move them; hybrid brings that down to 71. It is held fixed so the scorer is the only thing that varies, and its settings go in the run config.
 
 ```mermaid
 flowchart TB
-    Q["323 queries"] --> B["BM25 searches<br/>3,633 documents"]
-    B --> C["top 20 per query"]
+    Q["323 queries"] --> B["BM25 + dense encoder<br/>3,633 documents"]
+    B --> F["fuse the two rankings"]
+    F --> C["top 20 per query"]
     C --> S["score each candidate<br/>20 questions"]
     S --> O["re-sort by score"]
     O --> E["grade against<br/>human judgements"]
@@ -51,7 +54,7 @@ flowchart TB
 
 The 323 queries are health questions; the 3,633 documents are PubMed abstracts. Humans have already marked which documents answer which question.
 
-Take `PLAIN-102`, **"Stopping Heart Disease in Childhood"**. BM25 scores all 3,633 documents on keyword overlap and returns its best 20:
+Take `PLAIN-102`, **"Stopping Heart Disease in Childhood"**. The first stage searches all 3,633 documents and returns its best 20. Ranked by BM25 alone they come out like this:
 
 ```
 rank  doc        relevant?  title
@@ -78,23 +81,24 @@ Then the new order is graded against the human judgements, and BM25's untouched 
 
 ### Why it is built this way
 
-**Every method re-ranks the identical candidate list**, so the comparison is paired per query: subtract BM25's nDCG@10 on a query from a method's on the same query and you have that method's effect on that query. A mean of those differences is a far sharper instrument than two overlapping averages, because the query-to-query variation -- some queries are simply easier -- cancels.
+**Every method re-ranks the identical candidate list**, so the comparison is paired per query: subtract the floor's nDCG@10 on a query from a method's on the same query and you have that method's effect on that query. A mean of those differences is a far sharper instrument than two overlapping averages, because the query-to-query variation -- some queries are simply easier -- cancels.
 
 **BM25 is the floor, not a rival.** Its own order is what you get for doing nothing, so the question each method answers is "is this better than not bothering", which is the question that decides whether to run a re-ranker in production at all.
 
 **What varies is the scorer and nothing else.**
 
-| Method | What it is |
-|---|---|
-| `bm25` | the floor. The candidate order BM25 itself returned |
-| `jev-score` | Jev over HTTP, the `score` question |
-| `cross-encoder` | `cross-encoder/ms-marco-MiniLM-L-6-v2`, locally |
-| `laya-score` | Laya's base English checkpoint, the `score` question |
-| `laya-typed-score` | the `typed-decisions` fine-tune, the identical question |
+| Method | What it is | Model calls |
+|---|---|---|
+| `hybrid` | **the floor**: the fused order, untouched. What doing nothing gives you | none |
+| `bm25` | the same candidates re-ranked by lexical score alone, which retrieval already computed | none |
+| `jev-score` | Jev over HTTP, the `score` question | 6,460 |
+| `cross-encoder` | `cross-encoder/ms-marco-MiniLM-L-6-v2`, locally | 6,460 |
+| `laya-score` | Laya's base English checkpoint, the `score` question | 6,460 |
+| `laya-typed-score` | the `typed-decisions` fine-tune, the identical question | 6,460 |
 
 **What is held fixed.** The same instructions and the same state go to Jev and to Laya, word for word. The same 1,000-character passage cut applies to Laya and to the cross-encoder. Ties keep the candidate order, so "no opinion" means "no change" rather than "shuffle". No prompt is tuned against the test split.
 
-**What re-ranking cannot fix.** On **91 of the 323 queries**, none of BM25's 20 candidates is judged relevant at all. Every method scores zero on those whatever order it picks, so they contribute nothing but denominator to every mean. The per-query table carries a `can_move` column for exactly this, and re-ranking was possible on 232 queries.
+**What re-ranking cannot fix.** On some queries none of the 20 candidates is judged relevant at all -- 71 of 323 with the hybrid first stage, 91 with BM25 alone. Every method scores zero on those whatever order it picks, so they contribute nothing but denominator to every mean. The per-query table carries a `can_move` column for exactly this.
 
 **Seeds:** none. BM25, the cross-encoder and both Laya checkpoints are deterministic here. Jev is a hosted service and is not under this repository's control.
 

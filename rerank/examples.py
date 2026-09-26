@@ -24,7 +24,7 @@ def select_examples(queries, total=None):
     """-> [{"query_id", "reason"}], best-first within each bucket.
 
     `queries` are dicts of query_id, jev_delta, laya_delta (per-query nDCG@10
-    against the BM25 floor) and jev_failed (calls that never succeeded).
+    against the floor) and jev_failed (calls that never succeeded).
     `total` caps the whole subset; by default it is the sum of the quotas.
     """
     ranked = {

@@ -56,7 +56,7 @@ class TestPerQuery:
         deltas = {"jev-score": {"q1": 0.10, "q2": 0.00}}
         path = tables.write_per_query(floor, deltas, {"q1": 2, "q2": 0}, tmp_path)
         rows = {r["query_id"]: r for r in _read(path)}
-        assert rows["q1"]["bm25_ndcg@10"] == "0.4"
+        assert rows["q1"]["floor_ndcg@10"] == "0.4"
         assert rows["q1"]["jev-score"] == "0.1"
         assert rows["q2"]["relevant"] == "0"
 
