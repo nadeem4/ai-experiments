@@ -182,6 +182,17 @@ def summarize(method, records, qrels, rankings, floor=None):
     return out
 
 
+def provenance(config):
+    """Where the measurements were taken, not where the tables were computed.
+
+    Latency only means something beside the hardware that produced it, and the
+    report is re-runnable anywhere. A run made before this was recorded falls
+    back to asking the current machine, which is the best that can be done for
+    it and is why new runs write it down."""
+    return {"device": config.get("device") or usable_device(),
+            "commit": config.get("commit") or _commit()}
+
+
 def usable_device():
     """The GPU can be visible but unusable (an old NVIDIA driver, for one), and
     every latency in the results depends on which one ran, so it is measured."""
@@ -257,6 +268,9 @@ def _setup(limit, top_k, out_dir, tag, split, cache_dir, log):
             "tag": tag, "split": split, "top_k": top_k, "limit": limit,
             "queries": len(queries),
             "retrieval_seconds": round(bm25_seconds, 1),
+            # Written here, while the run is happening, because the report can
+            # be re-run on a different machine.
+            "device": usable_device(), "commit": _commit(),
             **retrieve.settings(),
         }, indent=2))
 
@@ -317,7 +331,7 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
         log(format_table([summary]))
 
     results = {"dataset": f"BEIR NFCorpus ({split})", "tag": tag, "queries": len(queries),
-               "top_k": top_k, "device": usable_device(), "commit": _commit(),
+               "top_k": top_k, **provenance(config),
                "finished": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                "methods": summaries}
     results_dir = Path(out_dir) / "results" / tag

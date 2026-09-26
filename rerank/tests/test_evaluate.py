@@ -193,3 +193,20 @@ class TestTheFloor:
         assert rankings_for("hybrid", {"q1": ["d1"]}, []) == {"q1": ["d1"]}
 
 
+
+
+class TestTheRunRecordsWhereItRan:
+    """Latency only means something next to the hardware it was measured on, and
+    the report can be re-run anywhere. So the device belongs to the run, not to
+    whichever machine later recomputes the tables."""
+
+    def test_the_report_prefers_what_the_run_recorded(self):
+        from rerank.evaluate import provenance
+        assert provenance({"device": "cuda", "commit": "abc1234"}) == {
+            "device": "cuda", "commit": "abc1234"}
+
+    def test_it_falls_back_for_runs_made_before_this_was_recorded(self):
+        from rerank.evaluate import provenance
+        out = provenance({})
+        assert out["device"] in {"cpu", "cuda"}
+        assert "commit" in out
