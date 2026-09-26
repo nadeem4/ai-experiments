@@ -53,3 +53,27 @@ def run(args):
 def report(args):
     report_module.main(["--tag", args.tag, "--seed", str(args.seed),
                         "--out", str(out_dir(args))])
+
+
+def dataset():
+    """What BANKING77 actually holds, read off the files the run loads."""
+    from . import data
+
+    cache = EXPERIMENT_DIR / ".cache"
+    test = data.load(cache, "test")
+    train = data.load(cache, "train")
+    labels = sorted({r["label"] for r in test})
+    return [{
+        "name": "BANKING77",
+        "source": "PolyAI-LDN/task-specific-datasets",
+        "url": "https://github.com/PolyAI-LDN/task-specific-datasets",
+        "licence": "CC-BY-4.0",
+        "what_it_is": "Real customer queries to a banking assistant, each labelled with "
+                      "one of 77 fine-grained intents. The intents are close together on "
+                      "purpose, which is what makes it hard.",
+        "splits": {"train": len(train), "test": len(test)},
+        "used": "`test`, all 3,080 rows",
+        "classes": labels,
+        "extra": {"Balance": f"{len(test) // len(labels)} test rows per intent, exactly"},
+        "rows": [{"text": r["text"], "label": r["label"]} for r in test[:3]],
+    }]

@@ -75,3 +75,35 @@ def run(args):
 
 def report(args):
     report_module.main(["--tag", args.tag, "--out", str(out_dir(args))])
+
+
+DESCRIPTIONS = {
+    "ag_news": "News stories, each belonging to one of four sections. The easy end "
+               "of the option-count axis: four labels a person could hold in mind.",
+    "clinc150": "Utterances to a voice assistant, each one of 150 intents plus "
+                "out-of-scope. The hard end: 151 options, many a sentence apart.",
+}
+
+
+def dataset():
+    """What each task holds, read off the parquet the run loads."""
+    from . import tasks
+
+    out = []
+    for name in tasks.NAMES:
+        meta = tasks.DATASETS[name]
+        rows = tasks.load_split(name, "test", tasks.CACHE)
+        options = tasks.options_of(name, tasks.CACHE)
+        out.append({
+            "name": f"{name} ({meta['repo']})",
+            "source": meta["repo"],
+            "url": f"https://huggingface.co/datasets/{meta['repo']}",
+            "licence": meta.get("licence"),
+            "what_it_is": DESCRIPTIONS[name],
+            "splits": {"test": len(rows)},
+            "used": f"`test`, config `{meta['config']}`. The run samples 300 examples from it",
+            "classes": options,
+            "extra": {},
+            "rows": [{"text": r["text"], "label": r["label"]} for r in rows[:3]],
+        })
+    return out

@@ -49,6 +49,8 @@ Nothing about the accuracy, cost or latency rankings. Those are measurements thi
 
 ## Data
 
+What it holds, with real rows: **[DATASET.md](DATASET.md)**, written by `uv run cli dataset typed_decisions`.
+
 Two public, labelled classification datasets, chosen to bracket the option count as widely as public labelled data allows. Both are loaded by this experiment's own `tasks.py` from the parquet files the Hugging Face hub serves, verified against the hub rather than assumed.
 
 | task | repo | config | split | rows | options | licence |

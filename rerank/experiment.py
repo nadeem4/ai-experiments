@@ -68,3 +68,43 @@ def run(args):
 
 def report(args):
     evaluate.report(**_settings(args), cache_dir=args.cache_dir)
+
+
+def dataset():
+    """What NFCorpus actually holds, read off the files the run loads."""
+    from collections import Counter
+
+    from .data import load_nfcorpus
+
+    corpus, queries, qrels = load_nfcorpus(None, "test")
+    judged = [len(v) for v in qrels.values()]
+    grades = Counter(g for v in qrels.values() for g in v.values())
+    # A query that reads as a question, and a document judged relevant to it.
+    # Taking the first query alphabetically gives "deafness", which shows a
+    # reader nothing about what the data is.
+    first = next(q for q in sorted(queries)
+                 if qrels.get(q) and len(queries[q].split()) >= 4)
+    doc = sorted(qrels[first])[0]
+    return [{
+        "name": "BEIR NFCorpus",
+        "source": "BeIR/nfcorpus",
+        "url": "https://huggingface.co/datasets/BeIR/nfcorpus",
+        "licence": None,
+        "what_it_is": "Health questions from NutritionFacts.org over PubMed abstracts, "
+                      "with human relevance judgements. A query is a question a person "
+                      "asked; a document is a paper that may or may not answer it.",
+        "splits": {"documents": len(corpus), "test queries": len(queries)},
+        "used": "`test`, all 323 queries",
+        "classes": [],
+        "extra": {
+            "Judgements": f"{sum(judged):,} query-document pairs marked relevant, "
+                          f"a median of {sorted(judged)[len(judged) // 2]} per query",
+            "Grades": f"1 or 2, never 0: {grades[1]:,} marked relevant and "
+                      f"{grades[2]:,} highly so. Anything above 0 counts as relevant here",
+        },
+        "rows": [
+            {"query_id": first, "query": queries[first]},
+            {"a document judged relevant to it": doc,
+             "title": corpus[doc]["title"], "text": corpus[doc]["text"]},
+        ],
+    }]

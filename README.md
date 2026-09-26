@@ -10,9 +10,9 @@ An experiment with no result link has not produced one yet.
 
 | Experiment | Dataset | What it is trying to find out | Result | |
 |---|---|---|---|---|
-| `rerank` | [BEIR NFCorpus](https://huggingface.co/datasets/BeIR/nfcorpus) test<br><sub>3,633 docs, 323 queries, top-20</sub> | Whether a decision model re-ranks retrieval better than BM25, and what that costs | — | [README](rerank/README.md) |
-| `banking77` | [BANKING77](https://github.com/PolyAI-LDN/task-specific-datasets) test<br><sub>3,080 rows, 77 intents</sub> | Whether a published accuracy is explained by a shared per-option token budget, or by something else | [RESULTS](banking77/RESULTS.md) | [README](banking77/README.md) |
-| `typed_decisions` | [AG News](https://huggingface.co/datasets/fancyzhx/ag_news) test, 4 labels<br>[CLINC150](https://huggingface.co/datasets/clinc/clinc_oos) `plus` test, 151 labels<br><sub>300 examples each</sub> | How nine models compare on accuracy, latency, cost, validity and positional robustness for one fixed-label job, at 4 options and at 151 | [RESULTS](typed_decisions/RESULTS.md) | [README](typed_decisions/README.md) |
+| `rerank` | [BEIR NFCorpus](https://huggingface.co/datasets/BeIR/nfcorpus) test<br><sub>3,633 docs, 323 queries, top-20</sub><br>[what it holds](rerank/DATASET.md) | Whether a decision model re-ranks retrieval better than BM25, and what that costs | — | [README](rerank/README.md) |
+| `banking77` | [BANKING77](https://github.com/PolyAI-LDN/task-specific-datasets) test<br><sub>3,080 rows, 77 intents</sub><br>[what it holds](banking77/DATASET.md) | Whether a published accuracy is explained by a shared per-option token budget, or by something else | [RESULTS](banking77/RESULTS.md) | [README](banking77/README.md) |
+| `typed_decisions` | [AG News](https://huggingface.co/datasets/fancyzhx/ag_news) test, 4 labels<br>[CLINC150](https://huggingface.co/datasets/clinc/clinc_oos) `plus` test, 151 labels<br><sub>300 examples each</sub><br>[what they hold](typed_decisions/DATASET.md) | How nine models compare on accuracy, latency, cost, validity and positional robustness for one fixed-label job, at 4 options and at 151 | [RESULTS](typed_decisions/RESULTS.md) | [README](typed_decisions/README.md) |
 
 ## Running one
 

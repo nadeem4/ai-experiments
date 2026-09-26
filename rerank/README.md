@@ -18,6 +18,8 @@ What changes depending on the answer: if a decision model beats BM25, re-ranking
 
 ## Data
 
+What it holds, with real rows: **[DATASET.md](DATASET.md)**, written by `uv run cli dataset rerank`.
+
 [BEIR](https://github.com/beir-cellar/beir) **[NFCorpus](https://www.cl.uni-heidelberg.de/statnlpgroup/nfcorpus/)**, the official **test** split: **3,633 documents and 323 test queries**, with the official qrels.
 
 | | source |

@@ -31,6 +31,8 @@ Where the expectations are recorded in this repository, all of them in the harne
 
 ## Data
 
+What it holds, with real rows: **[DATASET.md](DATASET.md)**, written by `uv run cli dataset banking77`.
+
 **BANKING77**, from PolyAI's own CSVs: the identical files the `PolyAI/banking77` loading script downloads, taken straight from `https://raw.githubusercontent.com/PolyAI-LDN/task-specific-datasets/master/banking_data/{train,test}.csv`. That repository ships only a Python script and has no parquet conversion, so `datasets` would have to execute remote code to read four thousand rows.
 
 - **Test split: 3,080 rows.** Everything reported comes from the test split.

@@ -4,6 +4,7 @@
     uv run cli run    rerank --tag full --top-k 20     # here
     uv run cli submit rerank                           # on a Kaggle GPU
     uv run cli fetch  rerank                           # bring the results back
+    uv run cli dataset rerank                          # write DATASET.md from the data
 
 Two verbs, because an experiment only has two things you want from it: the list
 of what is here, and "produce this experiment's results".
@@ -79,6 +80,9 @@ def main(argv=None):
     submit.add_argument("name", choices=EXPERIMENTS)
     submit.add_argument("--dry-run", action="store_true",
                         help="check the prerequisites and stop")
+    data = sub.add_parser("dataset", help="write DATASET.md from the real files")
+    data.add_argument("name", choices=EXPERIMENTS)
+
     state = sub.add_parser("status", help="what the Kaggle run is doing")
     state.add_argument("name", choices=EXPERIMENTS)
     fetch = sub.add_parser("fetch", help="download a finished Kaggle run")
@@ -98,6 +102,12 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.command == "list":
         return list_experiments()
+    if args.command == "dataset":
+        from . import dataset
+
+        experiment = load(args.name)
+        print(f"wrote {dataset.write(args.name, experiment.dataset())}")
+        return 0
     if args.command in ("submit", "status", "fetch"):
         from . import kaggle
 
