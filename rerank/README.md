@@ -37,13 +37,12 @@ Retrieval in two stages. **BM25 retrieves; a re-ranker re-orders what BM25 retri
 
 ```mermaid
 flowchart TB
-    Q["323 queries"] --> B["BM25 over 3,633 documents<br/>keyword matching, no model"]
-    B --> C["the top 20 per query<br/>the same 20 for every method"]
-    C --> S["one question per candidate:<br/>does this passage answer this query?"]
-    S --> N["one number back<br/>6,460 per method"]
-    N --> O["re-sort the 20 by that number"]
-    O --> E["score against the official judgements<br/>nDCG@10, Recall@10, MRR@10"]
-    C -.->|"its own order, unchanged"| E
+    Q["323 queries"] --> B["BM25 searches<br/>3,633 documents"]
+    B --> C["top 20 per query"]
+    C --> S["score each candidate<br/>20 questions"]
+    S --> O["re-sort by score"]
+    O --> E["grade against<br/>human judgements"]
+    C -.->|"unchanged"| E
 ```
 
 ### One query, end to end
