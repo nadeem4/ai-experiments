@@ -39,8 +39,9 @@ from pathlib import Path
 
 from . import catalog, spec as spec_module, stats, store
 
-RUN_DIR = Path("typed_decisions/runs")
-RESULTS_DIR = Path("typed_decisions/results")
+EXPERIMENT_DIR = Path(__file__).resolve().parent
+RUN_DIR = EXPERIMENT_DIR / "runs"
+RESULTS_DIR = EXPERIMENT_DIR / "results"
 MEASURED_PASS = 0
 MEASURED_ARM = "main"
 
@@ -617,12 +618,14 @@ def _print_paired(records, summary, task):
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--tag", default="pilot")
+    p.add_argument("--out", default=str(EXPERIMENT_DIR),
+                   help="write runs/ and results/ under here (default: the experiment)")
     p.add_argument("--models", default=None,
                    help="comma-separated subset to report on. Computed entirely from the "
                         "store: this command never calls a model.")
     args = p.parse_args(argv)
 
-    run_dir = RUN_DIR / args.tag
+    run_dir = Path(args.out) / "runs" / args.tag
     records = store.load(run_dir / "calls.jsonl")
     if not records:
         raise SystemExit(f"no calls recorded under {run_dir}")
@@ -715,10 +718,10 @@ def main(argv=None):
           f"{results['n_calls']} calls "
           f"({len(selected) - len(_measured(selected))} of them outside the measured arm)")
 
-    results_dir = RESULTS_DIR
-    results_dir.mkdir(parents=True, exist_ok=True)
     name = results_name(args.tag, models)
-    results_path = results_dir / f"{name}.json"
+    results_dir = Path(args.out) / "results" / name
+    results_dir.mkdir(parents=True, exist_ok=True)
+    results_path = results_dir / "summary.json"
     # Once, over the finished structure: the committed file and the public site
     # built from it must not carry this machine's directory layout.
     scrub_local_paths(results)
@@ -728,7 +731,7 @@ def main(argv=None):
     # Always, so a chart cannot drift from the table it was printed beside.
     from . import figures
 
-    figure_dir = results_dir / "figures" / name if models else results_dir / "figures"
+    figure_dir = results_dir / "figures"
     out = figures.write_all(results, figure_dir)
     for written in out["written"]:
         print(f"  figure: {figure_dir / written}")
@@ -738,7 +741,7 @@ def main(argv=None):
     # Same reason as the figures: the lab site reads a generated file, so nothing
     # on the page can drift from the table it was printed beside. A subset report
     # writes beside the full one and must not export over it.
-    if results_path.name == "full.json":
+    if name == "full":
         from .scripts import export_site_data
 
         print(f"  site data: {export_site_data.write(results, source=figure_dir)}")

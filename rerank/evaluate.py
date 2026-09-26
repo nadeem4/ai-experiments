@@ -26,6 +26,9 @@ from .metrics import evaluate as score_run
 from .metrics import latency, mean_ci, per_query
 from .rank import build_run, rank_by_score
 from .rerankers import RERANKER_NAMES, make_reranker
+# Every experiment keeps its evidence and its results inside itself. rerank's
+# used to sit at the repository root because it was the only experiment here.
+EXPERIMENT_DIR = Path(__file__).resolve().parent
 
 METHODS = ["bm25"] + RERANKER_NAMES
 
@@ -204,72 +207,117 @@ def format_table(summaries):
     return "\n".join(rows)
 
 
-def run(limit, top_k, methods, out_dir, cache_dir=None, laya_path=None, split="test", log=print):
+def _setup(limit, top_k, out_dir, tag, split, cache_dir, log):
+    """Everything both phases need: the data, the candidate set, and where they live.
+
+    The candidate set is built once and pinned to disk, so the reporting phase
+    re-ranks exactly the passages that were scored rather than rebuilding a set
+    that might differ."""
     corpus, queries, qrels = load_nfcorpus(cache_dir, split)
     log(f"NFCorpus {split}: {len(corpus)} documents, {len(queries)} queries with judgements")
     if limit:
         queries = {qid: queries[qid] for qid in sorted(queries)[:limit]}
         log(f"limited to the first {len(queries)} queries by id")
 
-    tag = f"{split}-top{top_k}-q{len(queries)}"
     run_dir = Path(out_dir) / "runs" / tag
-    candidates_path = run_dir / "candidates.json"
-    scores_path = run_dir / "scores.jsonl"
+    candidates_path, config_path = run_dir / "candidates.json", run_dir / "config.json"
 
     if candidates_path.exists():
         candidates = json.loads(candidates_path.read_text())
-        bm25_seconds = None
         log(f"reusing {candidates_path}")
     else:
         candidates, bm25_seconds = build_candidates(corpus, queries, top_k, log)
         candidates_path.parent.mkdir(parents=True, exist_ok=True)
         candidates_path.write_text(json.dumps(candidates))
+        # BM25's own wall clock is measured while building the candidates and is
+        # wanted by the report, which runs later and never builds them. Without
+        # persisting it here the number is simply lost.
+        config_path.write_text(json.dumps({
+            "tag": tag, "split": split, "top_k": top_k, "limit": limit,
+            "queries": len(queries),
+            "bm25_seconds": round(bm25_seconds, 1),
+        }, indent=2))
+
+    return corpus, queries, qrels, run_dir, candidates
+
+
+def score(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None,
+          laya_path=None, log=print):
+    """Phase one: ask the models. Appends to the wire log and writes nothing else.
+
+    A method whose pairs are all already in the store is skipped entirely -- the
+    model is never constructed, so a fully-scored re-run needs no API key, no
+    network and no weights on disk."""
+    corpus, queries, qrels, run_dir, candidates = _setup(
+        limit, top_k, out_dir, tag, split, cache_dir, log)
+    scores_path = run_dir / "scores.jsonl"
+
+    for method in methods:
+        if method == "bm25":
+            continue
+        if not pending(candidates, method, store.scored_keys(scores_path)):
+            log(f"{method}: every pair is already in the store, nothing to score")
+            continue
+        started = time.perf_counter()
+        reranker = make_reranker(
+            method, **({"path": laya_path} if laya_path and method.startswith("laya") else {}))
+        log(f"{method}: loaded in {time.perf_counter() - started:.1f}s")
+        score_method(reranker, candidates, queries, corpus, scores_path, log)
+
+
+def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, log=print):
+    """Phase two: read the wire log and write everything that is published.
+
+    Loads no model and makes no network call, which is what lets it be re-run
+    for free every time a number's definition changes."""
+    corpus, queries, qrels, run_dir, candidates = _setup(
+        limit, top_k, out_dir, tag, split, cache_dir, log)
+    scores_path = run_dir / "scores.jsonl"
+    config = json.loads((run_dir / "config.json").read_text()) if (run_dir / "config.json").exists() else {}
 
     # BM25's per-query nDCG@10 is the floor every method is measured against, so
     # it is computed whether or not bm25 was asked for.
     floor = {qid: s["ndcg@10"] for qid, s in per_query(qrels, build_run(candidates)).items()}
+    records = store.load(scores_path)
 
     summaries = []
     for method in methods:
-        # A method whose pairs are all in the store is summarized from those
-        # records; the model is not loaded and nothing is scored twice.
-        if method != "bm25" and pending(candidates, method, store.scored_keys(scores_path)):
-            started = time.perf_counter()
-            reranker = make_reranker(method, **({"path": laya_path} if laya_path and method.startswith("laya") else {}))
-            log(f"{method}: loaded in {time.perf_counter() - started:.1f}s")
-            score_method(reranker, candidates, queries, corpus, scores_path, log)
-        elif method != "bm25":
-            log(f"{method}: every pair is already in the store, reusing those records")
-        records = store.load(scores_path)
         rankings = candidates if method == "bm25" else rankings_from_records(candidates, records, method)
         summary = summarize(method, records, qrels, rankings, floor)
-        if method == "bm25" and bm25_seconds is not None:
-            summary["scoring_wall_clock_s"] = round(bm25_seconds, 1)
+        if method == "bm25" and config.get("bm25_seconds") is not None:
+            summary["scoring_wall_clock_s"] = config["bm25_seconds"]
         summaries.append(summary)
         log(format_table([summary]))
 
-    results = {"dataset": f"BEIR NFCorpus ({split})", "queries": len(queries), "top_k": top_k,
-               "device": usable_device(), "commit": _commit(),
-               "finished": datetime.now(timezone.utc).isoformat(timespec="seconds"), "methods": summaries}
-    results_path = Path(out_dir) / "results" / f"{tag}-{datetime.now().strftime('%Y%m%d-%H%M%S')}.json"
-    results_path.parent.mkdir(parents=True, exist_ok=True)
-    results_path.write_text(json.dumps(results, indent=2))
-    results["path"] = results_path
+    results = {"dataset": f"BEIR NFCorpus ({split})", "tag": tag, "queries": len(queries),
+               "top_k": top_k, "device": usable_device(), "commit": _commit(),
+               "finished": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+               "methods": summaries}
+    results_dir = Path(out_dir) / "results" / tag
+    results_dir.mkdir(parents=True, exist_ok=True)
+    (results_dir / "summary.json").write_text(json.dumps(results, indent=2) + "\n")
+    results["path"] = results_dir / "summary.json"
     return results
 
 
-def main():
+def main(argv=None):
+    """The direct entry point. `uv run exp run rerank` is the same two calls."""
     p = argparse.ArgumentParser(description="Re-rank BEIR NFCorpus with a decision model and score it.")
-    p.add_argument("--limit", type=int, default=30, help="queries (0 = all 323 in the test split)")
-    p.add_argument("--top-k", type=int, default=50, help="BM25 candidates per query")
+    p.add_argument("--tag", default="pilot", help="names runs/<tag>/ and results/<tag>/")
+    p.add_argument("--limit", type=int, default=0, help="queries (0 = all 323 in the test split)")
+    p.add_argument("--top-k", type=int, default=20, help="BM25 candidates per query")
     p.add_argument("--methods", nargs="+", default=METHODS, choices=METHODS)
     p.add_argument("--split", default="test", choices=["test", "dev", "train"])
-    p.add_argument("--out", default=".")
+    p.add_argument("--out", default=str(EXPERIMENT_DIR),
+                   help="write runs/ and results/ under here (default: the experiment)")
     p.add_argument("--cache-dir", default=None, help="where the dataset is cached (default: the HF cache)")
     p.add_argument("--laya-path", default=None, help="Laya weights folder (default: $LAYA_PATH, else models/laya, downloaded on first use)")
-    args = p.parse_args()
+    args = p.parse_args(argv)
 
-    results = run(args.limit, args.top_k, args.methods, args.out, args.cache_dir, args.laya_path, args.split)
+    score(args.limit, args.top_k, args.methods, args.out, args.tag, args.split,
+          args.cache_dir, args.laya_path)
+    results = report(args.limit, args.top_k, args.methods, args.out, args.tag,
+                     args.split, args.cache_dir)
     print()
     print(format_table(results["methods"]))
     print(f"Saved {results['path']}")

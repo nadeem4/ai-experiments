@@ -13,8 +13,9 @@ from pathlib import Path
 from banking77 import arms as arms_mod
 from banking77 import metrics, options, store
 
-RUN_DIR = Path("banking77/runs")
-RESULTS_DIR = Path("banking77/results")
+EXPERIMENT_DIR = Path(__file__).resolve().parent
+RUN_DIR = EXPERIMENT_DIR / "runs"
+RESULTS_DIR = EXPERIMENT_DIR / "results"
 
 
 def _rows(records, arm, split):
@@ -87,8 +88,8 @@ def paired(records, a, b):
     }
 
 
-def build(tag, seed):
-    run_dir = RUN_DIR / tag
+def build(tag, seed, out=None):
+    run_dir = (Path(out) / "runs" if out else RUN_DIR) / tag
     records = store.load(run_dir / "decisions.jsonl")
     present = [name for name in arms_mod.ARMS if any(r["arm"] == name for r in records)]
     reports = {name: arm_report(records, name, seed) for name in present}
@@ -144,11 +145,14 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--tag", default="pilot")
     p.add_argument("--seed", type=int, default=arms_mod.SEED)
+    p.add_argument("--out", default=str(EXPERIMENT_DIR),
+                   help="write runs/ and results/ under here (default: the experiment)")
     args = p.parse_args(argv)
 
-    report = build(args.tag, args.seed)
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    out = RESULTS_DIR / f"{args.tag}.json"
+    report = build(args.tag, args.seed, Path(args.out))
+    results_dir = Path(args.out) / "results" / args.tag
+    results_dir.mkdir(parents=True, exist_ok=True)
+    out = results_dir / "summary.json"
     out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
     print(f"{'arm':16} {'n':>5} {'opts':>5} {'hml':>5} {'acc':>7} {'ci95':>16} {'top5':>7} "
@@ -166,7 +170,7 @@ def main(argv=None):
     # Always, so a chart cannot drift from the table it was printed beside.
     from . import figures
 
-    figure_dir = RESULTS_DIR / "figures"
+    figure_dir = results_dir / "figures"
     drawn = figures.write_all(report, figure_dir)
     for written in drawn["written"]:
         print(f"  figure: {figure_dir / written}")
@@ -176,7 +180,7 @@ def main(argv=None):
     # Same reason as the figures: the lab site reads a generated file, so no
     # number on the page can drift from the table above. The pilot writes beside
     # the full run's results and must not export over its data.
-    if out.name == "full.json":
+    if args.tag == "full":
         from .scripts import export_site_data
 
         print(f"  site data: {export_site_data.write(report, source=figure_dir)}")

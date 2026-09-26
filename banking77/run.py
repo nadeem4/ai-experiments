@@ -16,7 +16,8 @@ from pathlib import Path
 from banking77 import arms as arms_mod
 from banking77 import budget, data, hierarchy, options, store
 
-RUN_DIR = Path("banking77/runs")
+EXPERIMENT_DIR = Path(__file__).resolve().parent
+RUN_DIR = EXPERIMENT_DIR / "runs"
 CACHE_DIR = Path("banking77/.cache")
 OPTIONS_FILE = Path("banking77/option_texts/options.json")
 WEIGHTS = os.environ.get("LAYA_PATH", r"C:\projects\jev_demo\arena\models\laya")
@@ -235,10 +236,12 @@ def main(argv=None):
     p.add_argument("--limit", type=int, default=0, help="first N test examples per arm (0 = all)")
     p.add_argument("--tag", default="pilot", help="run directory under banking77/runs")
     p.add_argument("--seed", type=int, default=arms_mod.SEED)
+    p.add_argument("--out", default=str(EXPERIMENT_DIR),
+                   help="write runs/ under here (default: the experiment)")
     args = p.parse_args(argv)
 
     names = arms_mod.resolve(args.arms)
-    run_dir = RUN_DIR / args.tag
+    run_dir = Path(args.out) / "runs" / args.tag
     run_dir.mkdir(parents=True, exist_ok=True)
     path = run_dir / "decisions.jsonl"
 

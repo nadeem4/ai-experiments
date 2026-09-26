@@ -33,7 +33,10 @@ from rerank.metrics import per_query
 from rerank.rank import build_run, rank_by_score
 from rerank.store import load as load_records
 
-ROOT = Path(__file__).resolve().parents[1]
+# This experiment owns its results and its wire log; the site belongs to the
+# repository, not to any one experiment.
+EXPERIMENT = Path(__file__).resolve().parents[1]
+REPO = EXPERIMENT.parent
 FULL_RESULTS = "test-top20-q323-20260923-191610.json"
 PILOT_RESULTS = "test-top50-q30-20260923-140116.json"
 RUN_TAG = "test-top20-q323"
@@ -129,7 +132,7 @@ def export_query(qid, reason, candidates, by_pair, corpus, queries, qrels, d):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--out", default=str(ROOT / "site"), help="the site directory to write into")
+    p.add_argument("--out", default=str(REPO / "site"), help="the site directory to write into")
     p.add_argument("--cache-dir", default=None)
     args = p.parse_args()
 
@@ -138,16 +141,16 @@ def main():
     data.mkdir(parents=True, exist_ok=True)
     public.mkdir(parents=True, exist_ok=True)
 
-    shutil.copyfile(ROOT / "results" / FULL_RESULTS, data / "results.json")
-    shutil.copyfile(ROOT / "results" / PILOT_RESULTS, data / "pilot.json")
+    shutil.copyfile(EXPERIMENT / "results" / FULL_RESULTS, data / "results.json")
+    shutil.copyfile(EXPERIMENT / "results" / PILOT_RESULTS, data / "pilot.json")
     # The same file again where the browser can download it, so the file the page
     # offers is the file the page's own numbers come from.
-    shutil.copyfile(ROOT / "results" / FULL_RESULTS, site / "public" / "results.json")
+    shutil.copyfile(EXPERIMENT / "results" / FULL_RESULTS, site / "public" / "results.json")
     print(f"results {FULL_RESULTS} and pilot {PILOT_RESULTS} -> {data}")
 
     corpus, queries, qrels = load_nfcorpus(args.cache_dir)
-    candidates = json.loads((ROOT / "runs" / RUN_TAG / "candidates.json").read_text())
-    records = load_records(ROOT / "runs" / RUN_TAG / "scores.jsonl")
+    candidates = json.loads((EXPERIMENT / "runs" / RUN_TAG / "candidates.json").read_text())
+    records = load_records(EXPERIMENT / "runs" / RUN_TAG / "scores.jsonl")
     by_pair = {(r["method"], r["query_id"], r["doc_id"]): r for r in records}
     print(f"{len(records)} wire records over {len(candidates)} queries")
 

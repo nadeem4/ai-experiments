@@ -102,11 +102,9 @@ Both live in `rerank/rerankers/laya.py`. `laya-typed-score` and `laya-typed-noul
 
 | Path | What | Committed |
 |---|---|---|
-| `results/<tag>-<timestamp>.json` | the summary metrics for every method: nDCG@10, Recall@10, MRR@10, the paired differences and their intervals, latency, cost, call accounting | **yes** |
-| `runs/<tag>/scores.jsonl` | the raw wire log. One line per (query, passage) scored, holding the exact request sent and the exact response received | no, gitignored |
-| `runs/<tag>/candidates.json` | the pinned candidate set, so a resumed run re-ranks exactly the same passages | no, gitignored |
-
-Both live at the repository root today rather than under `rerank/`, because this experiment predates the one-directory-per-experiment layout the other two follow.
+| `rerank/results/<tag>-<timestamp>.json` | the summary metrics for every method: nDCG@10, Recall@10, MRR@10, the paired differences and their intervals, latency, cost, call accounting | **yes** |
+| `rerank/runs/<tag>/scores.jsonl` | the raw wire log. One line per (query, passage) scored, holding the exact request sent and the exact response received | no, gitignored |
+| `rerank/runs/<tag>/candidates.json` | the pinned candidate set, so a resumed run re-ranks exactly the same passages | no, gitignored |
 
 The wire log is why the run is resumable: re-run the same command after an interruption and only the unscored pairs are sent. A method whose pairs are all already in the store is summarised from those records without loading the model, so re-running when everything is done just re-reports.
 

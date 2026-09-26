@@ -1,4 +1,4 @@
-"""Write the lab site's banking77 data out of `results/full.json`.
+"""Write the lab site's banking77 data out of `results/full/summary.json`.
 
     python -m banking77.scripts.export_site_data
 
@@ -18,8 +18,8 @@ import struct
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-RESULTS = ROOT / "banking77" / "results" / "full.json"
-FIGURES = ROOT / "banking77" / "results" / "figures"
+RESULTS = ROOT / "banking77" / "results" / "full" / "summary.json"
+FIGURES = ROOT / "banking77" / "results" / "full" / "figures"
 SITE_DATA = ROOT / "site" / "data" / "banking77.json"
 PUBLIC = ROOT / "site" / "public"
 

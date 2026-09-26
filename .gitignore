@@ -4,10 +4,12 @@ __pycache__/
 *.pyc
 .pytest_cache/
 
-# The Jev key, and the weights and wire logs the runs produce
+# Keys, model weights, and the raw wire logs. Every experiment keeps its
+# evidence under <experiment>/runs/ and its committed results under
+# <experiment>/results/.
 .env
 /models/
-/runs/
+/rerank/runs/
 /banking77/runs/
 /banking77/.cache/
 /typed_decisions/runs/

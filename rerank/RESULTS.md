@@ -1,6 +1,6 @@
 # Results: can a decision model re-rank retrieval better than BM25?
 
-What the experiment is and how to run it: [README.md](README.md). Raw numbers: [`results/`](../results/), one JSON file per run.
+What the experiment is and how to run it: [README.md](README.md). Raw numbers: [`results/`](results/), one JSON file per run.
 
 ## The finding
 

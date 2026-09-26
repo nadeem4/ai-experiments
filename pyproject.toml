@@ -1,7 +1,7 @@
 [project]
-name = "rerank"
+name = "ai-experiments"
 version = "0.1.0"
-description = "RAG re-ranking on BEIR NFCorpus, driven by a decision model (Laya), zero-shot"
+description = "One question at a time, measured on a public benchmark, with the exact request and response kept for every call"
 authors = [
     { name = "Nadeem Khan", email = "nadeem4.nk13@gmail.com" }
 ]
@@ -17,12 +17,18 @@ dependencies = [
     "matplotlib>=3.9",
 ]
 
+[project.scripts]
+exp = "exp:main"
+
 [build-system]
 requires = ["uv_build>=0.12.17,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-root = ""
+# The CLI is what this project installs; the experiments are run from the
+# source tree, not distributed.
+module-name = "exp"
 
 [dependency-groups]
 dev = [
@@ -31,4 +37,4 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["tests", "banking77/tests", "typed_decisions/tests"]
+testpaths = ["tests", "rerank/tests", "banking77/tests", "typed_decisions/tests"]

@@ -50,7 +50,8 @@ from pathlib import Path
 from . import (catalog, laya_local, openrouter, prompts, spec as spec_module,
                stats, store, tasks)
 
-RUN_DIR = Path("typed_decisions/runs")
+EXPERIMENT_DIR = Path(__file__).resolve().parent
+RUN_DIR = EXPERIMENT_DIR / "runs"
 ROOT_ENV = Path(__file__).resolve().parents[1] / ".env"
 WARMUP_CALLS = 20
 SPEND_THRESHOLD_USD = 1.00  # above this, the run needs --yes-spend
@@ -416,6 +417,8 @@ def main(argv=None):
     p.add_argument("--limit", type=int, default=0, help="first N examples per task (0 = all)")
     p.add_argument("--tag", default="pilot", help="run directory under typed_decisions/runs")
     p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--out", default=str(EXPERIMENT_DIR),
+                   help="write runs/ under here (default: the experiment)")
     p.add_argument("--warmup", type=int, default=WARMUP_CALLS)
     p.add_argument("--arms", default="main,bias,validation",
                    help="which arms to run: main, bias, validation")
@@ -433,12 +436,34 @@ def main(argv=None):
                         "determinism")
     args = p.parse_args(argv)
 
+    run_dir = Path(args.out) / "runs" / args.tag
+    path = run_dir / "calls.jsonl"
+    selection = {a.strip() for a in args.arms.split(",") if a.strip()}
+
+    # What is still missing is worked out before anything reaches for a key,
+    # because working it out needs neither key nor network. The store is keyed on
+    # the model's NAME, and `arms_to_run` only iterates names and asks the static
+    # catalogue which of them return a probability. Resolving a name to an
+    # account-specific model id is the part that needs the key, and that is only
+    # worth doing if there is something left to call. So re-running a finished
+    # experiment to recompute its tables costs nothing and works offline.
+    names = catalog.select(args.models)
+    loaded = {name: tasks.load(name, limit=args.limit, seed=args.seed,
+                               bias_subset=args.bias_subset, validation_n=args.validation)
+              for name in args.tasks.split(",")}
+    done = store.done_keys(path)
+    outstanding = sum(
+        len(store.pending(arm_rows(task, arm), task["spec"]["hash"], name, task_name, arm, done))
+        for task_name, task in loaded.items()
+        for arm, who in arms_to_run(task, selection, names)
+        for name in who)
+    if not outstanding and not args.probe_only:
+        print(f"every call for tag {args.tag!r} is already in {path}: nothing to measure.")
+        return
+
     key = api_key()
     if not key:
         raise SystemExit("no OPENROUTER_API_KEY in the environment or the repo-root .env")
-    run_dir = RUN_DIR / args.tag
-    path = run_dir / "calls.jsonl"
-    selection = {a.strip() for a in args.arms.split(",") if a.strip()}
 
     # The account is capped monthly; a run that would run into the cap should not
     # start. Never printed as anything but a total.
@@ -457,9 +482,6 @@ def main(argv=None):
         if info.get("unavailable"):
             print(f"  {name}: UNAVAILABLE -- {info['unavailable']}")
 
-    loaded = {name: tasks.load(name, limit=args.limit, seed=args.seed,
-                               bias_subset=args.bias_subset, validation_n=args.validation)
-              for name in args.tasks.split(",")}
     print("\nthe frozen run spec for each task:")
     for name, task in loaded.items():
         frozen = task["spec"]
@@ -475,7 +497,6 @@ def main(argv=None):
     previous = json.loads(config_path.read_text(encoding="utf-8")) if config_path.exists() else {}
     measured = previous.get("option_overhead") or {}
     probes, jobs = {}, {}
-    done = store.done_keys(path)
     for task_name, task in loaded.items():
         planned = arms_to_run(task, selection, models)
         for name, model in models.items():

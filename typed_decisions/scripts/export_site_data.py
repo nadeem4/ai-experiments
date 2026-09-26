@@ -1,4 +1,4 @@
-"""Write the lab site's typed_decisions data out of `results/full.json`.
+"""Write the lab site's typed_decisions data out of `results/full/summary.json`.
 
     python -m typed_decisions.scripts.export_site_data
 
@@ -19,8 +19,8 @@ import struct
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-RESULTS = ROOT / "typed_decisions" / "results" / "full.json"
-FIGURES = ROOT / "typed_decisions" / "results" / "figures"
+RESULTS = ROOT / "typed_decisions" / "results" / "full" / "summary.json"
+FIGURES = ROOT / "typed_decisions" / "results" / "full" / "figures"
 SITE_DATA = ROOT / "site" / "data" / "typed-decisions.json"
 PUBLIC = ROOT / "site" / "public"
 

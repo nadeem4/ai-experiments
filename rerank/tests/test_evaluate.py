@@ -108,3 +108,21 @@ def test_a_failed_call_is_not_tied_with_anything():
     """`None` is an absent opinion, not a score every failure shares."""
     records = [_scored("q1", "d1", None), _scored("q1", "d2", None), _scored("q1", "d3", 0.9)]
     assert ties(records) == {"tied": 0, "largest_group": 0}
+
+
+class TestOutputLandsInsideTheExperiment:
+    """Every experiment keeps its own evidence and results. rerank's used to sit
+    at the repository root because it was the only experiment here; a default
+    that writes outside `rerank/` would put them back."""
+
+    def test_the_default_output_directory_is_the_experiment_not_the_repo_root(self):
+        from rerank import evaluate
+        assert evaluate.EXPERIMENT_DIR.name == "rerank"
+        assert (evaluate.EXPERIMENT_DIR / "evaluate.py").exists()
+
+    def test_the_export_script_reads_this_experiment_and_writes_the_repo_site(self):
+        from rerank.scripts import export_examples
+        assert export_examples.EXPERIMENT.name == "rerank"
+        assert (export_examples.EXPERIMENT / "results").is_dir()
+        assert (export_examples.REPO / "site").is_dir(), "the site is the repo's, not the experiment's"
+        assert export_examples.REPO.name == "ai-experiments"
