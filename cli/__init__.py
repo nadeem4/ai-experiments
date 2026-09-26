@@ -1,7 +1,9 @@
 """One command to run any experiment in this repository.
 
     uv run cli list
-    uv run cli run rerank --tag full --top-k 20
+    uv run cli run    rerank --tag full --top-k 20     # here
+    uv run cli submit rerank                           # on a Kaggle GPU
+    uv run cli fetch  rerank                           # bring the results back
 
 Two verbs, because an experiment only has two things you want from it: the list
 of what is here, and "produce this experiment's results".
@@ -58,9 +60,19 @@ def main(argv=None):
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("list", help="every experiment, its status, and which tags have results")
 
-    run = sub.add_parser("run", help="produce an experiment's results")
+    run = sub.add_parser("run", help="produce an experiment's results, here")
     run.add_argument("name", choices=EXPERIMENTS)
     add_standard_arguments(run)
+
+    submit = sub.add_parser("submit", help="run it on a Kaggle GPU instead")
+    submit.add_argument("name", choices=EXPERIMENTS)
+    submit.add_argument("--dry-run", action="store_true",
+                        help="check the prerequisites and stop")
+    state = sub.add_parser("status", help="what the Kaggle run is doing")
+    state.add_argument("name", choices=EXPERIMENTS)
+    fetch = sub.add_parser("fetch", help="download a finished Kaggle run")
+    fetch.add_argument("name", choices=EXPERIMENTS)
+    fetch.add_argument("-p", "--path", default=None)
 
     # The experiment's own flags are added once its name is known, so --help
     # after a name shows that experiment's real surface rather than a union of
@@ -75,6 +87,14 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.command == "list":
         return list_experiments()
+    if args.command in ("submit", "status", "fetch"):
+        from . import kaggle
+
+        if args.command == "submit":
+            return kaggle.submit(args.name, args.dry_run)
+        if args.command == "status":
+            return kaggle.status(args.name)
+        return kaggle.fetch(args.name, args.path)
     return run_experiment(args)
 
 

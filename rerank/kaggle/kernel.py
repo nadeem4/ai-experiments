@@ -48,7 +48,10 @@ def main():
     else:
         print("no GPU: turn the accelerator on for this notebook.", flush=True)
 
-    run("git", "clone", "--depth", "1", REPO, CHECKOUT)
+    # Only the CLI and this experiment: the repository also holds two unrelated
+    # experiments and a website, and none of them are what this kernel runs.
+    run("git", "clone", "--depth", "1", "--filter=blob:none", "--sparse", REPO, CHECKOUT)
+    run("git", "-C", CHECKOUT, "sparse-checkout", "set", "cli", "rerank")
     run(sys.executable, "-m", "pip", "install", "-q",
         "laya>=0.3.20", "rank-bm25>=0.2.2", "pytrec-eval-terrier>=0.5.7",
         "sentence-transformers>=5.0", "huggingface-hub>=1.0")
