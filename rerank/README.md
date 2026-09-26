@@ -48,14 +48,32 @@ flowchart TB
 
 ### One query, end to end
 
-Take `PLAIN-102`, *"Stopping Heart Disease in Childhood"*.
+The 323 queries are health questions; the 3,633 documents are PubMed abstracts. Humans have already marked which documents answer which question.
 
-1. BM25 scores all 3,633 documents on keyword overlap and returns its best 20. That list is **fixed from here on** and shared by every method.
-2. Each of those 20 passages is put to the model on its own -- the query and that one passage -- and the model answers with a single number. No passage sees another; nothing is ranked jointly.
-3. The 20 are sorted by that number.
-4. The new order is scored against NFCorpus's human relevance judgements. BM25's untouched order is scored the same way.
+Take `PLAIN-102`, **"Stopping Heart Disease in Childhood"**. BM25 scores all 3,633 documents on keyword overlap and returns its best 20:
 
-323 queries x 20 candidates = **6,460 questions per method**, and the exact request and response of every one is kept.
+```
+rank  doc        relevant?  title
+   1  MED-3954   no         Does childhood meat eating contribute to sex differences...
+   2  MED-4247   no         Can lifestyle changes reverse coronary heart disease?...
+   3  MED-4616   no         Can lifestyle changes reverse coronary heart disease?...
+   4  MED-1999   no         Strategies for preventing type 2 diabetes...
+   5  MED-3253   YES        Pathobiological determinants of atherosclerosis in youth...
+   6  MED-4160   no         Risks and benefits of estrogen plus progestin...
+ ...                        (20 in total)
+```
+
+One of the 20 is relevant, and BM25 put it fifth. **The experiment is whether a model can move it to first.** Better order, better score; worse order, worse score.
+
+The model cannot see the list. It scores one pair at a time, so it is asked 20 separate questions:
+
+> Question: *Stopping Heart Disease in Childhood*. Passage: *Pathobiological determinants of atherosclerosis in youth...* -- how relevant, 0 to 4?
+
+Twenty questions, twenty numbers, sort by the numbers. That is the only way to get an order out of a model that scores pairs rather than lists.
+
+Then the new order is graded against the human judgements, and BM25's untouched order is graded the same way.
+
+**323 queries x 20 candidates = 6,460 questions per method**, and the exact request and response of every one is kept.
 
 ### Why it is built this way
 
