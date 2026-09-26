@@ -1,13 +1,5 @@
 # Can a decision model re-rank retrieval better than BM25?
 
-**Being measured again.** The completed run was measured on this machine's CPU
-over the Vercel AI Gateway, whose key no longer exists, so it cannot be
-reproduced. Its results files have been removed and it is being re-measured on a
-Kaggle GPU. [RESULTS.md](RESULTS.md) still describes the old run and says so at
-the top.
-
-This file says what the experiment is and how to run it. Nothing here is a result.
-
 ## The question
 
 Does putting a decision model in front of a retrieval ranking make the ranking better, and what does it cost?
@@ -23,14 +15,6 @@ Re-ranking is a real stage in a real pipeline, and today it is served either by 
 **Nothing is trained here.** This is deliberately zero-shot: the numbers are the baseline that makes a later fine-tune interpretable. Laya's own model card is blunt that its base checkpoints are near chance on typed decisions zero-shot, so a low number for Laya is expected information, not a bug.
 
 What changes depending on the answer: if a decision model beats BM25, re-ranking is a place to put one, and the cost per thousand calls decides whether it beats the cross-encoder in production. If it does not, the open-weights case needs a fine-tune before it is worth anything here at all.
-
-## What we expect
-
-**Nothing was written down before this run, so this experiment has no prediction to test.**
-
-That is the honest state of it. The expectation at the time was that Laya would re-rank better than Jev, because Convai's published benchmarks put it ahead on text relevance and this is a text relevance task — but that was never recorded anywhere before the answer was known, and an expectation recalled afterwards is not evidence of anything. [RESULTS.md](RESULTS.md) reports no verdict for that reason rather than manufacturing one.
-
-The experiments written after this one commit their predictions before the run they are judged against, and say in their own results files what `git log` shows about that. This section is what that habit exists to prevent.
 
 ## Data
 
@@ -77,9 +61,11 @@ flowchart LR
 
 **Seeds:** none. BM25, the cross-encoder and both Laya checkpoints are deterministic here. Jev is a hosted service and is not under this repository's control.
 
+**Candidates:** top 20 per query. The pilot used 50; a shallower pool is a cleaner one and it moves BM25's own floor with it, so the two are not directly comparable.
+
 ### The two question formulations
 
-Nobody has published which typed question ranks better, so both were run on identical data in the pilot.
+Nobody has published which typed question ranks better, so both were run on identical data in the pilot. It found neither better than the other for either model, so the full run carries **`score` only**.
 
 | Name | Type | What it takes | What it returns |
 |---|---|---|---|
@@ -88,7 +74,9 @@ Nobody has published which typed question ranks better, so both were run on iden
 
 Both live in `rerank/rerankers/laya.py`. `laya-typed-score` and `laya-typed-noul` ask the identical questions of the `typed-decisions` fine-tune instead of the base checkpoint; the checkpoint is the only thing that differs. All four read one weights folder, `models/laya`, downloaded on first use or wherever `LAYA_PATH` points.
 
-`rerank/rerankers/jev.py` asks Jev the same two questions. Only the dialect is translated: Jev calls the criteria-free question `boolean` and answers it with `probability` rather than `noul`, so `jev-noul` sends `"type": "boolean"`. The instructions and the state are word for word what Laya is handed.
+`rerank/rerankers/jev.py` asks Jev the same two questions over OpenRouter's `systemone` route, with the build pinned to a date. Only the dialect is translated: Jev calls the criteria-free question `boolean` and answers it with `probability` rather than `noul`, so `jev-noul` sends `"type": "boolean"`. The instructions and the state are word for word what Laya is handed.
+
+Jev is the only method that leaves the machine, and the only one needing a key: `OPENROUTER_API_KEY`, read from the environment or this repository's root `.env`. Laya's 2.3 GB of weights download on first use unless `LAYA_PATH` already points at them.
 
 ### The code
 
@@ -165,60 +153,3 @@ A re-ranker that emitted only a score would not be enough: without the exchange 
 - **Passages are cut to 1,000 characters.** NFCorpus abstracts are longer than the English checkpoint's roughly 320-token state budget, so they are cut where it is visible in the recorded request. Nothing here measures what the tail would have added.
 - **A failed call keeps BM25's position.** Nothing is invented for a call that never succeeded, which means those passages are BM25's judgement counted inside the re-ranker's score.
 - **The Laya passes and the Jev pass overlap in time.** Jev is network-bound and Laya is CPU-bound so they do not contend, but the Laya latencies are slightly pessimistic. They remain comparable to each other, which is what the base-versus-fine-tune question needs.
-
-## How to run it
-
-Needs [uv](https://docs.astral.sh/uv/) and Python 3.12.
-
-### Laya's weights
-
-Laya needs no key. About 2.3 GB download on first use into `models/`, which is not committed. If you already have them, point at that folder and nothing is downloaded:
-
-```
-export LAYA_PATH=/path/to/laya        # or pass --laya-path
-```
-
-If the weights are missing **and** the download fails, the run stops and says both of those things rather than half-loading a model.
-
-### Jev's key
-
-Jev is hosted and needs a key. Copy `.env.example` to `.env` at this repository's root:
-
-```
-OPENROUTER_API_KEY=your_key       # https://openrouter.ai/keys
-```
-
-Jev answers at `POST /api/v1/systemone`, not `chat/completions` — it is a decision model, so the typed question itself goes on the wire. The build is pinned to `typesafe/jev-1.13-20260917`, because `typesafe/jev-1.13` is a floating minor and `~typesafe/jev-latest` is an alias, and a benchmark that cannot say which build produced a number is not a benchmark.
-
-`TYPESAFE_API_KEY` reaches the same model through TypeSafe's own API and wins when both are set. Either variable also works straight from the environment. Nothing but `jev-*` needs a key: BM25, the cross-encoder and both Laya checkpoints run entirely locally.
-
-### The commands
-
-A small pass first, to check the instrument:
-
-```
-uv sync
-uv run python -m rerank.evaluate --limit 30 --top-k 50
-```
-
-The full run:
-
-```
-uv run python -m rerank.evaluate --limit 0 --top-k 20 \
-    --methods bm25 laya-score laya-typed-score jev-score cross-encoder
-```
-
-`--limit 0` runs all 323 test queries. `--top-k` sets candidates per query. `--methods` picks from `bm25`, `laya-score`, `laya-noul`, `laya-typed-score`, `laya-typed-noul`, `jev-score`, `jev-noul`, `cross-encoder`.
-
-The full run is 6,460 scoring calls per re-ranker, 25,840 in all, and took about 3 h 40 m of wall clock. Money is not the constraint — the whole Jev pass cost about fifteen cents — but the local passes are CPU-bound and the network pass retries, so budget an evening. What it actually cost and how long it actually took are in [RESULTS.md](RESULTS.md).
-
-The tests:
-
-```
-uv run pytest
-```
-
-## Amendments
-
-- **2026-09-23**, between the pilot and the full run: the full run carries the `score` formulation only and drops the `noul` and `boolean` variants. The pilot found neither formulation better than the other for either model, and repeating them at 323 queries would have doubled the cost of a question already answered. The full run also moves from top-50 candidates to top-20.
-- **2026-09-25**, after the run: Jev is now reached over OpenRouter at `POST /api/v1/systemone`, with the build pinned to a date. The recorded run used the Vercel AI Gateway, whose key no longer exists; [RESULTS.md](RESULTS.md) records that as the transport for those numbers. Nothing was re-measured, so a re-run over OpenRouter is not guaranteed to reproduce the recorded latencies or costs.
