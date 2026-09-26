@@ -73,7 +73,6 @@ The previous version of this experiment did `from banking77 import data, options
 ## Method
 
 ```mermaid
-%%{init: {'theme': 'neutral'}}%%
 flowchart TB
     D[dataset: parquet from the hub] --> S[seeded shuffle, then limit]
     S --> SPEC[run spec: example ids, instruction,<br/>option texts, every arm's ordering]

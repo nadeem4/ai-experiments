@@ -33,21 +33,37 @@ NFCorpus qrels grade 0, 1 or 2; anything above 0 counts as relevant. Passages ar
 
 ## Method
 
-BM25 retrieves a fixed set of candidate passages per query. Each candidate is handed to a model as **one typed question** — query and passage in, one number out — and the candidates are re-sorted by that number.
+Retrieval in two stages. **BM25 retrieves; a re-ranker re-orders what BM25 retrieved.** The second stage cannot add a document or remove one -- it only changes the order of the candidates it is given, which is the constraint the whole experiment sits inside.
 
 ```mermaid
-%%{init: {'theme':'base','themeVariables':{'primaryColor':'#ffffff','primaryTextColor':'#000000','primaryBorderColor':'#000000','lineColor':'#000000','secondaryColor':'#ffffff','tertiaryColor':'#ffffff','background':'#ffffff','mainBkg':'#ffffff','textColor':'#000000'}}}%%
-flowchart LR
-    Q[query] --> B[BM25 over 3,633 documents]
-    B --> C[top-k candidates]
-    C --> R[reranker.score: query + passage]
-    R --> S[one number per passage]
-    S --> O[re-sorted ranking]
-    O --> M[pytrec_eval: nDCG@10, Recall@10, MRR@10]
-    R --> W[scores.jsonl: the exact request and response]
+flowchart TB
+    Q["323 queries"] --> B["BM25 over 3,633 documents<br/>keyword matching, no model"]
+    B --> C["the top 20 per query<br/>the same 20 for every method"]
+    C --> S["one question per candidate:<br/>does this passage answer this query?"]
+    S --> N["one number back<br/>6,460 per method"]
+    N --> O["re-sort the 20 by that number"]
+    O --> E["score against the official judgements<br/>nDCG@10, Recall@10, MRR@10"]
+    C -.->|"its own order, unchanged"| E
 ```
 
-**What varies: the scorer, and nothing else.**
+### One query, end to end
+
+Take `PLAIN-102`, *"Stopping Heart Disease in Childhood"*.
+
+1. BM25 scores all 3,633 documents on keyword overlap and returns its best 20. That list is **fixed from here on** and shared by every method.
+2. Each of those 20 passages is put to the model on its own -- the query and that one passage -- and the model answers with a single number. No passage sees another; nothing is ranked jointly.
+3. The 20 are sorted by that number.
+4. The new order is scored against NFCorpus's human relevance judgements. BM25's untouched order is scored the same way.
+
+323 queries x 20 candidates = **6,460 questions per method**, and the exact request and response of every one is kept.
+
+### Why it is built this way
+
+**Every method re-ranks the identical candidate list**, so the comparison is paired per query: subtract BM25's nDCG@10 on a query from a method's on the same query and you have that method's effect on that query. A mean of those differences is a far sharper instrument than two overlapping averages, because the query-to-query variation -- some queries are simply easier -- cancels.
+
+**BM25 is the floor, not a rival.** Its own order is what you get for doing nothing, so the question each method answers is "is this better than not bothering", which is the question that decides whether to run a re-ranker in production at all.
+
+**What varies is the scorer and nothing else.**
 
 | Method | What it is |
 |---|---|
@@ -57,7 +73,9 @@ flowchart LR
 | `laya-score` | Laya's base English checkpoint, the `score` question |
 | `laya-typed-score` | the `typed-decisions` fine-tune, the identical question |
 
-**What is held fixed.** Every method re-ranks the **same** candidate list for the same queries, so the comparison is paired per query and BM25 is the floor rather than a rival. The same instructions and the same state go to Jev and to Laya, word for word. The same 1,000-character cut applies to Laya and to the cross-encoder. Ties keep the candidate order, so "no opinion" means "no change" rather than "shuffle". No prompt is tuned against the test split.
+**What is held fixed.** The same instructions and the same state go to Jev and to Laya, word for word. The same 1,000-character passage cut applies to Laya and to the cross-encoder. Ties keep the candidate order, so "no opinion" means "no change" rather than "shuffle". No prompt is tuned against the test split.
+
+**What re-ranking cannot fix.** On **91 of the 323 queries**, none of BM25's 20 candidates is judged relevant at all. Every method scores zero on those whatever order it picks, so they contribute nothing but denominator to every mean. The per-query table carries a `can_move` column for exactly this, and re-ranking was possible on 232 queries.
 
 **Seeds:** none. BM25, the cross-encoder and both Laya checkpoints are deterministic here. Jev is a hosted service and is not under this repository's control.
 

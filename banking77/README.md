@@ -43,7 +43,6 @@ Where the expectations are recorded in this repository, all of them in the harne
 ## Method
 
 ```mermaid
-%%{init: {'theme': 'neutral'}}%%
 flowchart LR
     D[BANKING77 test, 3,080 rows] --> S[one fixed shuffle, seed 20260924]
     O[77 intent labels, underscores to spaces] --> F[option_texts/options.json, frozen]
