@@ -1,4 +1,4 @@
-"""The CLI: what `exp` promises every experiment, and what it asks of them.
+"""The CLI: what `cli` promises every experiment, and what it asks of them.
 
 Two verbs and one contract. The tests that matter are about the contract holding
 for all three experiments at once, because the point of the CLI is that a fourth
@@ -6,48 +6,48 @@ experiment costs no code here.
 """
 import pytest
 
-import exp
+import cli
 
 
 class TestTheRegistry:
     def test_it_names_every_experiment_in_the_repository(self):
-        assert set(exp.EXPERIMENTS) == {"rerank", "banking77", "typed_decisions"}
+        assert set(cli.EXPERIMENTS) == {"rerank", "banking77", "typed_decisions"}
 
     def test_an_unknown_name_says_what_does_exist(self):
         """Better than a traceback: the answer to 'what can I run' is the error."""
         with pytest.raises(SystemExit) as e:
-            exp.load("banking-77")
+            cli.load("banking-77")
         assert "banking77" in str(e.value) and "rerank" in str(e.value)
 
 
-@pytest.mark.parametrize("name", exp.EXPERIMENTS)
+@pytest.mark.parametrize("name", cli.EXPERIMENTS)
 class TestEveryExperimentHonoursTheContract:
-    """`exp` dispatches on these five names and nothing else. An experiment that
+    """`cli` dispatches on these five names and nothing else. An experiment that
     does not carry them is not runnable, and that should fail here rather than
     half way through a four-hour run."""
 
     def test_it_declares_itself(self, name):
-        experiment = exp.load(name)
+        experiment = cli.load(name)
         assert experiment.NAME == name
         assert experiment.TITLE and experiment.TITLE[0].isupper()
         assert experiment.STATUS in {"designed", "piloted", "complete"}
         assert isinstance(experiment.COSTS_MONEY, bool)
 
     def test_it_exposes_run_report_and_its_own_flags(self, name):
-        experiment = exp.load(name)
+        experiment = cli.load(name)
         for attribute in ("add_run_arguments", "run", "report", "tags"):
             assert callable(getattr(experiment, attribute)), f"{name} is missing {attribute}"
 
     def test_its_flags_do_not_collide_with_the_standard_ones(self, name):
-        """The experiment's parser is merged into `exp`'s, so a duplicate
+        """The experiment's parser is merged into `cli`'s, so a duplicate
         `--tag` would be an argparse error at import rather than a puzzle."""
         import argparse
         parser = argparse.ArgumentParser()
-        exp.add_standard_arguments(parser)
-        exp.load(name).add_run_arguments(parser)   # raises on a collision
+        cli.add_standard_arguments(parser)
+        cli.load(name).add_run_arguments(parser)   # raises on a collision
 
     def test_it_keeps_its_output_inside_itself(self, name):
-        experiment = exp.load(name)
+        experiment = cli.load(name)
         assert experiment.EXPERIMENT_DIR.name == name
         assert (experiment.EXPERIMENT_DIR / "README.md").exists()
 
@@ -57,19 +57,19 @@ class TestRunDispatch:
         """The whole reason there is no second verb: one command does both, and
         the report always follows the scoring."""
         called = []
-        experiment = exp.load("rerank")
+        experiment = cli.load("rerank")
         monkeypatch.setattr(experiment, "run", lambda args: called.append("run"))
         monkeypatch.setattr(experiment, "report", lambda args: called.append("report"))
-        monkeypatch.setattr(exp, "load", lambda name: experiment)
+        monkeypatch.setattr(cli, "load", lambda name: experiment)
 
-        exp.main(["run", "rerank", "--tag", "test"])
+        cli.main(["run", "rerank", "--tag", "test"])
         assert called == ["run", "report"]
 
     def test_help_for_one_experiment_shows_that_experiments_flags(self, capsys):
         """`--help` after a name must show the real surface, not a union of all
         three, which is the point of merging the parsers late."""
         with pytest.raises(SystemExit):
-            exp.main(["run", "rerank", "--help"])
+            cli.main(["run", "rerank", "--help"])
         out = capsys.readouterr().out
         assert "--top-k" in out and "--tag" in out
         assert "--arms" not in out, "that is banking77's flag, not rerank's"
@@ -109,11 +109,31 @@ class TestAFullyScoredRunNeedsNothing:
 
 
 def test_the_cli_runs_as_a_module_without_being_installed():
-    """`python -m exp` has to work where the console script is not on PATH,
+    """`python -m cli` has to work where the console script is not on PATH,
     which is every fresh container and every Kaggle kernel."""
     import subprocess
     import sys
-    out = subprocess.run([sys.executable, "-m", "exp", "list"],
+    out = subprocess.run([sys.executable, "-m", "cli", "list"],
                          capture_output=True, text=True, cwd=".")
     assert out.returncode == 0, out.stderr
     assert "rerank" in out.stdout and "banking77" in out.stdout
+
+
+class TestAnExperimentThatIsNotCheckedOut:
+    """A Kaggle kernel clones only the experiment it runs, so the other two are
+    genuinely absent. Listing has to survive that; running the one that is there
+    must still work."""
+
+    def test_list_skips_what_is_not_present_instead_of_crashing(self, monkeypatch, capsys):
+        real = cli.load
+
+        def only_rerank(name):
+            if name != "rerank":
+                raise ModuleNotFoundError(f"No module named {name!r}")
+            return real(name)
+
+        monkeypatch.setattr(cli, "load", only_rerank)
+        assert cli.main(["list"]) == 0
+        out = capsys.readouterr().out
+        assert "rerank" in out
+        assert "not checked out" in out, "an absent experiment is stated, not hidden"

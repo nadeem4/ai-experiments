@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.scripts]
-exp = "exp:main"
+cli = "cli:main"
 
 [build-system]
 requires = ["uv_build>=0.12.17,<0.13.0"]
@@ -26,9 +26,7 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-root = ""
-# The CLI is what this project installs; the experiments are run from the
-# source tree, not distributed.
-module-name = "exp"
+module-name = "cli"
 
 [dependency-groups]
 dev = [

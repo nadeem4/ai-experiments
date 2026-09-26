@@ -3,7 +3,7 @@
     kaggle kernels push -p rerank/kaggle
 
 Clones this repository at main, installs what the Kaggle image lacks, and runs
-`exp run rerank` with its output pointed at the notebook's working directory.
+`cli run rerank` with its output pointed at the notebook's working directory.
 """
 import os
 import subprocess
@@ -61,7 +61,7 @@ def main():
         print("running without jev-score. Attach the secret and push again.", flush=True)
 
     OUT.mkdir(parents=True, exist_ok=True)
-    run(sys.executable, "-m", "exp", "run", "rerank",
+    run(sys.executable, "-m", "cli", "run", "rerank",
         "--tag", "gpu", "--out", OUT, "--limit", "0", "--top-k", "20",
         "--methods", *methods, cwd=CHECKOUT)
 

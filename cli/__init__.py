@@ -1,7 +1,7 @@
 """One command to run any experiment in this repository.
 
-    uv run exp list
-    uv run exp run rerank --tag full --top-k 20
+    uv run cli list
+    uv run cli run rerank --tag full --top-k 20
 
 Two verbs, because an experiment only has two things you want from it: the list
 of what is here, and "produce this experiment's results".
@@ -15,9 +15,9 @@ from an untouched wire log is the common case -- far more common than measuring
 again -- and it needs no second verb, only a run that does not redo finished
 work.
 
-Each experiment owns its own flags. `exp` contributes the four that it needs to
+Each experiment owns its own flags. `cli` contributes the four that it needs to
 do its job (`--tag`, `--out`, `--limit`, `--dry-run`) and the experiment adds the
-rest through `add_run_arguments`, so `uv run exp run <name> --help` always shows
+rest through `add_run_arguments`, so `uv run cli run <name> --help` always shows
 the real surface and there is no passthrough syntax to remember.
 """
 import argparse
@@ -54,7 +54,7 @@ def add_standard_arguments(parser):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(prog="exp", description=__doc__.split("\n\n")[0])
+    parser = argparse.ArgumentParser(prog="cli", description=__doc__.split("\n\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("list", help="every experiment, its status, and which tags have results")
 
@@ -80,7 +80,13 @@ def main(argv=None):
 
 def list_experiments():
     for name in EXPERIMENTS:
-        experiment = load(name)
+        try:
+            experiment = load(name)
+        except ModuleNotFoundError:
+            # A checkout can hold one experiment and not the others, which is
+            # what a Kaggle kernel does. Say so rather than fail the listing.
+            print(f"{name:<18} {'not checked out':<10}")
+            continue
         tags = ", ".join(experiment.tags()) or "(none yet)"
         print(f"{name:<18} {experiment.STATUS:<10} {experiment.TITLE}")
         print(f"{'':<18} {'':<10} results: {tags}")
