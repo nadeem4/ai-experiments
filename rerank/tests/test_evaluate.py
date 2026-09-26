@@ -124,7 +124,7 @@ class TestOutputLandsInsideTheExperiment:
     def test_the_export_script_reads_this_experiment_and_writes_the_repo_site(self):
         from rerank.scripts import export_examples
         assert export_examples.EXPERIMENT.name == "rerank"
-        assert (export_examples.EXPERIMENT / "results").is_dir()
+        assert (export_examples.EXPERIMENT / "evaluate.py").exists()
         assert (export_examples.REPO / "site").is_dir(), "the site is the repo's, not the experiment's"
         assert export_examples.REPO.name == "ai-experiments"
 
