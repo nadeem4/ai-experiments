@@ -28,10 +28,10 @@ def load_key():
 
         os.environ["OPENROUTER_API_KEY"] = UserSecretsClient().get_secret("OPENROUTER_API_KEY")
         print("OPENROUTER_API_KEY: loaded", flush=True)
+        return True
     except Exception as e:
-        # The four local methods still run; only jev-score fails.
-        print(f"OPENROUTER_API_KEY: not available ({type(e).__name__}). "
-              f"jev-score will fail every call.", flush=True)
+        print(f"OPENROUTER_API_KEY: not available ({type(e).__name__})", flush=True)
+        return False
 
 
 def main():
@@ -49,11 +49,17 @@ def main():
         "laya>=0.3.20", "rank-bm25>=0.2.2", "pytrec-eval-terrier>=0.5.7",
         "sentence-transformers>=5.0", "huggingface-hub>=1.0")
 
-    load_key()
+    # Without the key, jev-score is dropped rather than run: a failed call is
+    # recorded like any other, so 6,460 of them would be skipped as already done
+    # by the run that has the key.
+    methods = METHODS if load_key() else [m for m in METHODS if not m.startswith("jev")]
+    if len(methods) < len(METHODS):
+        print("running without jev-score. Attach the secret and push again.", flush=True)
+
     OUT.mkdir(parents=True, exist_ok=True)
     run(sys.executable, "-m", "exp", "run", "rerank",
         "--tag", "gpu", "--out", OUT, "--limit", "0", "--top-k", "20",
-        "--methods", *METHODS, cwd=CHECKOUT)
+        "--methods", *methods, cwd=CHECKOUT)
 
     print("\nwhat came out:", flush=True)
     for path in sorted(OUT.rglob("*")):

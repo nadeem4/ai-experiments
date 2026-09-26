@@ -2,20 +2,20 @@
 
 ## Once
 
-1. **Kaggle API token.** kaggle.com -> Settings -> API -> *Create New API Token*.
-   Put `kaggle.json` at `~/.kaggle/kaggle.json`
-   (`C:\Users\<you>\.kaggle\kaggle.json` on Windows), then `pip install kaggle`.
+1. **Authenticate the CLI.** `uv run kaggle config view` should print your
+   username. If it does not, `uv run kaggle auth login` opens a browser and
+   writes `~/.kaggle/access_token`. Do not also create a `kaggle.json`: it is a
+   second auth path and it shadows the token.
 2. **The OpenRouter key as a Kaggle secret.** On the notebook page: *Add-ons* ->
    *Secrets*, add `OPENROUTER_API_KEY` and attach it. It is read at run time and
    never written to a file, printed, or included in the output.
-3. Put your Kaggle username in the `id` field of `kernel-metadata.json`.
 
 ## Every time
 
 ```
-kaggle kernels push   -p rerank/kaggle
-kaggle kernels status <username>/rerank-nfcorpus-gpu
-kaggle kernels output <username>/rerank-nfcorpus-gpu -p out/
+uv run kaggle kernels push   -p rerank/kaggle
+uv run kaggle kernels status nadeem4nk/rerank-nfcorpus-gpu
+uv run kaggle kernels output nadeem4nk/rerank-nfcorpus-gpu -p out/
 ```
 
 The kernel clones this repository at `main`, so push your commits first --
@@ -37,3 +37,8 @@ cannot be recomputed without paying for the run again.
 them. `usable_device()` records `cuda` on every row, and the two tags are never
 merged. Leave laya's `fast=True` TileLang path off: it is another GPU-only
 variable.
+
+## Shares the account's GPU quota
+
+The weekly GPU allowance is per account, not per project, so this draws from the
+same budget as anything else running under `nadeem4nk`.
