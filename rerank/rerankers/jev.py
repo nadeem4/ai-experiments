@@ -7,8 +7,9 @@ it keeps the two properties that matter for a benchmark:
   * the reported latency covers only the attempt that succeeded, so waiting out
     a queue is never charged to the model's speed.
 
-Two routes to the same model: TypeSafe directly when TYPESAFE_API_KEY is set
-(pinned version), otherwise the Vercel AI Gateway.
+Two routes to the same model: OpenRouter by default, or TypeSafe directly when
+TYPESAFE_API_KEY is set. Both pin a build, because a benchmark that cannot say
+which build produced a number is not a benchmark.
 
 A call that never succeeds is recorded as failed with `score: None`. Nothing is
 invented for it: `rank_by_score` leaves that passage exactly where BM25 put it.
@@ -22,15 +23,18 @@ from pathlib import Path
 
 from .laya import NOUL_QUESTION, SCORE_QUESTION, build_state
 
-GATEWAY_URL = "https://ai-gateway.vercel.sh/v4/ai/evaluation-model"
+# Decision models answer at `systemone`, not `chat/completions`: the typed
+# question itself goes on the wire, so there is no prompt and nothing to parse.
+OPENROUTER_URL = "https://openrouter.ai/api/v1/systemone"
+OPENROUTER_MODEL = "typesafe/jev-1.13-20260917"  # dated: the minor floats
 TYPESAFE_URL = "https://api.typesafe.ai/v1/systemone"
 TYPESAFE_MODEL = "jev-1.13.0"  # pinned so benchmark runs are reproducible
 ROOT_ENV = Path(__file__).resolve().parents[2] / ".env"  # this repo's root
 
-# Jev's v4 schema accepts `choice`, `score` and `boolean`. `boolean` is the same
-# question Laya calls `noul` -- no criteria, one probability back -- under a
-# different name, and it answers with `probability` instead of `noul`; a body
-# with `"type": "noul"` comes back 400. Only the dialect is translated: the
+# Jev accepts `choice`, `score` and `boolean`. `boolean` is the same question
+# Laya calls `noul` -- no criteria, one probability back -- under a different
+# name, and it answers with `probability` instead of `noul`; a body with
+# `"type": "noul"` comes back 400. Only the dialect is translated: the
 # instructions and the state are word for word what Laya is handed, so the two
 # models are asked the identical thing.
 BOOLEAN_QUESTION = {"relevance": {**NOUL_QUESTION["relevance"], "type": "boolean"}}
@@ -47,27 +51,20 @@ def _http_post(url, headers, body):
 class JevReranker:
     RETRYABLE = {429, 529}  # rate limited / overloaded
 
-    def __init__(self, name, questions, field, api_key, provider="gateway", post=_http_post,
+    def __init__(self, name, questions, field, api_key, provider="openrouter", post=_http_post,
                  max_retries=5, backoff_s=1.0):
         if not api_key:
-            raise ValueError("no Jev API key: set TYPESAFE_API_KEY or AI_GATEWAY_API_KEY")
+            raise ValueError(
+                "no Jev API key: set OPENROUTER_API_KEY (or TYPESAFE_API_KEY) in the "
+                "environment or in this repo's root .env")
         self.name, self.questions, self.field = name, questions, field
         self.provider, self.post, self.max_retries, self.backoff_s = provider, post, max_retries, backoff_s
         self.headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
-        if provider == "gateway":
-            self.url = GATEWAY_URL
-            self.headers.update({
-                "ai-model-id": "typesafe-ai/jev",
-                "ai-evaluation-model-specification-version": "4",
-                "ai-gateway-protocol-version": "0.0.1",
-                "ai-gateway-auth-method": "api-key",
-            })
-        else:
-            self.url = TYPESAFE_URL
+        self.url = TYPESAFE_URL if provider == "typesafe" else OPENROUTER_URL
+        self.model = TYPESAFE_MODEL if provider == "typesafe" else OPENROUTER_MODEL
 
     def _body(self, state):
-        body = {"state": state, "questions": self.questions}
-        return body if self.provider == "gateway" else {"model": TYPESAFE_MODEL, **body}
+        return {"model": self.model, "state": state, "questions": self.questions}
 
     def score(self, query, passage):
         state = build_state(query, passage)
@@ -108,8 +105,11 @@ def _key(var):
 def load(name, api_key=None, provider=None, **kwargs):
     questions, field = VARIANTS[name]
     if api_key is None and provider is None:
+        # TypeSafe first when it is set: it pins the exact build. Otherwise
+        # OpenRouter, which is what every other experiment in this repo uses.
         if key := _key("TYPESAFE_API_KEY"):
             api_key, provider = key, "typesafe"
         else:
-            api_key, provider = _key("AI_GATEWAY_API_KEY"), "gateway"
-    return JevReranker(name, questions, field, api_key=api_key, provider=provider or "gateway", **kwargs)
+            api_key, provider = _key("OPENROUTER_API_KEY"), "openrouter"
+    return JevReranker(name, questions, field, api_key=api_key,
+                       provider=provider or "openrouter", **kwargs)

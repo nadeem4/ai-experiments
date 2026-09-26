@@ -1,6 +1,6 @@
 # Results: can a decision model re-rank retrieval better than BM25?
 
-Protocol: [README.md](README.md).
+What the experiment is and how to run it: [README.md](README.md). Raw numbers: [`results/`](../results/), one JSON file per run.
 
 ## The finding
 
@@ -84,7 +84,7 @@ What it does instead is compress the scale: the base checkpoint spreads its answ
 | | |
 |---|---|
 | Dataset | BEIR NFCorpus test split, 3,633 documents, 323 queries, official qrels, via `BeIR/nfcorpus` and `BeIR/nfcorpus-qrels` |
-| Jev | `typesafe-ai/jev`, v4 evaluation-model route over the Vercel AI Gateway |
+| Jev | `typesafe-ai/jev`, v4 evaluation-model route over the Vercel AI Gateway. **That is the transport these numbers were measured on.** The code has since moved to OpenRouter's `systemone` route (README amendment, 2026-09-25) and nothing was re-measured, so a re-run is not guaranteed to reproduce the latencies or the cost below |
 | Laya | `convaiinnovations/laya`, base English checkpoint (responds as `laya-rl-agent`) and the `typed-decisions` subfolder |
 | Cross-encoder | `cross-encoder/ms-marco-MiniLM-L-6-v2` |
 | Commit | `0bd0470`, recorded by the run itself in the results file |

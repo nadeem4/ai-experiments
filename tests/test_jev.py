@@ -8,7 +8,8 @@ import urllib.error
 import pytest
 
 from rerank.rerankers import make_reranker
-from rerank.rerankers.jev import GATEWAY_URL, TYPESAFE_MODEL, TYPESAFE_URL, JevReranker
+from rerank.rerankers.jev import (OPENROUTER_MODEL, OPENROUTER_URL, TYPESAFE_MODEL,
+                                  TYPESAFE_URL, JevReranker)
 
 PASSAGE = {"title": "Vitamin D and cancer", "text": "A review of vitamin D intake."}
 ANSWER_SCORE = {"answers": {"relevance": {"type": "score", "score": 2.25}},
@@ -28,11 +29,20 @@ def test_posts_the_same_state_and_question_laya_gets():
         return ANSWER_SCORE
 
     out = make_reranker("jev-score", api_key="k", post=post).score("cancer?", PASSAGE)
-    assert sent["url"] == GATEWAY_URL
+    assert sent["url"] == OPENROUTER_URL
     assert sent["headers"]["Authorization"] == "Bearer k"
-    assert sent["headers"]["ai-model-id"] == "typesafe-ai/jev"
-    assert sent["body"] == {"state": build_state("cancer?", PASSAGE), "questions": SCORE_QUESTION}
+    assert sent["body"] == {"model": OPENROUTER_MODEL,
+                            "state": build_state("cancer?", PASSAGE),
+                            "questions": SCORE_QUESTION}
     assert out["score"] == 2.25
+
+
+def test_the_openrouter_build_is_pinned_to_a_date():
+    """`typesafe/jev-1.13` is a floating minor and `~typesafe/jev-latest` is an
+    alias. A benchmark that cannot say which build produced a number is not a
+    benchmark, so the dated build is what goes on the wire."""
+    assert OPENROUTER_MODEL.startswith("typesafe/jev-")
+    assert OPENROUTER_MODEL[-8:].isdigit(), f"{OPENROUTER_MODEL} carries no dated build"
 
 
 def test_typesafe_route_pins_the_model_version():

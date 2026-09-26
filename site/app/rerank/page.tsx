@@ -106,9 +106,10 @@ export default function Page() {
           </p>
           <p>
             Laya&apos;s own model card does say its base checkpoints sit near chance on typed decisions
-            zero-shot, so the size of the loss is expected information rather than a defect. The prediction was
-            still made, from the published benchmarks, and it stays on the page as it was made. A prediction
-            edited after the result is not a prediction.
+            zero-shot, so the size of the loss is expected information rather than a defect. The reasoning
+            above is real, and it was written down here only after the answer was known, which is why neither
+            this page nor the results file reports a verdict on it. Reasoning recalled afterwards cannot be
+            scored against a result it already knows.
           </p>
         </Prose>
       </Section>
