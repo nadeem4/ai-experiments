@@ -33,11 +33,71 @@ NFCorpus qrels grade 0, 1 or 2; anything above 0 counts as relevant. Passages ar
 
 **Licence:** not recorded here. The files carry whatever the BEIR repositories above carry.
 
+## Setup: what the experiment is given
+
+The re-rankers never see the corpus. They see a list of 20 candidate passages per
+query, and that list is produced once, here, by a **hybrid first stage** that is
+held fixed for every method. This is the input to the experiment, so it is
+described in full and its settings are written into the run config.
+
+Two retrievers run over the same 3,633 documents and their rankings are fused.
+
+**Lexical half -- BM25.** Matches words. A document is scored on how many query
+terms it contains, weighted by how rare each term is and how long the document is.
+If a query and a document share no words, BM25 scores them near zero whatever they
+mean. Takes the top 100.
+
+**Dense half -- vector search.** `sentence-transformers/all-MiniLM-L6-v2` turns
+each query and each passage into a **384-number vector** where position carries
+meaning rather than wording; similarity is the dot product of two normalised
+vectors, so it is a cosine. This is the half that finds a match with no shared
+words:
+
+```
+"heart disease in children" vs "atherosclerosis begins in childhood"  cosine 0.554
+"heart disease in children" vs "breast cancer statin therapy"         cosine 0.106
+```
+
+Also takes the top 100.
+
+**Fusion -- reciprocal rank.** Each document scores `1 / (60 + rank)` in each list
+it appears in, and the two are added. Rank-based rather than score-based on
+purpose: a BM25 score of 30 and a cosine of 0.31 are not on the same scale, and
+squashing them into one would be a tuning knob that would have to be justified
+and could not be. The `60` damps how much the very top of either list dominates.
+The top 20 after fusion are the candidates.
+
+| | |
+|---|---|
+| Encoder | `sentence-transformers/all-MiniLM-L6-v2`, 23M parameters, 384 dimensions |
+| Encoder input limit | 256 tokens, and passages are cut to 1,000 characters first |
+| Depth per half | 100 |
+| Fusion | reciprocal rank, `k = 60` |
+| Candidates kept | 20 per query |
+| Recorded in | `runs/<tag>/config.json` |
+
+**Why hybrid rather than BM25 alone.** Measured on this corpus at top-20, before
+anything else was decided:
+
+| First stage | Queries with something relevant | Mean recall@20 |
+|---|---|---|
+| BM25 alone | 232 / 323 | 0.172 |
+| Dense alone | 238 / 323 | 0.190 |
+| **Hybrid** | **252 / 323** | **0.204** |
+
+A query whose 20 candidates hold nothing relevant cannot be improved by any
+re-ranker, so it contributes nothing but denominator. Hybrid converts 20 such
+queries into usable ones. Almost all of the gain comes from the fusion rather
+than from the dense half alone, which is why a production pipeline fuses rather
+than chooses.
+
+**The candidate set is pinned.** It is built once per tag and written to
+`runs/<tag>/candidates.json`, so every method re-ranks byte-identical input and a
+resumed run cannot quietly re-retrieve a different one.
+
 ## Method
 
-Retrieval in two stages. **The first stage retrieves; a re-ranker re-orders what it retrieved.** The second stage cannot add a document or remove one -- it only changes the order of the candidates it is given, which is the constraint the whole experiment sits inside.
-
-The first stage is **hybrid**: BM25 and a dense encoder each retrieve 100, and the two are combined by reciprocal rank fusion. BM25 alone is not how retrieval is served, and on this corpus it is worth 20 queries -- with BM25 alone, 91 of the 323 had nothing relevant in the top 20 and no re-ranker could move them; hybrid brings that down to 71. It is held fixed so the scorer is the only thing that varies, and its settings go in the run config.
+**A re-ranker re-orders the 20 candidates it is given.** It cannot add a document or remove one, which is the constraint the whole experiment sits inside: the first stage decides what is reachable, and the re-ranker decides only the order.
 
 ```mermaid
 flowchart TB
