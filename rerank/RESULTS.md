@@ -1,6 +1,13 @@
 # Results: can a decision model re-rank retrieval better than BM25?
 
-What the experiment is and how to run it: [README.md](README.md). Raw numbers: [`results/`](results/), one JSON file per run.
+> **These numbers are superseded and their data files are gone.** They were
+> measured on this machine's CPU, over the Vercel AI Gateway whose key has since
+> been deleted, so the run cannot be reproduced. `results/` was emptied
+> deliberately and the experiment is being measured again on a Kaggle GPU, where
+> `laya` runs float16 rather than float32. Everything below is kept as the
+> account of the first run until the second one replaces it.
+
+What the experiment is and how to run it: [README.md](README.md).
 
 ## The finding
 

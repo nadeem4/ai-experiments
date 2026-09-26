@@ -1,6 +1,10 @@
 # Can a decision model re-rank retrieval better than BM25?
 
-**Status:** `complete` — the numbers and what they mean are in [RESULTS.md](RESULTS.md).
+**Status:** `re-running`. The completed run was measured on this machine's CPU
+over the Vercel AI Gateway, whose key no longer exists, so it cannot be
+reproduced. Its results files have been removed and it is being measured again
+on a Kaggle GPU. [RESULTS.md](RESULTS.md) still describes the old run and says so
+at the top.
 
 This file says what the experiment is and how to run it. Nothing here is a result.
 
