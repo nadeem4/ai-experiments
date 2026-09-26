@@ -357,6 +357,16 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
     for name, reason in drawn["skipped"].items():
         log(f"  figure {name} SKIPPED: {reason}")
 
+    # Same reason as the figures: the site reads a generated file, so no number
+    # on the page can drift from the tables above. Only for the tag the site
+    # publishes; a pilot must not overwrite it.
+    from .scripts import site_data
+
+    if tag == site_data.TAG:
+        for path, size in site_data.write(candidates, records, corpus, qrels, queries,
+                                          results_dir, run_dir):
+            log(f"  site data: {path} ({size / 1024:.0f} KB)")
+
     results["path"] = results_dir / "summary.json"
     return results
 
