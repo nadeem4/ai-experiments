@@ -7,8 +7,13 @@
    writes `~/.kaggle/access_token`. Do not also create a `kaggle.json`: it is a
    second auth path and it shadows the token.
 2. **The OpenRouter key as a Kaggle secret.** On the notebook page: *Add-ons* ->
-   *Secrets*, add `OPENROUTER_API_KEY` and attach it. It is read at run time and
-   never written to a file, printed, or included in the output.
+   *Secrets*, add `AI_EXPERIMENTS_OPENROUTER` and attach it. The kernel reads it
+   into `OPENROUTER_API_KEY`, which is where the reranker looks; it is never
+   written to a file, printed, or included in the output.
+
+   Its own name, and ideally its own OpenRouter key rather than one shared with
+   this account's other notebooks: revoking or rotating one then does not touch
+   the other, and this experiment's reported cost is only its own.
 
 ## Every time
 

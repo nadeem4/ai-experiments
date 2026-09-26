@@ -14,6 +14,9 @@ REPO = "https://github.com/nadeem4/ai-experiments.git"
 CHECKOUT = Path("/kaggle/working/ai-experiments")
 OUT = Path("/kaggle/working/rerank")
 METHODS = ["bm25", "laya-score", "laya-typed-score", "jev-score", "cross-encoder"]
+# This account's other notebooks have their own secrets; this one is read into
+# OPENROUTER_API_KEY, which is where the reranker looks.
+SECRET = "AI_EXPERIMENTS_OPENROUTER"
 
 
 def run(*command, **kwargs):
@@ -26,11 +29,11 @@ def load_key():
     try:
         from kaggle_secrets import UserSecretsClient
 
-        os.environ["OPENROUTER_API_KEY"] = UserSecretsClient().get_secret("OPENROUTER_API_KEY")
-        print("OPENROUTER_API_KEY: loaded", flush=True)
+        os.environ["OPENROUTER_API_KEY"] = UserSecretsClient().get_secret(SECRET)
+        print(f"{SECRET}: loaded", flush=True)
         return True
     except Exception as e:
-        print(f"OPENROUTER_API_KEY: not available ({type(e).__name__})", flush=True)
+        print(f"{SECRET}: not available ({type(e).__name__})", flush=True)
         return False
 
 
