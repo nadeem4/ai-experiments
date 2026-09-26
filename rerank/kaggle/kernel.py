@@ -14,9 +14,7 @@ REPO = "https://github.com/nadeem4/ai-experiments.git"
 CHECKOUT = Path("/kaggle/working/ai-experiments")
 OUT = Path("/kaggle/working/rerank")
 METHODS = ["bm25", "laya-score", "laya-typed-score", "jev-score", "cross-encoder"]
-# This account's other notebooks have their own secrets; this one is read into
-# OPENROUTER_API_KEY, which is where the reranker looks.
-SECRET = "AI_EXPERIMENTS_OPENROUTER"
+SECRET = "OPENROUTER_API_KEY"
 
 
 def run(*command, **kwargs):
