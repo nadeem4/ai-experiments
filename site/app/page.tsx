@@ -1,14 +1,15 @@
 import Link from "next/link";
 import banking77 from "@/data/banking77.json";
-import results from "@/data/results.json";
-import examples from "@/data/examples.json";
+import rerankData from "@/data/rerank.json";
 import typedDecisions from "@/data/typed-decisions.json";
 import { pct, points, type Banking, type TypedDecisions } from "@/lib/experiments";
-import { byMethod, signed, type Results } from "@/lib/results";
+import { rerankerRows, runFacts, signed, type Rerank } from "@/lib/rerank";
 
-const run = results as Results;
-const jev = byMethod(run, "jev-score")!;
-const laya = byMethod(run, "laya-score")!;
+const rerank = rerankData as Rerank;
+const rerankFacts = runFacts(rerank);
+const rerankRows = rerankerRows(rerank);
+const jev = rerankRows.find((row) => row.method === "jev-score")!;
+const laya = rerankRows.find((row) => row.method === "laya-score")!;
 
 const banking = banking77 as Banking;
 const typed = typedDecisions as unknown as TypedDecisions;
@@ -126,26 +127,26 @@ export default function Page() {
             className="group block border border-line bg-surface p-5 transition-colors hover:border-line-strong md:p-6"
           >
             <h3 className="max-w-[26ch] text-h3 font-semibold leading-tight tracking-tight underline decoration-transparent underline-offset-4 group-hover:decoration-line-strong">
-              Can a decision model re-rank retrieval better than BM25?
+              Can a decision model re-rank retrieval better than hybrid search?
             </h3>
             <p className="mt-3 max-w-[68ch] text-body leading-relaxed text-ink-soft">
-              BM25 retrieves {run.top_k} candidates per query. Each one is handed to a model as a single typed
-              question, query and passage in, one number out, and the candidates are re-sorted by that number.
-              Nothing is trained. The prediction was that the open-weights model would win, and it lost.
+              A hybrid first stage returns {rerankFacts.topK} candidates per question. Each one is handed to a
+              model as a single typed question, question and passage in, one number out, and the candidates
+              are re-sorted by that number. Nothing is trained. The hosted decision model gains; both
+              open-weights checkpoints leave the ranking worse than doing nothing.
             </p>
             <dl className="numeric mt-6 grid grid-cols-2 gap-x-6 gap-y-3 text-micro sm:grid-cols-4">
-              <Stat term="Jev vs BM25" value={signed(jev["ndcg@10_vs_bm25"]!.mean)} note="nDCG@10, paired" up />
+              <Stat term="Jev vs the floor" value={signed(jev.mean)} note="nDCG@10, paired" up />
+              <Stat term="Laya vs the floor" value={signed(laya.mean)} note="nDCG@10, paired" down />
               <Stat
-                term="Laya vs BM25"
-                value={signed(laya["ndcg@10_vs_bm25"]!.mean)}
-                note="nDCG@10, paired"
-                down
+                term="Questions"
+                value={String(rerankFacts.queries)}
+                note={rerankFacts.dataset}
               />
-              <Stat term="Queries" value={String(run.queries)} note={run.dataset} />
               <Stat
                 term="Scoring calls"
-                value={examples.records_in_run.toLocaleString()}
-                note="request and response kept"
+                value={rerankFacts.calls.toLocaleString()}
+                note={`$${rerankFacts.spendUsd.toFixed(2)} spent`}
               />
             </dl>
           </Link>

@@ -69,12 +69,26 @@ class TestScoresAreCarriedForTheTheatre:
         q1 = next(q for q in out["queries"] if q["id"] == "q1")
         assert q1["scores"]["jev-score"]["d2"] == 3.0
 
-    def test_a_failed_call_has_no_score_and_keeps_its_position(self):
-        records = RECORDS + [{"method": "jev-score", "query_id": "q2", "doc_id": "d4",
-                              "score": None, "failed": True}]
+    def test_a_failed_call_keeps_its_position_and_the_query_still_ranks(self):
+        """The run ranked around its one failed call rather than dropping the
+        query, and reported a delta for it. The page must show that same order."""
+        records = RECORDS + [
+            {"method": "jev-score", "query_id": "q2", "doc_id": "d4",
+             "score": None, "failed": True},
+            {"method": "jev-score", "query_id": "q2", "doc_id": "d5", "score": 5.0},
+        ]
         out = site_data.build(CANDIDATES, records, CORPUS, QRELS, QUERIES, {})
         q2 = next(q for q in out["queries"] if q["id"] == "q2")
-        assert "jev-score" not in q2["orders"], "a half-scored query cannot be ranked"
+        assert q2["orders"]["jev-score"] == ["d4", "d5"], "d4 holds the slot BM25 gave it"
+        assert q2["scores"]["jev-score"]["d4"] is None, "no number was returned for it"
+
+    def test_a_query_the_method_never_finished_is_absent_not_guessed(self):
+        """Different from a failed call: d5 was never attempted, so there is no
+        order to show. Ranking on a hole would invent one."""
+        records = RECORDS + [{"method": "jev-score", "query_id": "q2", "doc_id": "d4",
+                              "score": 1.0}]
+        out = site_data.build(CANDIDATES, records, CORPUS, QRELS, QUERIES, {})
+        assert "jev-score" not in next(q for q in out["queries"] if q["id"] == "q2")["orders"]
 
 
 class TestTheSplit:
@@ -102,3 +116,14 @@ class TestTheSplit:
     def test_the_detail_carries_the_passages(self):
         _, detail = self._split()
         assert detail["passages"]["d1"].startswith("Body of d1.")
+
+    def test_a_failed_calls_slot_in_the_score_array_is_null(self):
+        """The arrays stay aligned to the order, so the hole has to be held."""
+        records = RECORDS + [
+            {"method": "jev-score", "query_id": "q2", "doc_id": "d4",
+             "score": None, "failed": True},
+            {"method": "jev-score", "query_id": "q2", "doc_id": "d5", "score": 5.0},
+        ]
+        _, detail = site_data.split(
+            site_data.build(CANDIDATES, records, CORPUS, QRELS, QUERIES, {}))
+        assert detail["queries"]["q2"]["scores"]["jev-score"] == [None, 5.0]
