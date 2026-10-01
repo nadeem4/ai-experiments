@@ -13,6 +13,8 @@ So this writes the derived ranking, not the evidence. The evidence stays in
 import json
 from pathlib import Path
 
+from ..rank import rank_by_score
+
 EXPERIMENT = Path(__file__).resolve().parents[1]
 REPO = EXPERIMENT.parent
 TAG = "gpu"
@@ -20,17 +22,10 @@ FLOOR = "hybrid"
 SNIPPET = 320  # enough to judge a passage by, far less than the 1,000 scored
 
 
-def rank(doc_ids, scores):
-    """Best first, ties keeping the candidate order -- the same rule the run used."""
-    return sorted(doc_ids, key=lambda d: (-scores[d], doc_ids.index(d)))
-
-
 def build(candidates, records, corpus, qrels, queries, per_query):
     """-> one payload, used by the tests and by `split` below."""
     by_method = {}
     for r in records:
-        if r["score"] is None:
-            continue
         by_method.setdefault(r["method"], {}).setdefault(r["query_id"], {})[r["doc_id"]] = r["score"]
 
     rows, wanted = [], set()
@@ -40,10 +35,12 @@ def build(candidates, records, corpus, qrels, queries, per_query):
         orders, scores = {FLOOR: list(docs)}, {}
         for method, per_q in by_method.items():
             got = per_q.get(query_id) or {}
-            # A query only half scored cannot be ranked: ordering it on a hole
-            # would show an order no method produced.
+            # A candidate the method never reached is a hole, and ordering on a
+            # hole would show an order no method produced. A candidate whose call
+            # failed is not a hole: the run kept it where the retriever put it and
+            # reported a delta for the query, so the same order is shown here.
             if all(d in got for d in docs):
-                orders[method] = rank(docs, got)
+                orders[method] = rank_by_score(docs, [got[d] for d in docs])
                 scores[method] = got
         rows.append({
             "id": query_id, "text": queries[query_id], "orders": orders, "scores": scores,
@@ -55,6 +52,11 @@ def build(candidates, records, corpus, qrels, queries, per_query):
                 "text": corpus[d].get("text", "")[:SNIPPET]}
             for d in sorted(wanted) if d in corpus}
     return {"floor": FLOOR, "queries": sorted(rows, key=lambda r: r["id"]), "docs": docs}
+
+
+def _round(score):
+    """A failed call holds its slot in the array so the two stay aligned."""
+    return None if score is None else round(score, 4)
 
 
 def split(payload):
@@ -72,7 +74,7 @@ def split(payload):
         index_queries.append({k: row[k] for k in ("id", "text", "relevant", "can_move", "ndcg")})
         detail_queries[row["id"]] = {
             "orders": row["orders"],
-            "scores": {m: [round(row["scores"][m][d], 4) for d in row["orders"][m]]
+            "scores": {m: [_round(row["scores"][m][d]) for d in row["orders"][m]]
                        for m in row["scores"]},
         }
     index = {"floor": payload["floor"], "queries": index_queries,
