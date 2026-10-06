@@ -318,12 +318,22 @@ export interface BarLayout {
 /** Every movable query as one thin bar, hung off a zero line in the middle. */
 export function barLayout(
   series: DeltaPoint[],
-  { width, height, step, gap = 0 }: { width: number; height: number; step: number; gap?: number },
-): BarLayout {
-  const half = symmetricHalf(
-    series.map((point) => point.delta),
+  {
+    width,
+    height,
     step,
-  );
+    gap = 0,
+    half: given,
+  }: { width: number; height: number; step: number; gap?: number; half?: number },
+): BarLayout {
+  // A panel sized to its own data makes a ±0.6 chart look like a ±1.0 one, so
+  // panels meant to be read side by side are handed one scale.
+  const half =
+    given ??
+    symmetricHalf(
+      series.map((point) => point.delta),
+      step,
+    );
   const zeroY = height / 2;
   const slot = width / Math.max(1, series.length);
   const barWidth = Math.max(slot - gap, slot * 0.5);
@@ -428,6 +438,19 @@ export function candidateRows(
       moved: floorRank ? floorRank - (i + 1) : 0,
     };
   });
+}
+
+/**
+ * The question the explorer opens on: the one where `helped` raised nDCG@10 and
+ * `hurt` lowered it by the widest combined margin. Opening on the best re-ranker's
+ * single best question showed every method helping, which is the opposite of
+ * the finding; a question where two of them disagree shows what the means hide.
+ */
+export function openingQuery(data: Rerank, helped: string, hurt: string): string {
+  const split = data.queries.filter((q) => q.can_move && q.ndcg[helped] > 0 && q.ndcg[hurt] < 0);
+  if (!split.length) return (data.queries.find((q) => q.can_move) ?? data.queries[0]).id;
+  const margin = (q: RerankQuery) => q.ndcg[helped] - q.ndcg[hurt];
+  return split.reduce((a, b) => (margin(b) > margin(a) ? b : a)).id;
 }
 
 /**

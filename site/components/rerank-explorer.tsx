@@ -5,7 +5,7 @@ import rerankData from "@/data/rerank.json";
 import { Section } from "@/components/chip";
 import { RerankDeltaBars } from "@/components/rerank-delta-bars";
 import { RerankTheatre } from "@/components/rerank-theatre";
-import { methodOrder, movableSplit, rerankerRows, type Rerank } from "@/lib/rerank";
+import { methodOrder, movableSplit, openingQuery, rerankerRows, type Rerank } from "@/lib/rerank";
 
 const data = rerankData as Rerank;
 const methods = methodOrder(data);
@@ -23,13 +23,9 @@ const split = movableSplit(data);
  * the HTML as props.
  */
 export function RerankExplorer() {
-  // Open on the query where the best re-ranker moved the most, among the ones
-  // with enough judged passages for the movement to mean something.
-  const opening = useMemo(() => {
-    const best = rows[0].method;
-    const candidates = data.queries.filter((q) => q.can_move && q.relevant.length >= 3);
-    return candidates.reduce((a, b) => (b.ndcg[best] > a.ndcg[best] ? b : a)).id;
-  }, []);
+  // Open where the best and the worst re-ranker disagree most, under the best:
+  // switching to the worst then shows the finding on one question.
+  const opening = useMemo(() => openingQuery(data, rows[0].method, rows[rows.length - 1].method), []);
 
   const [queryId, setQueryId] = useState(opening);
   const [method, setMethod] = useState(methods[1] ?? methods[0]);
@@ -54,7 +50,7 @@ export function RerankExplorer() {
       <div ref={theatre} className="scroll-mt-4">
         <Section
           id="theatre"
-          title="Watch one question being re-ranked"
+          title="Watch one question being re‑ranked"
           standfirst={`The first stage hands back ${data.summary.top_k} candidates in its own order. Each re-ranker scores every one of them and the list is sorted again. Choose a method and the same ${data.summary.top_k} documents travel to where it put them.`}
         >
           <RerankTheatre

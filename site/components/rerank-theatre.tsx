@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { RerankQueryPicker } from "@/components/rerank-query-picker";
 import {
   candidateRows,
+  label,
   queryNdcg,
   runFacts,
   scoreNote,
@@ -113,14 +114,13 @@ export function RerankTheatre({
               type="button"
               aria-pressed={active}
               onClick={() => onSelectMethod(name)}
-              className={`numeric border px-2.5 py-1.5 text-micro ${
+              className={`numeric min-h-11 border px-3 py-1.5 text-micro ${
                 active
                   ? "border-line-strong bg-sunk font-medium text-ink"
                   : "border-line bg-surface text-ink-soft hover:text-ink"
               }`}
             >
-              {name}
-              {name === data.floor ? " (floor)" : ""}
+              {name === data.floor ? "the floor" : label(name)}
             </button>
           );
         })}
@@ -133,7 +133,7 @@ export function RerankTheatre({
             method on this question is measured from.
           </>
         ) : at.value === null ? (
-          <>nDCG@10 for {method} on this question was not recorded.</>
+          <>nDCG@10 for {label(method)} on this question was not recorded.</>
         ) : (
           <>
             nDCG@10 {at.value.toFixed(4)} against the floor&apos;s {at.floor.toFixed(4)}:{" "}
@@ -240,8 +240,10 @@ function CandidateList({
               <span className="numeric w-6 shrink-0 text-micro text-ink-soft">
                 {String(row.rank).padStart(2, "0")}
               </span>
+              {/* On a phone the id column took a quarter of the row and squeezed every
+                  title to six lines; the id is still in the opened row. */}
               <span
-                className="numeric w-[5.5rem] shrink-0 text-micro"
+                className="numeric hidden w-[5.5rem] shrink-0 text-micro sm:inline"
                 style={{ color: row.relevant ? "var(--mark)" : "var(--ink-soft)" }}
               >
                 {row.docId}
@@ -254,26 +256,28 @@ function CandidateList({
                 }}
               >
                 {row.title}
-                {row.relevant && <span className="sr-only"> (judged relevant)</span>}
+                {row.relevant && (
+                  <span className="numeric ml-2 whitespace-nowrap border border-mark px-1 align-baseline text-micro font-normal">
+                    relevant
+                  </span>
+                )}
               </span>
+              {/* Where it came from rather than how far it went: "from 14" next to a
+                  row at 02 says both, and needs no arrow to decode. */}
               <span
-                className="numeric w-12 shrink-0 text-right text-micro"
+                className="numeric w-16 shrink-0 text-right text-micro"
                 style={{
                   color: travel > 0 ? "var(--up)" : travel < 0 ? "var(--down)" : "var(--ink-soft)",
                 }}
-                aria-label={
-                  travel === 0
-                    ? "unmoved"
-                    : `${Math.abs(travel)} place${Math.abs(travel) === 1 ? "" : "s"} ${travel > 0 ? "up" : "down"}`
-                }
+                aria-label={travel === 0 ? "unmoved" : `moved ${travel > 0 ? "up" : "down"} from ${row.floorRank}`}
               >
-                {travel === 0 ? "·" : `${travel > 0 ? "▲" : "▼"}${Math.abs(travel)}`}
+                {travel === 0 ? "same" : `from ${String(row.floorRank).padStart(2, "0")}`}
               </span>
             </button>
             {expanded && (
               <div className="border-t border-line bg-page px-3 py-3 pl-12">
                 <p className="numeric text-micro text-ink-soft">
-                  {scoreNote(method, floor, row.score)}
+                  {row.docId} · {scoreNote(method, floor, row.score)}
                   {method !== floor && ` · the floor had it at ${String(row.floorRank).padStart(2, "0")}`}
                 </p>
                 <p className="mt-2 max-w-[72ch] text-micro leading-relaxed text-ink-soft">
@@ -285,9 +289,9 @@ function CandidateList({
         );
       })}
       <li className="bg-surface px-3 py-2">
-        <p className="numeric text-[0.75em] text-ink-soft">
+        <p className="numeric text-micro text-ink-soft">
           {query.relevant.length
-            ? "Documents the official judgements call relevant are marked in violet."
+            ? "Documents the official judgements call relevant are tagged and set in violet."
             : "Nothing among these candidates is judged relevant to this question."}{" "}
           Open a row for the passage and the score behind it.
         </p>

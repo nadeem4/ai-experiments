@@ -19,6 +19,7 @@ import {
   deltaSeries,
   axis,
   headToHead,
+  openingQuery,
   rangeAxis,
   verdict,
   label,
@@ -287,6 +288,13 @@ describe("barLayout", () => {
     expect(bars[2].x + bars[2].width).toBeLessThanOrEqual(300);
   });
 
+  it("draws on a scale it is handed, so panels side by side share one", () => {
+    const own = barLayout(series, { width: 300, height: 100, step: 0.1 });
+    const shared = barLayout(series, { width: 300, height: 100, step: 0.1, half: 1 });
+    expect(shared.half).toBe(1);
+    expect(shared.bars[0].height).toBeLessThan(own.bars[0].height);
+  });
+
   it("keeps every bar wide enough to see and to hit", () => {
     const many = Array.from({ length: 252 }, (_, i) => ({ id: `q${i}`, text: "", delta: 0.1 }));
     const { bars } = barLayout(many, { width: 1000, height: 100, step: 0.1 });
@@ -481,6 +489,21 @@ describe("rangeAxis", () => {
   it("names a tick at every step from end to end", () => {
     const a = rangeAxis([0.31, 0.35], 100, 0.02);
     expect(a.ticks.map((t) => t.toFixed(2))).toEqual(["0.30", "0.32", "0.34", "0.36"]);
+  });
+});
+
+describe("openingQuery", () => {
+  it("opens where one method helped and the other hurt, by the widest margin", () => {
+    expect(openingQuery(fixture, "jev-score", "cross-encoder")).toBe("Q-1");
+    expect(openingQuery(fixture, "cross-encoder", "jev-score")).toBe("Q-3");
+  });
+
+  it("never opens on a question nothing could move", () => {
+    const id = openingQuery(run, "jev-score", "laya-score");
+    const query = run.queries.find((q) => q.id === id)!;
+    expect(query.can_move).toBe(true);
+    expect(query.ndcg["jev-score"]).toBeGreaterThan(0);
+    expect(query.ndcg["laya-score"]).toBeLessThan(0);
   });
 });
 

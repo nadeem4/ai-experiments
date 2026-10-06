@@ -7,6 +7,7 @@ import {
   barPaths,
   deltaSeries,
   signed,
+  symmetricHalf,
   type Rerank,
   type RerankerRow,
 } from "@/lib/rerank";
@@ -40,10 +41,15 @@ export function RerankDeltaBars({
   selected: string;
   onSelect: (queryId: string, method: string) => void;
 }) {
+  // One scale for all four, so a taller bar always means a bigger change.
+  const half = useMemo(
+    () => symmetricHalf(rows.flatMap((row) => deltaSeries(data, row.method).map((p) => p.delta)), STEP),
+    [data, rows],
+  );
   return (
     <div className="grid min-w-0 gap-6">
       {rows.map((row) => (
-        <Panel key={row.method} data={data} row={row} selected={selected} onSelect={onSelect} />
+        <Panel key={row.method} data={data} row={row} half={half} selected={selected} onSelect={onSelect} />
       ))}
     </div>
   );
@@ -52,17 +58,19 @@ export function RerankDeltaBars({
 function Panel({
   data,
   row,
+  half,
   selected,
   onSelect,
 }: {
   data: Rerank;
   row: RerankerRow;
+  half: number;
   selected: string;
   onSelect: (queryId: string, method: string) => void;
 }) {
   const layout = useMemo(
-    () => barLayout(deltaSeries(data, row.method), { width: WIDTH, height: HEIGHT, step: STEP, gap: 1 }),
-    [data, row.method],
+    () => barLayout(deltaSeries(data, row.method), { width: WIDTH, height: HEIGHT, step: STEP, gap: 1, half }),
+    [data, row.method, half],
   );
   const paths = useMemo(() => barPaths(layout.bars, MIN_BAR), [layout]);
 
@@ -130,7 +138,7 @@ function Panel({
     <figure className="grid min-w-0 gap-2">
       <figcaption className="numeric flex flex-wrap items-baseline justify-between gap-x-4 text-micro">
         <span className="text-ink">
-          {row.method} <span className="text-ink-soft">· axis ±{layout.half.toFixed(1)} nDCG@10</span>
+          {row.label} <span className="text-ink-soft">· axis ±{layout.half.toFixed(1)} nDCG@10, shared</span>
         </span>
         <span style={{ color: row.mean > 0 ? "var(--up)" : "var(--down)" }}>
           mean {signed(row.mean)} · {drawn.better} better · {drawn.worse} worse · {drawn.same} unchanged
@@ -143,7 +151,7 @@ function Panel({
         className="min-w-0 overflow-x-auto border border-line bg-surface"
         tabIndex={0}
         role="group"
-        aria-label={`${row.method}: each of the ${layout.bars.length} queries that could move, sorted by its nDCG@10 change against the ${data.floor} floor. Mean ${signed(row.mean)}, ${drawn.better} better, ${drawn.worse} worse, ${drawn.same} unchanged. Arrow keys move along the queries, enter opens the one under the cursor.`}
+        aria-label={`${row.label}: each of the ${layout.bars.length} queries that could move, sorted by its nDCG@10 change against the ${data.floor} floor. Mean ${signed(row.mean)}, ${drawn.better} better, ${drawn.worse} worse, ${drawn.same} unchanged. Arrow keys move along the queries, enter opens the one under the cursor.`}
         onKeyDown={onKeyDown}
       >
         <svg
