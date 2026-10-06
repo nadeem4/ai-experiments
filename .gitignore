@@ -16,6 +16,16 @@ __pycache__/
 /typed_decisions/.cache/
 *.log
 
+# AI tooling and skill output: critique snapshots, browser screenshots,
+# session memory, and agent instruction files (next dev rewrites AGENTS.md).
+# None of it is part of an experiment.
+.claude/
+.impeccable/
+.playwright-mcp/
+.remember/
+AGENTS.md
+CLAUDE.md
+
 # Node / Next.js (site/)
 node_modules/
 .next/
