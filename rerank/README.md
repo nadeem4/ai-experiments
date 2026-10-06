@@ -1,7 +1,8 @@
 # Can a decision model re-rank retrieval better than hybrid search?
 
 **Status: complete.** One full run over all 323 test queries, on an NVIDIA T4, finished 2026-09-26.
-What it found is in **[RESULTS.md](RESULTS.md)**; what the data holds is in **[DATASET.md](DATASET.md)**.
+What it found is in **[RESULTS.md](RESULTS.md)**, and on the site at
+**[lab.codewithnk.com/rerank](https://lab.codewithnk.com/rerank/)**; what the data holds is in **[DATASET.md](DATASET.md)**.
 This file is the protocol, written before the run. Anything changed since is under
 [Protocol amendments](#protocol-amendments), dated.
 
