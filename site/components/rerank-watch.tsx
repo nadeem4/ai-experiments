@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { CaretDownIcon } from "@phosphor-icons/react";
 import rerankData from "@/data/rerank.json";
 import { RerankWatchLane, type Speed } from "@/components/rerank-watch-lane";
 import { RerankWatchPicker } from "@/components/rerank-watch-picker";
@@ -170,12 +171,17 @@ export function RerankWatch({
           className="sticky top-0 z-[5] grid min-w-0 gap-1.5 border-b border-line-strong bg-page pb-2.5 pt-2 lg:hidden"
           aria-label="Now watching"
         >
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+          {/* The question is the dropdown itself, here as in the panel above. */}
+          <button
+            type="button"
+            popoverTarget={sheetId}
+            aria-haspopup="listbox"
+            aria-label={`Question: ${query.text}. Select a question`}
+            className="grid min-h-11 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border border-line-strong bg-surface px-3 text-left"
+          >
             <span className="truncate font-semibold">{query.text}</span>
-            <button type="button" popoverTarget={sheetId} className="min-h-11 border border-line bg-surface px-3 text-micro">
-              Change
-            </button>
-          </div>
+            <CaretDownIcon size={16} weight="bold" aria-hidden className="text-ink-soft" />
+          </button>
           {controls}
         </div>
 

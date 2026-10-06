@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { CaretDownIcon } from "@phosphor-icons/react";
 import { matchQueries, type RerankQuery } from "@/lib/rerank";
 
 // Four questions that each show something different: two re-rankers agree, all
@@ -12,10 +13,11 @@ const answerCount = (q: RerankQuery) =>
   q.relevant.length ? `${q.relevant.length} answer${q.relevant.length === 1 ? "" : "s"}` : "no answer";
 
 /**
- * Choosing one of the 323 questions. A control that names the current question
- * opens a sheet with a search box: a dropdown under the control on wide screens,
- * a bottom sheet on phones (the CSS decides). The browser's popover closes it on
- * Escape or a tap outside.
+ * Choosing one of the 323 questions. It looks and opens like a dropdown: a
+ * labelled field with the current question and a caret, and a list under it,
+ * with a search box on top because 323 entries are too many to scroll. On
+ * phones the list rises as a bottom sheet (the CSS decides). The browser's
+ * popover closes it on Escape or a tap outside.
  */
 export function RerankWatchPicker({
   queries,
@@ -30,6 +32,8 @@ export function RerankWatchPicker({
   sheetId: string;
 }) {
   const searchId = useId();
+  const labelId = useId();
+  const valueId = useId();
   const sheet = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
   const search = useRef<HTMLInputElement>(null);
@@ -48,7 +52,12 @@ export function RerankWatchPicker({
         node.style.removeProperty("left");
         node.style.removeProperty("top");
       }
-      search.current?.focus();
+      // Open at the current question, as a dropdown does. The list scrolls
+      // itself; scrollIntoView would scroll the page as well.
+      const list = node.querySelector("ul");
+      const current = list?.querySelector<HTMLElement>('[aria-current="true"]');
+      if (list && current) list.scrollTop = current.offsetTop - list.clientHeight / 2 + current.offsetHeight / 2;
+      search.current?.focus({ preventScroll: true });
     };
     node.addEventListener("toggle", opened);
     return () => node.removeEventListener("toggle", opened);
@@ -61,7 +70,9 @@ export function RerankWatchPicker({
   };
 
   const hits = matchQueries(queries, term);
-  const shown = hits.slice(0, MAX_RESULTS);
+  // The cap only applies to a search; with nothing typed the list is all of
+  // them, so the current question is always there to open at.
+  const shown = term.trim() ? hits.slice(0, MAX_RESULTS) : hits;
   const quick = QUICK.map((id) => queries.find((q) => q.id === id)).filter((q): q is RerankQuery => Boolean(q));
 
   const onListKey = (event: React.KeyboardEvent<HTMLUListElement>) => {
@@ -78,16 +89,24 @@ export function RerankWatchPicker({
 
   return (
     <>
-      <button
-        ref={trigger}
-        type="button"
-        popoverTarget={sheetId}
-        aria-haspopup="dialog"
-        className="grid min-h-14 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 bg-ink px-4 py-3 text-left text-page"
-      >
-        <span className="text-lead font-semibold leading-snug">{selected.text}</span>
-        <span className="numeric text-micro opacity-85">Change</span>
-      </button>
+      <div className="grid gap-1.5">
+        <span id={labelId} className="text-body font-semibold">
+          Select a question
+        </span>
+        <button
+          ref={trigger}
+          type="button"
+          popoverTarget={sheetId}
+          aria-haspopup="listbox"
+          aria-labelledby={`${labelId} ${valueId}`}
+          className="grid min-h-12 w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border border-line-strong bg-surface px-3.5 py-2.5 text-left hover:border-ink"
+        >
+          <span id={valueId} className="text-body leading-snug">
+            {selected.text}
+          </span>
+          <CaretDownIcon size={18} weight="bold" aria-hidden className="text-ink-soft" />
+        </button>
+      </div>
 
       <div ref={sheet} id={sheetId} popover="auto" className="watch-sheet" role="dialog" aria-label="Choose a question">
         <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 px-4 pb-2 pt-4">
@@ -127,7 +146,7 @@ export function RerankWatchPicker({
             </button>
           ))}
         </div>
-        <ul className="overflow-y-auto border-t border-line pb-2" aria-label="Questions" onKeyDown={onListKey}>
+        <ul className="relative overflow-y-auto border-t border-line pb-2" aria-label="Questions" onKeyDown={onListKey}>
           {shown.map((q) => (
             <li key={q.id}>
               <button
@@ -143,7 +162,7 @@ export function RerankWatchPicker({
               </button>
             </li>
           ))}
-          {hits.length > MAX_RESULTS && (
+          {shown.length < hits.length && (
             <li className="px-4 py-2 text-micro text-ink-soft">
               Showing {MAX_RESULTS} of {hits.length}. Type to narrow the list.
             </li>
