@@ -124,10 +124,10 @@ export function RerankQueryPicker({
                 open ? "bg-sunk text-ink" : "text-ink-soft hover:bg-sunk"
               }`}
             >
-              <span className="numeric shrink-0 text-[0.8em]">{query.id}</span>
+              <span className="numeric shrink-0">{query.id}</span>
               <span className="min-w-0 flex-1 truncate">{query.text}</span>
               {!query.can_move && (
-                <span className="numeric shrink-0 text-[0.75em] text-ink-soft">cannot move</span>
+                <span className="numeric shrink-0 text-ink-soft">cannot move</span>
               )}
             </li>
           );
@@ -155,7 +155,7 @@ function PickerButton({
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className="numeric border border-line bg-page px-2.5 py-1.5 text-micro text-ink disabled:text-ink-soft disabled:opacity-50"
+      className="numeric min-h-11 border border-line bg-page px-3 py-1.5 text-micro text-ink disabled:text-ink-soft disabled:opacity-50"
     >
       {children}
     </button>

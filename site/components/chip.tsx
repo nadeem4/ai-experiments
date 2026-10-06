@@ -31,7 +31,7 @@ export function Section({
 }) {
   return (
     <section className="mt-20 border-t border-line pt-8" aria-labelledby={id}>
-      <h2 id={id} className="max-w-[24ch] text-h3 font-semibold leading-tight tracking-tight">
+      <h2 id={id} className="max-w-[28ch] text-balance text-h2 font-semibold leading-tight tracking-tight">
         {title}
       </h2>
       {standfirst && (

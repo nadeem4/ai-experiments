@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isPublished, requirePublished } from "@/lib/published";
 import Link from "next/link";
 import bankingData from "@/data/banking77.json";
 import { Chip, Mono, Prose, Section } from "@/components/chip";
@@ -32,13 +33,19 @@ const DESCRIPTION =
   `${headline.deficit_points.toFixed(2)}-point gap, and the documented workaround scores ` +
   `${points(headline.workaround_vs_default_points)} against doing nothing.`;
 
-export const metadata: Metadata = {
+const PAGE_METADATA: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   openGraph: { title: TITLE, description: DESCRIPTION },
 };
 
+// An unpublished page renders the 404 (experiments.config.ts), and its title
+// must not ride along in the head.
+export const metadata: Metadata = isPublished("banking77") ? PAGE_METADATA : {};
+
 export default function Page() {
+  requirePublished("banking77");
+
   return (
     <main className="mx-auto max-w-[1180px] px-4 pb-28 pt-12 md:px-8">
       <h1 className="max-w-[19ch] text-h1 font-semibold leading-[1.05] tracking-tight">{TITLE}</h1>

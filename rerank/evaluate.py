@@ -354,6 +354,7 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
         log(format_table([summary]))
 
     results = {"dataset": f"BEIR NFCorpus ({split})", "tag": tag, "queries": len(queries),
+               "documents": len(corpus),
                "top_k": top_k, **provenance(config),
                "finished": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                "methods": summaries,

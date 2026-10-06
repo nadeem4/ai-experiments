@@ -18,6 +18,10 @@ import {
   scoreNote,
   deltaSeries,
   axis,
+  headToHead,
+  openingQuery,
+  rangeAxis,
+  verdict,
   label,
   matchQueries,
   methodOrder,
@@ -66,6 +70,10 @@ const fixture: Rerank = {
     device: "cpu",
     commit: "abc1234",
     finished: "2026-01-01T00:00:00+00:00",
+    documents: 40,
+    head_to_head: [
+      { method: "cross-encoder", against: "jev-score", mean: -0.05, ci95: [-0.08, -0.02], better: 1, worse: 2, same: 0 },
+    ],
     methods: [
       {
         method: "hybrid",
@@ -178,6 +186,10 @@ describe("runFacts", () => {
     expect(facts.failed).toBe(1);
   });
 
+  it("carries the size of the corpus the questions were searched over", () => {
+    expect(runFacts(fixture).documents).toBe(40);
+  });
+
   it("reports the run's own queries, device and candidate depth", () => {
     const facts = runFacts(run);
     expect(facts.queries).toBe(run.summary.queries);
@@ -274,6 +286,13 @@ describe("barLayout", () => {
     expect(bars.map((b) => b.id)).toEqual(["a", "b", "c"]);
     expect(bars[0].x).toBeLessThan(bars[1].x);
     expect(bars[2].x + bars[2].width).toBeLessThanOrEqual(300);
+  });
+
+  it("draws on a scale it is handed, so panels side by side share one", () => {
+    const own = barLayout(series, { width: 300, height: 100, step: 0.1 });
+    const shared = barLayout(series, { width: 300, height: 100, step: 0.1, half: 1 });
+    expect(shared.half).toBe(1);
+    expect(shared.bars[0].height).toBeLessThan(own.bars[0].height);
   });
 
   it("keeps every bar wide enough to see and to hit", () => {
@@ -415,6 +434,76 @@ describe("matchQueries", () => {
 
   it("does not list the question on screen twice", () => {
     expect(matchQueries(fixture.queries, "vitamin", "Q-1").map((q) => q.id)).toEqual(["Q-1", "Q-3"]);
+  });
+});
+
+describe("headToHead", () => {
+  it("reads a pair the way the run wrote it", () => {
+    const d = headToHead(fixture, "cross-encoder", "jev-score")!;
+    expect(d.mean).toBe(-0.05);
+    expect([d.better, d.worse]).toEqual([1, 2]);
+  });
+
+  it("turns a pair round when asked the other way, so the first named is always the subject", () => {
+    const d = headToHead(fixture, "jev-score", "cross-encoder")!;
+    expect(d.mean).toBe(0.05);
+    expect(d.ci95).toEqual([0.02, 0.08]);
+    expect([d.better, d.worse, d.same]).toEqual([2, 1, 0]);
+  });
+
+  it("is missing rather than invented for a pair the run never compared", () => {
+    expect(headToHead(fixture, "jev-score", "laya-score")).toBeUndefined();
+  });
+
+  it("finds Jev ahead of the cross-encoder in the real run", () => {
+    const d = headToHead(run, "jev-score", "cross-encoder")!;
+    expect(d.mean).toBeGreaterThan(0);
+    expect(d.ci95![0]).toBeGreaterThan(0);
+  });
+});
+
+describe("verdict", () => {
+  it("calls a method better only when its whole interval clears the floor", () => {
+    expect(verdict(0.05, [0.03, 0.06])).toBe("better");
+  });
+
+  it("calls it worse when the whole interval sits below", () => {
+    expect(verdict(-0.02, [-0.04, -0.01])).toBe("worse");
+  });
+
+  it("refuses to call an interval that crosses zero either way", () => {
+    expect(verdict(0.01, [-0.01, 0.03])).toBe("no clear change");
+    expect(verdict(0.01, null)).toBe("no clear change");
+  });
+});
+
+describe("rangeAxis", () => {
+  it("rounds the domain out to readable ticks and maps it onto the width", () => {
+    const a = rangeAxis([0.3028, 0.3785], 100, 0.02);
+    expect(a.lo).toBeCloseTo(0.3, 10);
+    expect(a.hi).toBeCloseTo(0.38, 10);
+    expect(a.x(a.lo)).toBe(0);
+    expect(a.x(a.hi)).toBe(100);
+  });
+
+  it("names a tick at every step from end to end", () => {
+    const a = rangeAxis([0.31, 0.35], 100, 0.02);
+    expect(a.ticks.map((t) => t.toFixed(2))).toEqual(["0.30", "0.32", "0.34", "0.36"]);
+  });
+});
+
+describe("openingQuery", () => {
+  it("opens where one method helped and the other hurt, by the widest margin", () => {
+    expect(openingQuery(fixture, "jev-score", "cross-encoder")).toBe("Q-1");
+    expect(openingQuery(fixture, "cross-encoder", "jev-score")).toBe("Q-3");
+  });
+
+  it("never opens on a question nothing could move", () => {
+    const id = openingQuery(run, "jev-score", "laya-score");
+    const query = run.queries.find((q) => q.id === id)!;
+    expect(query.can_move).toBe(true);
+    expect(query.ndcg["jev-score"]).toBeGreaterThan(0);
+    expect(query.ndcg["laya-score"]).toBeLessThan(0);
   });
 });
 

@@ -73,6 +73,10 @@ export interface Rerank {
     device: string;
     commit: string | null;
     finished: string;
+    /** The corpus every question was searched over. Absent from runs reported before it was recorded. */
+    documents?: number;
+    /** Every pair of re-rankers, `method - against`, per query. */
+    head_to_head?: (Paired & { method: string; against: string })[];
     methods: RerankMethod[];
   };
   config: Record<string, unknown>;
@@ -179,6 +183,7 @@ export interface RunFacts {
   device: string;
   dataset: string;
   passages: number;
+  documents: number | null;
 }
 
 /** The size of the run, added up rather than quoted. */
@@ -193,6 +198,57 @@ export function runFacts(data: Rerank): RunFacts {
     device: data.summary.device,
     dataset: data.summary.dataset,
     passages: Object.keys(data.titles).length,
+    documents: data.summary.documents ?? null,
+  };
+}
+
+/**
+ * How `method` did against `against`, query by query. The run writes each pair
+ * once, so asking the other way round turns it: the sign, the interval and the
+ * win and loss counts all swap, and the first name is always the subject.
+ */
+export function headToHead(data: Rerank, method: string, against: string): Paired | undefined {
+  const pairs = data.summary.head_to_head ?? [];
+  const same = pairs.find((p) => p.method === method && p.against === against);
+  if (same) return { mean: same.mean, ci95: same.ci95, better: same.better, worse: same.worse, same: same.same };
+  const turned = pairs.find((p) => p.method === against && p.against === method);
+  if (!turned) return undefined;
+  return {
+    mean: -turned.mean,
+    ci95: turned.ci95 ? [-turned.ci95[1], -turned.ci95[0]] : null,
+    better: turned.worse,
+    worse: turned.better,
+    same: turned.same,
+  };
+}
+
+export type Verdict = "better" | "worse" | "no clear change";
+
+/** What a paired difference allows the page to say, and nothing more. */
+export function verdict(mean: number, ci: Interval | undefined): Verdict {
+  if (!excludesZero(ci)) return "no clear change";
+  return mean > 0 ? "better" : "worse";
+}
+
+export interface RangeAxis {
+  lo: number;
+  hi: number;
+  x: (value: number) => number;
+  ticks: number[];
+}
+
+/** An absolute scale, for showing where a score landed rather than how far it
+ * moved: the domain rounded out to the nearest `step` on either side. */
+export function rangeAxis(values: number[], width: number, step: number): RangeAxis {
+  const loSteps = Math.floor(Math.min(...values) / step);
+  const hiSteps = Math.ceil(Math.max(...values) / step);
+  const lo = loSteps * step;
+  const hi = hiSteps * step;
+  return {
+    lo,
+    hi,
+    x: (value: number) => ((value - lo) / (hi - lo)) * width,
+    ticks: Array.from({ length: hiSteps - loSteps + 1 }, (_, i) => (loSteps + i) * step),
   };
 }
 
@@ -262,12 +318,22 @@ export interface BarLayout {
 /** Every movable query as one thin bar, hung off a zero line in the middle. */
 export function barLayout(
   series: DeltaPoint[],
-  { width, height, step, gap = 0 }: { width: number; height: number; step: number; gap?: number },
-): BarLayout {
-  const half = symmetricHalf(
-    series.map((point) => point.delta),
+  {
+    width,
+    height,
     step,
-  );
+    gap = 0,
+    half: given,
+  }: { width: number; height: number; step: number; gap?: number; half?: number },
+): BarLayout {
+  // A panel sized to its own data makes a ±0.6 chart look like a ±1.0 one, so
+  // panels meant to be read side by side are handed one scale.
+  const half =
+    given ??
+    symmetricHalf(
+      series.map((point) => point.delta),
+      step,
+    );
   const zeroY = height / 2;
   const slot = width / Math.max(1, series.length);
   const barWidth = Math.max(slot - gap, slot * 0.5);
@@ -372,6 +438,19 @@ export function candidateRows(
       moved: floorRank ? floorRank - (i + 1) : 0,
     };
   });
+}
+
+/**
+ * The question the explorer opens on: the one where `helped` raised nDCG@10 and
+ * `hurt` lowered it by the widest combined margin. Opening on the best re-ranker's
+ * single best question showed every method helping, which is the opposite of
+ * the finding; a question where two of them disagree shows what the means hide.
+ */
+export function openingQuery(data: Rerank, helped: string, hurt: string): string {
+  const split = data.queries.filter((q) => q.can_move && q.ndcg[helped] > 0 && q.ndcg[hurt] < 0);
+  if (!split.length) return (data.queries.find((q) => q.can_move) ?? data.queries[0]).id;
+  const margin = (q: RerankQuery) => q.ndcg[helped] - q.ndcg[hurt];
+  return split.reduce((a, b) => (margin(b) > margin(a) ? b : a)).id;
 }
 
 /**

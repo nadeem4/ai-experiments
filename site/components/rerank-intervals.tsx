@@ -32,7 +32,8 @@ export function RerankIntervals({ data }: { data: Rerank }) {
       <figcaption className="max-w-[72ch] text-micro leading-relaxed text-ink-soft">
         nDCG@10 against the <span className="numeric">{data.floor}</span> floor, paired per query, with 95%
         intervals. Zero is the order the retriever already gave you. Each interval is against that common
-        floor, so the picture says nothing about how any two of these four compare with each other.
+        floor, so the picture alone does not say how two of these four compare with each other; the
+        paragraphs below compare them directly.
       </figcaption>
     </figure>
   );
@@ -55,7 +56,7 @@ function IntervalChart({ data, width, className }: { data: Rerank; width: number
       aria-label={`nDCG@10 against the ${data.floor} floor, paired per query. ${rows
         .map(
           (row) =>
-            `${row.method}: ${signed(row.mean)}, 95% interval ${signed(row.ci95![0])} to ${signed(row.ci95![1])}`,
+            `${row.label}: ${signed(row.mean)}, 95% interval ${signed(row.ci95![0])} to ${signed(row.ci95![1])}`,
         )
         .join(". ")}.`}
     >
@@ -85,7 +86,7 @@ function IntervalChart({ data, width, className }: { data: Rerank; width: number
         return (
           <g key={row.method}>
             <text x={0} y={top + 13} className="numeric" fontSize={13} fill="var(--ink)">
-              {row.method}
+              {row.label}
             </text>
             <text
               x={width}
