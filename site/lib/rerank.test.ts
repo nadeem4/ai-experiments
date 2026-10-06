@@ -25,6 +25,7 @@ import {
   queryNdcg,
   rerankerRows,
   runFacts,
+  scrollTopToShow,
   symmetricHalf,
   type Detail,
   type Rerank,
@@ -414,6 +415,23 @@ describe("matchQueries", () => {
 
   it("does not list the question on screen twice", () => {
     expect(matchQueries(fixture.queries, "vitamin", "Q-1").map((q) => q.id)).toEqual(["Q-1", "Q-3"]);
+  });
+});
+
+describe("scrollTopToShow", () => {
+  // A list 100 tall, scrolled to 200, so rows 200 to 300 are visible.
+  const view = { scrollTop: 200, height: 100 };
+
+  it("leaves the list where it is when the row is already visible", () => {
+    expect(scrollTopToShow({ top: 240, height: 20 }, view)).toBe(200);
+  });
+
+  it("scrolls up just far enough to show a row above the view", () => {
+    expect(scrollTopToShow({ top: 150, height: 20 }, view)).toBe(150);
+  });
+
+  it("scrolls down just far enough to show a row below the view", () => {
+    expect(scrollTopToShow({ top: 320, height: 20 }, view)).toBe(240);
   });
 });
 

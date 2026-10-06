@@ -1,8 +1,61 @@
 # Can a decision model re-rank retrieval better than hybrid search?
 
+**Status: complete.** One full run over all 323 test queries, on an NVIDIA T4, finished 2026-09-26.
+What it found is in **[RESULTS.md](RESULTS.md)**, and on the site at
+**[lab.codewithnk.com/rerank](https://lab.codewithnk.com/rerank/)**; what the data holds is in **[DATASET.md](DATASET.md)**.
+This file is the protocol, written before the run. Anything changed since is under
+[Protocol amendments](#protocol-amendments), dated.
+
 ## The question
 
 Does putting a decision model in front of a retrieval ranking make the ranking better, and what does it cost?
+
+## Re-ranking in two minutes
+
+A search over a few thousand documents usually runs in two stages, because the model
+that judges relevance best is too slow to run against every document.
+
+```mermaid
+%%{init: {"theme": "base", "themeVariables": {"primaryColor": "#ffffff", "primaryTextColor": "#000000", "primaryBorderColor": "#000000", "lineColor": "#000000", "fontFamily": "monospace"}}}%%
+flowchart LR
+    Q["a query"] --> R["<b>retriever</b><br/>scores all 3,633 documents<br/>fast, rough"]
+    R --> S["a shortlist of 20"]
+    S --> RR["<b>re-ranker</b><br/>reads the query and each<br/>passage together<br/>slow, careful"]
+    RR --> O["the same 20,<br/>in a new order"]
+```
+
+**The retriever** turns the query into something cheap to compare against every document
+at once: shared words (BM25), or a vector whose direction carries meaning (a dense
+encoder), or both. It is good at finding the right neighbourhood and rough about the
+order inside it.
+
+**The re-ranker** sees only the shortlist. It reads the query and one passage side by
+side and says how well the passage answers the query, which is a far better judgement
+than comparing two pre-computed vectors, and far too slow to make 3,633 times a query.
+Sort the shortlist by its scores and you have the new order.
+
+Two things follow, and the whole experiment sits inside them:
+
+- **A re-ranker cannot find anything.** It reorders what it was given. If the 20 hold
+  nothing relevant, no re-ranker can help, and here that is true of 71 queries.
+- **Doing nothing is a real option.** The retriever already produced an order. A
+  re-ranker is only worth running if it beats that order, so that order is the
+  **floor** every method is measured against.
+
+**The kinds of re-ranker compared here.** All of them score one (query, passage) pair at
+a time and are then sorted; none sees the whole list at once.
+
+| Kind | What it does | Here |
+|---|---|---|
+| Cross-encoder | a small transformer trained on MS MARCO (real Bing questions, with the passages people marked as answering them); reads both texts together and outputs one relevance number | `cross-encoder/ms-marco-MiniLM-L-6-v2`, 22M parameters |
+| Decision model | answers a typed question ("how relevant, 0 to 4?") with a number, never with text, so there is nothing to parse | Jev (hosted), Laya (open weights, two checkpoints) |
+| Language model per passage | prompts a chat model and parses its reply | not tested here; the expensive option a decision model would replace |
+
+**How an order is graded.** People have already marked which documents answer which
+query. **nDCG@10** looks at the top 10 and rewards relevant documents more the higher they
+sit: 1.0 is the best order possible for that query, 0 means nothing relevant made the top
+10. It is averaged over queries. A re-ranker that moves a relevant passage from 8th to
+1st raises it; one that pushes it to 15th lowers it.
 
 ## Motivation
 
@@ -15,6 +68,14 @@ Re-ranking is a real stage in a real pipeline, and today it is served either by 
 **Nothing is trained here.** This is deliberately zero-shot: the numbers are the baseline that makes a later fine-tune interpretable. Laya's own model card is blunt that its base checkpoints are near chance on typed decisions zero-shot, so a low number for Laya is expected information, not a bug.
 
 What changes depending on the answer: if a decision model beats the retriever's own order, re-ranking is a place to put one, and the cost per thousand calls decides whether it beats the cross-encoder in production. If it does not, the open-weights case needs a fine-tune before it is worth anything here at all.
+
+## What we expect
+
+**No prediction was recorded before the run.** This section was added on 2026-10-06,
+after the results were known, so nothing written here could be checked against them and
+none is offered. The one expectation on record is in the commit that reported the run
+(`b0a28c4`): that a better first stage would leave a re-ranker *less* room to improve,
+which the run contradicted.
 
 ## Data
 
@@ -178,6 +239,46 @@ Both live in `rerank/rerankers/laya.py`. `laya-typed-score` and `laya-typed-noul
 
 Jev is the only method that leaves the machine, and the only one needing a key: `OPENROUTER_API_KEY`, read from the environment or this repository's root `.env`. Laya's 2.3 GB of weights download on first use unless `LAYA_PATH` already points at them.
 
+## Metrics
+
+- **nDCG@10**, the primary measure. The standard BEIR headline number, so the floor and the methods can be read against published work.
+- **Recall@10**, because a re-ranker can raise nDCG by reordering the same relevant passages without finding any more, and this separates the two.
+- **MRR@10**, because a search user reads from the top and the rank of the first relevant passage is what they feel.
+- **The paired nDCG@10 difference against the floor, with a 95% t interval.** Every method re-ranks the same candidates for the same queries, so the difference is paired per query. A mean is a result only when the interval stays on one side of zero. This is the number the experiment turns on.
+- **Latency p50 and p95 per call**, to price the stage, with the hardware caveat below.
+- **Cost**, taken from the provider's own per-call figure, never tokens times a rate from a pricing page.
+- **Call accounting**: retries, failures, and how many scored passages sit in a tie, because a tie is the retriever's judgement counted inside a re-ranker's score.
+
+## Assumptions and limits
+
+- **On some queries no re-ranker can change anything.** For 71 of the 323, not one of the 20 candidates is judged relevant by the official qrels. nDCG@10 is zero for the floor and zero for every re-ranker on those queries whatever order they choose, so they contribute nothing but denominator. The means are reported over all 323, and the per-query table marks which could move.
+- **Laya and the cross-encoder run on CPU. There is no usable GPU on this machine**, so their latencies are CPU latencies and are not comparable to Laya's published 39.5 ms on a T4. Jev runs over the network, so its latency is a round trip and not a comparable quantity at all. Nothing here is a speed claim.
+- **Jev is never compared with the cross-encoder.** Each interval is against the common floor, and two intervals that both exclude zero do not establish that one method beats the other. The paired difference would, and it is not measured.
+- **The pilot and the full run are not directly comparable**, and where they disagree the full run is the one to believe. The pilot used top-50 candidates and the full run top-20, and a shallower pool is a cleaner one, which moves the floor with it.
+- **A tie is not an opinion.** `rank_by_score` leaves tied passages in the order the retriever gave them, and Jev's answers come back rounded to two decimals, so a 0-to-4 score has at most 401 places to land. Coarse steps mean ties, and the rounding is not something a client can switch off.
+- **Passages are cut to 1,000 characters.** NFCorpus abstracts are longer than the English checkpoint's roughly 320-token state budget, so they are cut where it is visible in the recorded request. Nothing here measures what the tail would have added.
+- **A failed call keeps the retriever's position.** Nothing is invented for a call that never succeeded, which means those passages are the retriever's judgement counted inside the re-ranker's score.
+- **The Laya passes and the Jev pass overlap in time.** Jev is network-bound and Laya is CPU-bound so they do not contend, but the Laya latencies are slightly pessimistic. They remain comparable to each other, which is what the base-versus-fine-tune question needs.
+
+## How to run it
+
+Needs [uv](https://docs.astral.sh/uv/) and Python 3.12, from the repository root. Jev
+needs `OPENROUTER_API_KEY` in the environment or the root `.env`; everything else runs
+locally. Laya's 2.3 GB of weights download on first use unless `LAYA_PATH` points at them.
+
+```
+uv sync
+uv run cli run rerank --tag pilot --limit 20      # a small slice first
+uv run cli run rerank --tag gpu --limit 0         # all 323 queries
+```
+
+The run is resumable: re-run the same command and only unscored pairs are sent; when
+everything is scored it only re-reports. On a GPU, `uv run cli submit rerank` starts the
+Kaggle kernel in [`kaggle/`](kaggle/), and [`colab/`](colab/) holds a notebook for when the
+Kaggle queue does not move. Both clone `main`, so push first.
+
+## The code, and where its output goes
+
 ### The code
 
 | File | What it does |
@@ -191,7 +292,7 @@ Jev is the only method that leaves the machine, and the only one needing a key: 
 | `store.py` | the append-and-flush JSONL log, which doubles as the resume point |
 | `evaluate.py` | the task and the CLI |
 
-## Where the output goes
+### Where the output goes
 
 | Path | What | Committed |
 |---|---|---|
@@ -234,23 +335,20 @@ One line of `scores.jsonl`:
 
 A re-ranker that emitted only a score would not be enough: without the exchange there is no way to check afterwards what a model was actually asked.
 
-## Metrics
+## Protocol amendments
 
-- **nDCG@10**, the primary measure. The standard BEIR headline number, so the floor and the methods can be read against published work.
-- **Recall@10**, because a re-ranker can raise nDCG by reordering the same relevant passages without finding any more, and this separates the two.
-- **MRR@10**, because a search user reads from the top and the rank of the first relevant passage is what they feel.
-- **The paired nDCG@10 difference against the floor, with a 95% t interval.** Every method re-ranks the same candidates for the same queries, so the difference is paired per query. A mean is a result only when the interval stays on one side of zero. This is the number the experiment turns on.
-- **Latency p50 and p95 per call**, to price the stage, with the hardware caveat below.
-- **Cost**, taken from the provider's own per-call figure, never tokens times a rate from a pricing page.
-- **Call accounting**: retries, failures, and how many scored passages sit in a tie, because a tie is the retriever's judgement counted inside a re-ranker's score.
+**2026-09-26, the run used a GPU.** "Assumptions and limits" says Laya and the
+cross-encoder run on a CPU because this machine has no usable GPU. The full run was
+moved to an NVIDIA T4 on Colab after the Kaggle queue did not start, so their latencies
+are T4 latencies: comparable with each other and with Laya's published 39.5 ms on a T4.
+Jev's is still a network round trip. The method is otherwise unchanged.
 
-## Assumptions and limits
+**2026-10-06, two comparisons added to the report, after the results were known.** The
+report now also writes every re-ranker's paired difference with every other, and repeats
+the comparisons over the 252 queries that could move. Both read the same wire log and
+change no number already reported. They answer what "Assumptions and limits" lists as not
+measured: whether Jev beats the cross-encoder.
 
-- **On some queries no re-ranker can change anything.** For 71 of the 323, not one of the 20 candidates is judged relevant by the official qrels. nDCG@10 is zero for the floor and zero for every re-ranker on those queries whatever order they choose, so they contribute nothing but denominator. The means are reported over all 323, and the per-query table marks which could move.
-- **Laya and the cross-encoder run on CPU. There is no usable GPU on this machine**, so their latencies are CPU latencies and are not comparable to Laya's published 39.5 ms on a T4. Jev runs over the network, so its latency is a round trip and not a comparable quantity at all. Nothing here is a speed claim.
-- **Jev is never compared with the cross-encoder.** Each interval is against the common floor, and two intervals that both exclude zero do not establish that one method beats the other. The paired difference would, and it is not measured.
-- **The pilot and the full run are not directly comparable**, and where they disagree the full run is the one to believe. The pilot used top-50 candidates and the full run top-20, and a shallower pool is a cleaner one, which moves the floor with it.
-- **A tie is not an opinion.** `rank_by_score` leaves tied passages in the order the retriever gave them, and Jev's answers come back rounded to two decimals, so a 0-to-4 score has at most 401 places to land. Coarse steps mean ties, and the rounding is not something a client can switch off.
-- **Passages are cut to 1,000 characters.** NFCorpus abstracts are longer than the English checkpoint's roughly 320-token state budget, so they are cut where it is visible in the recorded request. Nothing here measures what the tail would have added.
-- **A failed call keeps the retriever's position.** Nothing is invented for a call that never succeeded, which means those passages are the retriever's judgement counted inside the re-ranker's score.
-- **The Laya passes and the Jev pass overlap in time.** Jev is network-bound and Laya is CPU-bound so they do not contend, but the Laya latencies are slightly pessimistic. They remain comparable to each other, which is what the base-versus-fine-tune question needs.
+**2026-10-06, this file was reordered.** "Re-ranking in two minutes", "What we expect",
+"How to run it" and this section were added, and the code and output tables moved to the
+end. No sentence of the original protocol was reworded.
