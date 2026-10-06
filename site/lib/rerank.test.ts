@@ -14,8 +14,6 @@ import {
   barIndexAt,
   barLayout,
   barPaths,
-  candidateRows,
-  scoreNote,
   deltaSeries,
   axis,
   headToHead,
@@ -30,7 +28,6 @@ import {
   queryNdcg,
   rerankerRows,
   runFacts,
-  scrollTopToShow,
   symmetricHalf,
   type Detail,
   type Rerank,
@@ -376,46 +373,6 @@ describe("queryNdcg", () => {
   });
 });
 
-describe("candidateRows", () => {
-  it("numbers the candidates from one, in the method's order", () => {
-    const rows = candidateRows(detail.queries["Q-1"], "jev-score", "hybrid", ["D-2"], fixture.titles)!;
-    expect(rows.map((r) => r.docId)).toEqual(["D-2", "D-3", "D-1"]);
-    expect(rows.map((r) => r.rank)).toEqual([1, 2, 3]);
-  });
-
-  it("pairs each score with the document beside it in the order", () => {
-    const rows = candidateRows(detail.queries["Q-1"], "jev-score", "hybrid", [], fixture.titles)!;
-    expect(rows.map((r) => r.score)).toEqual([3.5, 1.25, 0.5]);
-  });
-
-  it("records where the floor had put each document, and how far it travelled", () => {
-    const rows = candidateRows(detail.queries["Q-1"], "jev-score", "hybrid", [], fixture.titles)!;
-    expect(rows.map((r) => r.floorRank)).toEqual([2, 3, 1]);
-    expect(rows.map((r) => r.moved)).toEqual([1, 1, -2]);
-  });
-
-  it("marks the documents the judgements call relevant", () => {
-    const rows = candidateRows(detail.queries["Q-1"], "hybrid", "hybrid", ["D-2"], fixture.titles)!;
-    expect(rows.filter((r) => r.relevant).map((r) => r.docId)).toEqual(["D-2"]);
-  });
-
-  it("has no score to show for the floor, which never scored anything", () => {
-    const rows = candidateRows(detail.queries["Q-1"], "hybrid", "hybrid", [], fixture.titles)!;
-    expect(rows.every((r) => r.score === null)).toBe(true);
-    expect(rows.every((r) => r.moved === 0)).toBe(true);
-  });
-
-  it("falls back to the document id when the run kept no title", () => {
-    const rows = candidateRows(detail.queries["Q-1"], "hybrid", "hybrid", [], fixture.titles)!;
-    expect(rows[2].title).toBe("D-3");
-  });
-
-  it("returns nothing when the method has no order for this query", () => {
-    expect(candidateRows(detail.queries["Q-1"], "laya-score", "hybrid", [], fixture.titles)).toBeNull();
-    expect(candidateRows(undefined, "jev-score", "hybrid", [], fixture.titles)).toBeNull();
-  });
-});
-
 describe("matchQueries", () => {
   it("returns everything for an empty search", () => {
     expect(matchQueries(fixture.queries, "  ")).toHaveLength(3);
@@ -531,37 +488,3 @@ describe("walkthroughFacts", () => {
   });
 });
 
-describe("scrollTopToShow", () => {
-  // A list 100 tall, scrolled to 200, so rows 200 to 300 are visible.
-  const view = { scrollTop: 200, height: 100 };
-
-  it("leaves the list where it is when the row is already visible", () => {
-    expect(scrollTopToShow({ top: 240, height: 20 }, view)).toBe(200);
-  });
-
-  it("scrolls up just far enough to show a row above the view", () => {
-    expect(scrollTopToShow({ top: 150, height: 20 }, view)).toBe(150);
-  });
-
-  it("scrolls down just far enough to show a row below the view", () => {
-    expect(scrollTopToShow({ top: 320, height: 20 }, view)).toBe(240);
-  });
-});
-
-describe("scoreNote", () => {
-  it("says the floor never scored anything, because it is the retriever's order", () => {
-    expect(scoreNote("hybrid", "hybrid", null)).toBe(
-      "hybrid is the order the retriever returned, so it holds no score of its own.",
-    );
-  });
-
-  it("says a scorer's missing number is a failed call, not an absent opinion", () => {
-    expect(scoreNote("jev-score", "hybrid", null)).toBe(
-      "jev-score returned nothing for this passage: the call failed, so it kept the slot hybrid gave it.",
-    );
-  });
-
-  it("reads out the number when there is one", () => {
-    expect(scoreNote("jev-score", "hybrid", 2.25)).toBe("jev-score scored this passage 2.250");
-  });
-});

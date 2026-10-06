@@ -199,3 +199,109 @@ svg :where([tabindex]):focus-visible .focus-ring {
     box-shadow: 0 12px 32px -12px rgb(0 0 0 / 0.6);
   }
 }
+
+/* ---- Watch one question: the question sheet, the strips and the moving list ---- */
+
+/* The question sheet: a dropdown under its control on wide screens, a bottom
+   sheet on phones. rerank-watch-picker.tsx places it when it opens. */
+.watch-sheet {
+  position: absolute;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  width: min(30rem, calc(100vw - 2rem));
+  max-height: min(70dvh, 34rem);
+  display: none;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 16px 40px -16px rgb(19 24 32 / 0.35);
+}
+.watch-sheet:popover-open {
+  display: grid;
+}
+@media (max-width: 1023px) {
+  .watch-sheet {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: 100%;
+    max-height: 82dvh;
+    border-width: 1px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .watch-sheet::backdrop {
+    background: rgb(14 17 20 / 0.32);
+  }
+}
+
+/* Strip cells: 20 per ranking, answers in violet and numbered while the ids
+   are single digits, a ring for anything the reader has highlighted. */
+.watch-cells {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr)) 8px repeat(10, minmax(0, 1fr));
+  gap: 2px;
+}
+.watch-cells i {
+  height: 24px;
+  display: grid;
+  place-items: center;
+  font: 600 11px/1 var(--font-plex-mono), ui-monospace, monospace;
+  font-style: normal;
+  color: var(--page);
+  background: var(--surface-sunk);
+}
+.watch-cells i.top {
+  background: var(--line);
+}
+.watch-cells i.ans {
+  background: var(--mark);
+}
+.watch-cells i.lit {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
+}
+.watch-cells b {
+  width: 2px;
+  justify-self: center;
+  background: var(--ink);
+}
+@media (max-width: 480px) {
+  .watch-cells i {
+    height: 20px;
+    font-size: 0;
+  }
+}
+
+/* The list: slots stay put and the candidates travel between them. */
+.watch-lane {
+  --row: 50px;
+  --divider: 30px;
+  --travel: 500ms;
+  position: relative;
+  height: calc(var(--row) * 20 + var(--divider));
+  scroll-margin-top: calc(var(--watch-bar, 0px) + 12px);
+}
+.watch-cand {
+  transition: transform var(--travel) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.watch-lane.still .watch-cand {
+  transition: none;
+}
+.watch-cand.lit {
+  box-shadow: 0 0 0 2px var(--page), 0 0 0 4px var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .watch-cand {
+    transition: none;
+  }
+  .watch-lane.fade {
+    animation: watch-fade 220ms ease-out;
+  }
+  @keyframes watch-fade {
+    from {
+      opacity: 0.35;
+    }
+  }
+}

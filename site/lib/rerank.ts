@@ -396,50 +396,6 @@ export function queryNdcg(
   return { floor: at, value: at + delta, delta };
 }
 
-export interface CandidateRow {
-  rank: number;
-  docId: string;
-  title: string;
-  score: number | null;
-  relevant: boolean;
-  floorRank: number;
-  /** Places gained against the floor: positive travelled up the list. */
-  moved: number;
-}
-
-/**
- * The candidate list as one method left it. Returns `null` when the run holds no
- * order for that method on that query, which is not the same as the method
- * having agreed with the floor and must not be drawn as though it were.
- */
-export function candidateRows(
-  entry: DetailQuery | undefined,
-  method: string,
-  floor: string,
-  relevant: string[],
-  titles: Record<string, string>,
-): CandidateRow[] | null {
-  const order = entry?.orders[method];
-  if (!entry || !order) return null;
-
-  const scores = entry.scores[method];
-  const floorOrder = entry.orders[floor] ?? order;
-  const judged = new Set(relevant);
-
-  return order.map((docId, i) => {
-    const floorRank = floorOrder.indexOf(docId) + 1;
-    return {
-      rank: i + 1,
-      docId,
-      title: titles[docId] ?? docId,
-      score: scores?.[i] ?? null,
-      relevant: judged.has(docId),
-      floorRank,
-      moved: floorRank ? floorRank - (i + 1) : 0,
-    };
-  });
-}
-
 /**
  * The question the explorer opens on: the one where `helped` raised nDCG@10 and
  * `hurt` lowered it by the widest combined margin. Opening on the best re-ranker's
@@ -491,21 +447,6 @@ export function walkthroughFacts(
 }
 
 /**
- * Where to scroll the query list so its chosen row is visible, moving as little
- * as possible. `scrollIntoView` does the same arithmetic but applies it to every
- * scrollable ancestor too, the window included, which is how the page used to
- * open halfway down at the picker instead of at its title.
- */
-export function scrollTopToShow(
-  row: { top: number; height: number },
-  view: { scrollTop: number; height: number },
-): number {
-  if (row.top < view.scrollTop) return row.top;
-  if (row.top + row.height > view.scrollTop + view.height) return row.top + row.height - view.height;
-  return view.scrollTop;
-}
-
-/**
  * The query list, filtered by what someone typed into the search box.
  *
  * `keep` is the question currently on screen, and it stays in the list even
@@ -522,18 +463,4 @@ export function matchQueries(queries: RerankQuery[], term: string, keep?: string
   if (!keep || found.some((q) => q.id === keep)) return found;
   const current = queries.find((q) => q.id === keep);
   return current ? [current, ...found] : found;
-}
-
-/**
- * What to say about one passage's number. A missing score means two different
- * things and the page must not blur them: the floor never scored anything
- * because it is the retriever's own order, whereas a scorer with no number
- * there is a call that failed. The run kept that passage where the retriever
- * had put it, so the rank beside it is the first stage's, not the scorer's.
- */
-export function scoreNote(method: string, floor: string, score: number | null): string {
-  if (score !== null) return `${method} scored this passage ${score.toFixed(3)}`;
-  if (method === floor)
-    return `${floor} is the order the retriever returned, so it holds no score of its own.`;
-  return `${method} returned nothing for this passage: the call failed, so it kept the slot ${floor} gave it.`;
 }
