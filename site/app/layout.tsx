@@ -22,8 +22,11 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
+// Says what the site is, not which experiments are on it: that list is
+// experiments.config.ts's to decide, and a description naming an unpublished one
+// would publish it in every link preview.
 const DESCRIPTION =
-  "Measured experiments on AI models, each one carrying the raw wire it was measured from: what a typed decision costs at 4 options and at 151, whether a token budget explains Laya's Banking77 score, and whether a decision model re-ranks retrieval better than hybrid search.";
+  "Measured experiments on AI models, each one carrying the raw wire it was measured from: every request and response kept, every number read from a results file.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://lab.codewithnk.com"),

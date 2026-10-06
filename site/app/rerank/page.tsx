@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isPublished, requirePublished } from "@/lib/published";
 import Link from "next/link";
 import rerankData from "@/data/rerank.json";
 import { Prose, Section } from "@/components/chip";
@@ -43,13 +44,19 @@ const DESCRIPTION =
   `pair one at a time. Jev lifts nDCG@10 from ${floor["ndcg@10"].toFixed(3)} to ${best.ndcg.toFixed(3)} and beats ` +
   `a cross-encoder head to head; both Laya checkpoints make the order worse than doing nothing.`;
 
-export const metadata: Metadata = {
+const PAGE_METADATA: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   openGraph: { title: TITLE, description: DESCRIPTION },
 };
 
+// An unpublished page renders the 404 (experiments.config.ts), and its title
+// must not ride along in the head.
+export const metadata: Metadata = isPublished("rerank") ? PAGE_METADATA : {};
+
 export default function Page() {
+  requirePublished("rerank");
+
   return (
     <main className="mx-auto max-w-[1180px] px-4 pb-28 pt-12 md:px-8">
       <h1 className="max-w-[18ch] text-h1 font-semibold leading-[1.05] tracking-tight">{TITLE}</h1>

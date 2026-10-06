@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { isPublished, requirePublished } from "@/lib/published";
 import Link from "next/link";
 import typedData from "@/data/typed-decisions.json";
 import { Chip, Mono, Prose, Section } from "@/components/chip";
@@ -56,13 +57,19 @@ const DESCRIPTION =
   `fastest hosted model on both and wins on accuracy on neither, and the position bias the run was ` +
   `built to measure shows up in one model out of eighteen model/task pairs.`;
 
-export const metadata: Metadata = {
+const PAGE_METADATA: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   openGraph: { title: TITLE, description: DESCRIPTION },
 };
 
+// An unpublished page renders the 404 (experiments.config.ts), and its title
+// must not ride along in the head.
+export const metadata: Metadata = isPublished("typed-decisions") ? PAGE_METADATA : {};
+
 export default function Page() {
+  requirePublished("typed-decisions");
+
   return (
     <main className="mx-auto max-w-[1180px] px-4 pb-28 pt-12 md:px-8">
       <h1 className="max-w-[20ch] text-h1 font-semibold leading-[1.05] tracking-tight">{TITLE}</h1>

@@ -1,10 +1,10 @@
 import Link from "next/link";
+import { published } from "@/lib/published";
 
+// The experiments come from experiments.config.ts, so an unpublished one is in no menu.
 const LINKS = [
   { href: "/", text: "Experiments" },
-  { href: "/typed-decisions/", text: "Typed decisions" },
-  { href: "/banking77/", text: "Banking77" },
-  { href: "/rerank/", text: "Re-ranker" },
+  ...published().map((e) => ({ href: e.href, text: e.nav })),
 ];
 
 export function SiteNav() {
