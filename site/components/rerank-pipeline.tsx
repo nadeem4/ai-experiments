@@ -1,3 +1,4 @@
+import { Term } from "@/components/term";
 import { floorRow, movableSplit, rerankerRows, runFacts, type Rerank } from "@/lib/rerank";
 
 // The protocol's worked example, so the page and the README tell one story.
@@ -31,13 +32,8 @@ export function RerankPipeline({ data }: { data: Rerank }) {
       says: (
         <>
           Health questions from NutritionFacts.org and the PubMed abstracts that might answer them, from{" "}
-          <a
-            href="https://huggingface.co/datasets/BeIR/nfcorpus"
-            className="underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-          >
-            BEIR NFCorpus
-          </a>
-          . People have already marked which abstracts answer which question
+          <Term id="nfcorpus">BEIR NFCorpus</Term>. People have already marked which abstracts answer which
+          question
           {example ? (
             <>
               , for instance <q className="italic">{example.text}</q>
@@ -52,8 +48,9 @@ export function RerankPipeline({ data }: { data: Rerank }) {
       measure: `BM25 + ${encoder} · top ${config.depth} each`,
       says: (
         <>
-          Two cheap searches run over every abstract. One matches words, the other matches meaning, and their
-          two rankings are fused into one (reciprocal rank, k = {config.rrf_k}). Fast, and rough about order.
+          Two cheap searches run over every abstract. <Term id="bm25">One matches words</Term>,{" "}
+          <Term id="encoder">the other matches meaning</Term>, and their two rankings are{" "}
+          <Term id="rrf">fused into one</Term> (k = {config.rrf_k}). Fast, and rough about order.
         </>
       ),
     },
@@ -83,8 +80,9 @@ export function RerankPipeline({ data }: { data: Rerank }) {
       measure: `nDCG@10 · floor ${floor.toFixed(3)}`,
       says: (
         <>
-          The new order is scored against the human judgements: higher when relevant abstracts sit nearer
-          the top. The search&apos;s own order, untouched, is the floor every re-ranker has to beat.
+          The new order is <Term id="ndcg">scored</Term> against the human judgements: higher when relevant
+          abstracts sit nearer the top. The search&apos;s own order, untouched, is{" "}
+          <Term id="floor">the floor</Term> every re-ranker has to beat.
         </>
       ),
     },

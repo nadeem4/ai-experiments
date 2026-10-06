@@ -22,6 +22,7 @@ import {
   openingQuery,
   rangeAxis,
   verdict,
+  walkthroughFacts,
   label,
   matchQueries,
   methodOrder,
@@ -504,6 +505,29 @@ describe("openingQuery", () => {
     expect(query.can_move).toBe(true);
     expect(query.ndcg["jev-score"]).toBeGreaterThan(0);
     expect(query.ndcg["laya-score"]).toBeLessThan(0);
+  });
+});
+
+describe("walkthroughFacts", () => {
+  const query = fixture.queries[0];
+  const q = detail.queries["Q-1"];
+
+  it("follows the passage people judged relevant from the search's order into the model's", () => {
+    const facts = walkthroughFacts(query, q, "jev-score", "cross-encoder", "hybrid");
+    expect(facts.answer).toBe("D-2");
+    expect(facts.from).toBe(2);
+    expect(facts.helpedTo).toBe(1);
+  });
+
+  it("reads each order's nDCG@10 as the floor plus that method's change", () => {
+    const facts = walkthroughFacts(query, q, "jev-score", "cross-encoder", "hybrid");
+    expect(facts.floorNdcg).toBeCloseTo(0.5, 10);
+    expect(facts.helpedNdcg).toBeCloseTo(0.75, 10);
+    expect(facts.hurtNdcg).toBeCloseTo(0.4, 10);
+  });
+
+  it("says nothing about a method whose order the run did not keep", () => {
+    expect(walkthroughFacts(query, q, "jev-score", "cross-encoder", "hybrid").hurtTo).toBeNull();
   });
 });
 

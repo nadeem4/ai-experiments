@@ -7,6 +7,9 @@ import { RerankExplorer } from "@/components/rerank-explorer";
 import { RerankIntervals } from "@/components/rerank-intervals";
 import { RerankPipeline } from "@/components/rerank-pipeline";
 import { RerankStandings } from "@/components/rerank-standings";
+import { RerankWalkthrough } from "@/components/rerank-walkthrough";
+import { Term } from "@/components/term";
+import { METHOD_TERM } from "@/lib/rerank-glossary";
 import {
   floorRow,
   headToHead,
@@ -62,16 +65,21 @@ export default function Page() {
       <h1 className="max-w-[18ch] text-h1 font-semibold leading-[1.05] tracking-tight">{TITLE}</h1>
       <p className="mt-6 max-w-[60ch] text-lead leading-relaxed">
         {verdict(best.mean, best.ci95) === "better" ? "Yes, one of them. " : "No. "}
-        <b>{best.label}</b> lifts nDCG@10 from <span className="numeric">{floor["ndcg@10"].toFixed(3)}</span> to{" "}
+        <b>
+          <Term id={METHOD_TERM[best.method]}>{best.label}</Term>
+        </b>{" "}
+        lifts <Term id="ndcg">nDCG@10</Term> from <span className="numeric">{floor["ndcg@10"].toFixed(3)}</span> to{" "}
         <span className="numeric">{best.ndcg.toFixed(3)}</span>,{" "}
-        {pct(best.ndcg / floor["ndcg@10"] - 1, 1)} better than the order the search already gave
+        {pct(best.ndcg / floor["ndcg@10"] - 1, 1)} better than <Term id="floor">the order the search already gave</Term>
         {bestVsCe && verdict(bestVsCe.mean, bestVsCe.ci95) === "better" ? (
-          <>, and beats the {ce.label} head to head</>
+          <>
+            , and beats the <Term id="cross-encoder">{ce.label}</Term> head to head
+          </>
         ) : null}
         .{" "}
         {harmful.length > 0 && (
           <>
-            Laya, the open-weights model, makes the order worse than doing nothing
+            <Term id="laya">Laya</Term>, the open-weights model, makes the order worse than doing nothing
             {harmful.length === 2 ? ", in both checkpoints tested" : ""}.
           </>
         )}
@@ -85,9 +93,22 @@ export default function Page() {
       </p>
 
       <Section
+        id="thirty-seconds"
+        title="Re-ranking in 30 seconds"
+        standfirst="One real question from the run, step by step. Every number is the run's own."
+      >
+        <RerankWalkthrough />
+      </Section>
+
+      <Section
         id="how"
         title="How it was measured"
-        standfirst={`A re-ranker is the second, slower half of a search. This is the path every one of the ${facts.queries} questions took.`}
+        standfirst={
+          <>
+            A <Term id="rerank">re-ranker</Term> is the second, slower half of a search. This is the path every
+            one of the {facts.queries} questions took.
+          </>
+        }
       >
         <RerankPipeline data={data} />
       </Section>
@@ -95,7 +116,12 @@ export default function Page() {
       <Section
         id="sure"
         title="How sure we are"
-        standfirst="Each re-ranker against the floor, question by question, with a 95% interval. A result counts only when its whole interval sits on one side of zero."
+        standfirst={
+          <>
+            Each re-ranker against the floor, question by question, with a <Term id="interval">95% interval</Term>.
+            A result counts only when its whole interval sits on one side of zero.
+          </>
+        }
       >
         <RerankIntervals data={data} />
         <Prose>

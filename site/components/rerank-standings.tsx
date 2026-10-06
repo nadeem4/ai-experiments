@@ -1,4 +1,6 @@
+import { Term } from "@/components/term";
 import { floorRow, rangeAxis, rerankerRows, verdict, type Rerank, type Verdict } from "@/lib/rerank";
+import { METHOD_TERM } from "@/lib/rerank-glossary";
 
 // Written out in full so Tailwind can find them: it reads class names, not code.
 const TONE: Record<Verdict, { text: string; fill: string }> = {
@@ -35,14 +37,16 @@ export function RerankStandings({ data }: { data: Rerank }) {
           return (
             <li key={row.method} className={`${ROW} bg-page py-5`}>
               <div>
-                <p className="text-lead font-semibold leading-tight">{row.label}</p>
+                <p className="text-lead font-semibold leading-tight">
+                  <Term id={METHOD_TERM[row.method]}>{row.label}</Term>
+                </p>
                 <p className="mt-1 text-micro text-ink-soft">
                   <span className={tone.text}>
                     {said === "no clear change" ? said : `${said} than doing nothing`}
                   </span>
                   <span className="numeric">
                     {" "}
-                    · p50 {row.p50?.toFixed(1)} ms
+                    · <Term id="p50">p50</Term> {row.p50?.toFixed(1)} ms
                     {row.calls?.market_cost_usd ? ` · $${row.calls.market_cost_usd.toFixed(2)}` : " · local"}
                   </span>
                 </p>
@@ -94,10 +98,10 @@ export function RerankStandings({ data }: { data: Rerank }) {
       </div>
 
       <figcaption className="max-w-[72ch] text-micro leading-relaxed text-ink-soft">
-        nDCG@10 over all {data.summary.queries} questions. The grey stroke on every row is the retriever&apos;s
-        own order, <span className="numeric">{floor.toFixed(3)}</span>; each bar runs from there to where the
-        re-ranker left it. Times are the median per call, and the hosted model&apos;s is a network round trip,
-        so it is a price rather than a speed.
+        nDCG@10 over all {data.summary.queries} questions. The grey stroke on every row is the
+        retriever&apos;s own order, <span className="numeric">{floor.toFixed(3)}</span>; each bar runs from
+        there to where the re-ranker left it. Times are the median per call, and the hosted model&apos;s is a
+        network round trip, so it is a price rather than a speed.
       </figcaption>
     </figure>
   );

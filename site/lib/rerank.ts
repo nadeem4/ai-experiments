@@ -453,6 +453,43 @@ export function openingQuery(data: Rerank, helped: string, hurt: string): string
   return split.reduce((a, b) => (margin(b) > margin(a) ? b : a)).id;
 }
 
+export interface WalkthroughFacts {
+  /** The relevant passage the search ranked highest: the one the story follows. */
+  answer: string;
+  from: number;
+  helpedTo: number | null;
+  hurtTo: number | null;
+  floorNdcg: number;
+  helpedNdcg: number;
+  hurtNdcg: number;
+}
+
+/** Where one question's answer starts and lands under two methods, and what each order scores. */
+export function walkthroughFacts(
+  query: RerankQuery,
+  detail: DetailQuery,
+  helped: string,
+  hurt: string,
+  floor: string,
+): WalkthroughFacts {
+  const searchOrder = detail.orders[floor] ?? [];
+  const answer = [...query.relevant].sort((a, b) => searchOrder.indexOf(a) - searchOrder.indexOf(b))[0];
+  const rank = (method: string) => {
+    const order = detail.orders[method];
+    return order ? order.indexOf(answer) + 1 : null;
+  };
+  const floorNdcg = query.ndcg[FLOOR_NDCG];
+  return {
+    answer,
+    from: searchOrder.indexOf(answer) + 1,
+    helpedTo: rank(helped),
+    hurtTo: rank(hurt),
+    floorNdcg,
+    helpedNdcg: floorNdcg + (query.ndcg[helped] ?? 0),
+    hurtNdcg: floorNdcg + (query.ndcg[hurt] ?? 0),
+  };
+}
+
 /**
  * Where to scroll the query list so its chosen row is visible, moving as little
  * as possible. `scrollIntoView` does the same arithmetic but applies it to every

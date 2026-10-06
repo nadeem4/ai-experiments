@@ -13,8 +13,7 @@ import {
   type Rerank,
   type RerankQuery,
 } from "@/lib/rerank";
-
-const DETAIL_URL = "/rerank-detail.json";
+import { loadDetail } from "@/lib/rerank-detail";
 
 /**
  * The re-ranking itself, one question at a time.
@@ -55,9 +54,8 @@ export function RerankTheatre({
     if (!node) return;
     let alive = true;
     const load = () => {
-      fetch(DETAIL_URL)
-        .then((response) => (response.ok ? response.json() : Promise.reject(new Error("unavailable"))))
-        .then((body: Detail) => alive && setDetail(body))
+      loadDetail()
+        .then((body) => alive && setDetail(body))
         .catch(() => alive && setFailed(true));
     };
     if (typeof IntersectionObserver === "undefined") {
