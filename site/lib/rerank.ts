@@ -73,6 +73,10 @@ export interface Rerank {
     device: string;
     commit: string | null;
     finished: string;
+    /** The corpus every question was searched over. Absent from runs reported before it was recorded. */
+    documents?: number;
+    /** Every pair of re-rankers, `method - against`, per query. */
+    head_to_head?: (Paired & { method: string; against: string })[];
     methods: RerankMethod[];
   };
   config: Record<string, unknown>;
@@ -179,6 +183,7 @@ export interface RunFacts {
   device: string;
   dataset: string;
   passages: number;
+  documents: number | null;
 }
 
 /** The size of the run, added up rather than quoted. */
@@ -193,6 +198,57 @@ export function runFacts(data: Rerank): RunFacts {
     device: data.summary.device,
     dataset: data.summary.dataset,
     passages: Object.keys(data.titles).length,
+    documents: data.summary.documents ?? null,
+  };
+}
+
+/**
+ * How `method` did against `against`, query by query. The run writes each pair
+ * once, so asking the other way round turns it: the sign, the interval and the
+ * win and loss counts all swap, and the first name is always the subject.
+ */
+export function headToHead(data: Rerank, method: string, against: string): Paired | undefined {
+  const pairs = data.summary.head_to_head ?? [];
+  const same = pairs.find((p) => p.method === method && p.against === against);
+  if (same) return { mean: same.mean, ci95: same.ci95, better: same.better, worse: same.worse, same: same.same };
+  const turned = pairs.find((p) => p.method === against && p.against === method);
+  if (!turned) return undefined;
+  return {
+    mean: -turned.mean,
+    ci95: turned.ci95 ? [-turned.ci95[1], -turned.ci95[0]] : null,
+    better: turned.worse,
+    worse: turned.better,
+    same: turned.same,
+  };
+}
+
+export type Verdict = "better" | "worse" | "no clear change";
+
+/** What a paired difference allows the page to say, and nothing more. */
+export function verdict(mean: number, ci: Interval | undefined): Verdict {
+  if (!excludesZero(ci)) return "no clear change";
+  return mean > 0 ? "better" : "worse";
+}
+
+export interface RangeAxis {
+  lo: number;
+  hi: number;
+  x: (value: number) => number;
+  ticks: number[];
+}
+
+/** An absolute scale, for showing where a score landed rather than how far it
+ * moved: the domain rounded out to the nearest `step` on either side. */
+export function rangeAxis(values: number[], width: number, step: number): RangeAxis {
+  const loSteps = Math.floor(Math.min(...values) / step);
+  const hiSteps = Math.ceil(Math.max(...values) / step);
+  const lo = loSteps * step;
+  const hi = hiSteps * step;
+  return {
+    lo,
+    hi,
+    x: (value: number) => ((value - lo) / (hi - lo)) * width,
+    ticks: Array.from({ length: hiSteps - loSteps + 1 }, (_, i) => (loSteps + i) * step),
   };
 }
 

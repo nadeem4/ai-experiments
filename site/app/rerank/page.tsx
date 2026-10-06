@@ -1,10 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import rerankData from "@/data/rerank.json";
-import { Mono, Prose, Section } from "@/components/chip";
+import { Prose, Section } from "@/components/chip";
 import { RerankExplorer } from "@/components/rerank-explorer";
 import { RerankIntervals } from "@/components/rerank-intervals";
-import { movableSplit, pct, rerankerRows, runFacts, signed, type Rerank } from "@/lib/rerank";
+import { RerankPipeline } from "@/components/rerank-pipeline";
+import { RerankStandings } from "@/components/rerank-standings";
+import {
+  floorRow,
+  headToHead,
+  movableSplit,
+  pct,
+  rerankerRows,
+  runFacts,
+  signed,
+  verdict,
+  type Rerank,
+} from "@/lib/rerank";
 
 const data = rerankData as Rerank;
 const facts = runFacts(data);
@@ -15,23 +27,21 @@ const best = rows[0];
 const worst = rows[rows.length - 1];
 const jev = rows.find((row) => row.method === "jev-score")!;
 const ce = rows.find((row) => row.method === "cross-encoder")!;
-const local = rows.filter((row) => row.method !== "jev-score");
-const fastestLocal = local.reduce((a, b) => ((a.p50 ?? Infinity) < (b.p50 ?? Infinity) ? a : b));
-const slowestLocal = local.reduce((a, b) => ((a.p50 ?? 0) > (b.p50 ?? 0) ? a : b));
-
-const config = data.config as {
-  encoder: string;
-  fusion: string;
-  rrf_k: number;
-  depth: number;
-  first_stage: string;
-};
+const floor = floorRow(data)!;
+const bestVsCe = headToHead(data, best.method, ce.method);
+const harmful = rows.filter((row) => verdict(row.mean, row.ci95) === "worse");
+const [layaBase, layaTyped] = ["laya-score", "laya-typed-score"].map((m) => rows.find((r) => r.method === m)!);
+const layaPair = headToHead(data, layaBase.method, layaTyped.method);
+const secondsPerQuery = (row: typeof jev) =>
+  data.summary.methods.find((m) => m.method === row.method)!.scoring_wall_clock_s / facts.queries;
+const interval = (ci: number[] | null | undefined, digits = 4) =>
+  ci ? `[${signed(ci[0], digits)}, ${signed(ci[1], digits)}]` : "";
 
 const TITLE = "Can a decision model re-rank retrieval better than hybrid search?";
 const DESCRIPTION =
   `${facts.queries} health questions, ${facts.topK} hybrid candidates each, four re-rankers scoring every ` +
-  `pair one at a time. Jev ${signed(best.mean)} nDCG@10 against the ${data.floor} floor, ` +
-  `${ce.method} ${signed(ce.mean)}, and both Laya checkpoints negative.`;
+  `pair one at a time. Jev lifts nDCG@10 from ${floor["ndcg@10"].toFixed(3)} to ${best.ndcg.toFixed(3)} and beats ` +
+  `a cross-encoder head to head; both Laya checkpoints make the order worse than doing nothing.`;
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -43,59 +53,61 @@ export default function Page() {
   return (
     <main className="mx-auto max-w-[1180px] px-4 pb-28 pt-12 md:px-8">
       <h1 className="max-w-[18ch] text-h1 font-semibold leading-[1.05] tracking-tight">{TITLE}</h1>
-      <p className="mt-6 max-w-[64ch] text-lead leading-relaxed text-ink-soft">
-        Zero is the order the retriever already gave you. Everything to the right of it is a re-ranker
-        earning its place in the pipeline, and everything to the left is one that should be deleted from it.
+      <p className="mt-6 max-w-[60ch] text-lead leading-relaxed">
+        {verdict(best.mean, best.ci95) === "better" ? "Yes, one of them. " : "No. "}
+        <b>{best.label}</b> lifts nDCG@10 from <span className="numeric">{floor["ndcg@10"].toFixed(3)}</span> to{" "}
+        <span className="numeric">{best.ndcg.toFixed(3)}</span>,{" "}
+        {pct(best.ndcg / floor["ndcg@10"] - 1, 1)} better than the order the search already gave
+        {bestVsCe && verdict(bestVsCe.mean, bestVsCe.ci95) === "better" ? (
+          <>, and beats the {ce.label} head to head</>
+        ) : null}
+        .{" "}
+        {harmful.length > 0 && (
+          <>
+            Laya, the open-weights model, makes the order worse than doing nothing
+            {harmful.length === 2 ? ", in both checkpoints tested" : ""}.
+          </>
+        )}
       </p>
 
-      <RerankIntervals data={data} />
+      <RerankStandings data={data} />
 
-      <dl className="numeric mt-8 grid grid-cols-2 gap-x-6 gap-y-4 border-t border-line pt-6 text-micro sm:grid-cols-3 lg:grid-cols-6">
-        <Fact term="Scoring calls" value={facts.calls.toLocaleString()} note={`${facts.failed} failed`} />
-        <Fact term="Questions" value={String(facts.queries)} note={`${split.movable} could move`} />
-        <Fact term="Candidates each" value={String(facts.topK)} note={`${facts.passages.toLocaleString()} distinct abstracts`} />
-        <Fact term="Spend" value={`$${facts.spendUsd.toFixed(2)}`} note={`$${facts.spendUsd.toFixed(4)} exactly`} />
-        <Fact term="Device" value={facts.device} note={`commit ${data.summary.commit ?? "unrecorded"}`} />
-        <Fact
-          term="Finished"
-          value={data.summary.finished.slice(0, 10)}
-          note={facts.dataset}
-        />
-      </dl>
-
-      <p className="mt-6 max-w-[72ch] text-micro leading-relaxed text-ink-soft">
-        <b>One of these four is not measured like the others.</b> <Mono>{jev.method}</Mono> answers over the
-        network, so its p50 of {jev.p50} ms is a round trip and not a forward pass. The three local scorers
-        ran on the same device — {fastestLocal.method} at {fastestLocal.p50} ms, {slowestLocal.method} at{" "}
-        {slowestLocal.p50} ms — and are comparable with each other. Putting {jev.method} on that axis would
-        be measuring the distance to a server.
+      <p className="numeric mt-6 text-micro text-ink-soft">
+        {facts.calls.toLocaleString()} scoring calls, {facts.failed} failed · ${facts.spendUsd.toFixed(2)} in
+        all · {split.excluded} of {facts.queries} questions had nothing relevant to find
       </p>
 
       <Section
-        id="run"
-        title="What the run was"
-        standfirst={`${facts.queries} health questions against a corpus of medical abstracts, re-ranked four ways over the same pinned candidate lists.`}
+        id="how"
+        title="How it was measured"
+        standfirst={`A re-ranker is the second, slower half of a search. This is the path every one of the ${facts.queries} questions took.`}
       >
+        <RerankPipeline data={data} />
+      </Section>
+
+      <Section
+        id="sure"
+        title="How sure we are"
+        standfirst="Each re-ranker against the floor, question by question, with a 95% interval. A result counts only when its whole interval sits on one side of zero."
+      >
+        <RerankIntervals data={data} />
         <Prose>
-          <p>
-            The first stage is hybrid: BM25 and <Mono>{config.encoder}</Mono> each run to depth{" "}
-            {config.depth} and their two rankings are fused by {config.fusion.replace("-", " ")} at k ={" "}
-            {config.rrf_k}, keeping the top {facts.topK}. That fused order is the <Mono>{data.floor}</Mono>{" "}
-            row, and it is the floor: it is what you get for doing nothing after retrieval, and it is the
-            line every other row on this page is measured from rather than a competitor in the table.
-          </p>
-          <p>
-            Each re-ranker then sees one (question, passage) pair at a time — {facts.topK} pairs per
-            question, {facts.calls.toLocaleString()} in all — and returns a single number. The{" "}
-            {facts.topK} candidates are sorted by that number and nothing else changes: same documents, same
-            question, a different order. Nothing was trained and no prompt was tuned against the test split.
-          </p>
-          <p>
-            {split.excluded} of the {facts.queries} questions have nothing relevant among their{" "}
-            {facts.topK} candidates. No re-ranker can score above zero on those whatever it does, and they
-            are carried in the means but left out of the per-question charts, where they would be{" "}
-            {split.excluded} bars of nothing.
-          </p>
+          {bestVsCe && (
+            <p>
+              Compared with each other directly, on the same questions, <b>{best.label}</b> is ahead of the{" "}
+              {ce.label} by <span className="numeric">{signed(bestVsCe.mean)}</span>{" "}
+              <span className="numeric">{interval(bestVsCe.ci95)}</span>: better on {bestVsCe.better} questions,
+              worse on {bestVsCe.worse}.
+            </p>
+          )}
+          {layaPair && (
+            <p>
+              The two Laya checkpoints cannot be told apart. The base is ahead of the {layaTyped.label}{" "}
+              fine-tune by <span className="numeric">{signed(layaPair.mean)}</span>{" "}
+              <span className="numeric">{interval(layaPair.ci95)}</span>, an interval across zero, and each
+              wins on about as many questions as the other ({layaPair.better} and {layaPair.worse}).
+            </p>
+          )}
         </Prose>
       </Section>
 
@@ -104,16 +116,22 @@ export default function Page() {
       <Section
         id="not-answered"
         title="What this does not answer"
-        standfirst="Five things the run is silent on. They are here because the numbers above are easy to over-read, and each of these is a reading they do not support."
+        standfirst="Six things the run is silent on. They are here because the numbers above are easy to over-read, and each of these is a reading they do not support."
       >
         <Prose>
           <p>
-            <b>Whether {jev.method} beats {ce.method}.</b> Each interval is against the common floor, and two
-            intervals that both exclude zero do not establish an ordering between them. The paired{" "}
-            {jev.method}-minus-{ce.method} difference would, and it was not computed.
+            <b>Whether {jev.label} is fast enough to put in front of a person.</b> Re-ranking one question is{" "}
+            {facts.topK} calls, and made one after another {jev.label}&apos;s take about{" "}
+            <span className="numeric">{secondsPerQuery(jev).toFixed(1)} s</span> against the {ce.label}&apos;s{" "}
+            <span className="numeric">{secondsPerQuery(ce).toFixed(2)} s</span>. Whether the calls can run at
+            once, and what that does to the round trip, was not tested.
           </p>
           <p>
-            <b>What {jev.method}&apos;s ties are worth.</b> Its answers land on a coarse grid —{" "}
+            <b>Whether {jev.label} beats a larger cross-encoder.</b> The one here is the smallest MiniLM. A
+            production team would compare against something bigger, and this run did not.
+          </p>
+          <p>
+            <b>What {jev.label}&apos;s ties are worth.</b> Its answers land on a coarse grid —{" "}
             {jev.scores!.distinct} distinct values across {jev.scores!.of.toLocaleString()} scored passages,
             the largest single tie {jev.scores!.largest_group} of {facts.topK} candidates in one question —
             and a tie keeps the retriever&apos;s order. So {pct(jev.scores!.tied / jev.scores!.of)} of the
@@ -121,14 +139,14 @@ export default function Page() {
             That cuts both ways and this run does not separate them.
           </p>
           <p>
-            <b>Whether a fine-tune would rescue Laya.</b> This is zero-shot by design. {worst.method} at{" "}
+            <b>Whether a fine-tune would rescue Laya.</b> This is zero-shot by design. {worst.label} at{" "}
             {signed(worst.mean)} is the baseline that would make a later fine-tune interpretable, not a
             verdict on the architecture.
           </p>
           <p>
             <b>Anything beyond {facts.topK} candidates.</b> Recall@10 is bounded by what the first stage
             retrieved: the floor found {(data.summary.methods.find((m) => m.method === data.floor)!["recall@10"] * 100).toFixed(1)}% of
-            the relevant passages and {jev.method} pulled that to {(jev.recall * 100).toFixed(1)}%, but a
+            the relevant passages and {jev.label} pulled that to {(jev.recall * 100).toFixed(1)}%, but a
             re-ranker cannot retrieve what was never in the list, and {split.excluded} questions had nothing
             in theirs.
           </p>
@@ -140,28 +158,37 @@ export default function Page() {
         </Prose>
       </Section>
 
-      <p className="numeric mt-20 border-t border-line pt-5 text-micro text-ink-soft">
-        <Link href="/" className="underline decoration-line-strong underline-offset-4 hover:decoration-ink">
-          All experiments
-        </Link>{" "}
-        ·{" "}
-        <a
-          href="https://github.com/nadeem4/ai-experiments"
-          className="underline decoration-line-strong underline-offset-4 hover:decoration-ink"
-        >
-          The code, the results files and the tests
-        </a>
-      </p>
+      <footer className="numeric mt-20 border-t border-line-strong pt-6 text-micro text-ink-soft">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-4 sm:grid-cols-3 lg:grid-cols-6">
+          <Fact term="Dataset" value={facts.dataset} />
+          <Fact term="Device" value={facts.device} />
+          <Fact term="Commit" value={data.summary.commit ?? "unrecorded"} />
+          <Fact term="Calls" value={`${facts.calls.toLocaleString()}, ${facts.failed} failed`} />
+          <Fact term="Spend" value={`$${facts.spendUsd.toFixed(4)}`} />
+          <Fact term="Report written" value={data.summary.finished.slice(0, 10)} />
+        </dl>
+        <p className="mt-6">
+          <Link href="/" className="underline decoration-line-strong underline-offset-4 hover:decoration-ink">
+            All experiments
+          </Link>{" "}
+          ·{" "}
+          <a
+            href="https://github.com/nadeem4/ai-experiments/tree/main/rerank"
+            className="underline decoration-line-strong underline-offset-4 hover:decoration-ink"
+          >
+            The protocol, the results files and the tests
+          </a>
+        </p>
+      </footer>
     </main>
   );
 }
 
-function Fact({ term, value, note }: { term: string; value: string; note: string }) {
+function Fact({ term, value }: { term: string; value: string }) {
   return (
     <div>
-      <dt className="text-ink-soft">{term}</dt>
-      <dd className="text-lead text-ink">{value}</dd>
-      <dd className="text-ink-soft">{note}</dd>
+      <dt>{term}</dt>
+      <dd className="text-ink">{value}</dd>
     </div>
   );
 }
