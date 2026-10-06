@@ -375,6 +375,21 @@ export function candidateRows(
 }
 
 /**
+ * Where to scroll the query list so its chosen row is visible, moving as little
+ * as possible. `scrollIntoView` does the same arithmetic but applies it to every
+ * scrollable ancestor too, the window included, which is how the page used to
+ * open halfway down at the picker instead of at its title.
+ */
+export function scrollTopToShow(
+  row: { top: number; height: number },
+  view: { scrollTop: number; height: number },
+): number {
+  if (row.top < view.scrollTop) return row.top;
+  if (row.top + row.height > view.scrollTop + view.height) return row.top + row.height - view.height;
+  return view.scrollTop;
+}
+
+/**
  * The query list, filtered by what someone typed into the search box.
  *
  * `keep` is the question currently on screen, and it stays in the list even

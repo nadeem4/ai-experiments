@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { matchQueries, type RerankQuery } from "@/lib/rerank";
+import { matchQueries, scrollTopToShow, type RerankQuery } from "@/lib/rerank";
 
 /**
  * Choosing which of the 323 questions to watch being re-ranked.
@@ -35,11 +35,17 @@ export function RerankQueryPicker({
 
   // Keep the chosen row in view when it was chosen from somewhere else on the
   // page, such as a bar in the chart below.
+  // Only the list scrolls, never the page.
   useEffect(() => {
-    const row = listRef.current?.querySelector<HTMLLIElement>(`[data-id="${CSS.escape(selected)}"]`);
-    row?.scrollIntoView({ block: "nearest" });
+    const list = listRef.current;
+    const row = list?.querySelector<HTMLLIElement>(`[data-id="${CSS.escape(selected)}"]`);
+    if (!list || !row) return;
+    list.scrollTop = scrollTopToShow(
+      { top: row.offsetTop, height: row.offsetHeight },
+      { scrollTop: list.scrollTop, height: list.clientHeight },
+    );
     if (moveFocus.current) {
-      row?.focus();
+      row.focus({ preventScroll: true });
       moveFocus.current = false;
     }
   }, [selected, matches]);
@@ -102,7 +108,7 @@ export function RerankQueryPicker({
         role="listbox"
         aria-label="Questions in the run"
         onKeyDown={onKeyDown}
-        className="max-h-56 min-w-0 overflow-y-auto border border-line bg-page"
+        className="relative max-h-56 min-w-0 overflow-y-auto border border-line bg-page"
       >
         {matches.map((query) => {
           const open = query.id === selected;
