@@ -5,7 +5,7 @@
   "top_k": 20,
   "device": "cuda",
   "commit": "a41a908",
-  "finished": "2026-09-26T18:29:46+00:00",
+  "finished": "2026-10-06T13:16:19+00:00",
   "methods": [
     {
       "method": "hybrid",
@@ -196,5 +196,198 @@
         "largest_group": 2
       }
     }
-  ]
+  ],
+  "head_to_head": [
+    {
+      "method": "laya-score",
+      "against": "laya-typed-score",
+      "mean": 0.0036,
+      "ci95": [
+        -0.0051,
+        0.0124
+      ],
+      "better": 102,
+      "worse": 101,
+      "same": 120
+    },
+    {
+      "method": "laya-score",
+      "against": "jev-score",
+      "mean": -0.072,
+      "ci95": [
+        -0.0882,
+        -0.0558
+      ],
+      "better": 46,
+      "worse": 161,
+      "same": 116
+    },
+    {
+      "method": "laya-score",
+      "against": "cross-encoder",
+      "mean": -0.0401,
+      "ci95": [
+        -0.0551,
+        -0.025
+      ],
+      "better": 65,
+      "worse": 146,
+      "same": 112
+    },
+    {
+      "method": "laya-typed-score",
+      "against": "jev-score",
+      "mean": -0.0756,
+      "ci95": [
+        -0.0929,
+        -0.0583
+      ],
+      "better": 56,
+      "worse": 159,
+      "same": 108
+    },
+    {
+      "method": "laya-typed-score",
+      "against": "cross-encoder",
+      "mean": -0.0437,
+      "ci95": [
+        -0.0596,
+        -0.0279
+      ],
+      "better": 76,
+      "worse": 146,
+      "same": 101
+    },
+    {
+      "method": "jev-score",
+      "against": "cross-encoder",
+      "mean": 0.0319,
+      "ci95": [
+        0.0188,
+        0.045
+      ],
+      "better": 124,
+      "worse": 67,
+      "same": 132
+    }
+  ],
+  "movable": {
+    "queries": 252,
+    "vs_floor": {
+      "laya-score": {
+        "mean": -0.031,
+        "ci95": [
+          -0.05,
+          -0.0119
+        ],
+        "better": 90,
+        "worse": 125,
+        "same": 37
+      },
+      "laya-typed-score": {
+        "mean": -0.0356,
+        "ci95": [
+          -0.0558,
+          -0.0155
+        ],
+        "better": 86,
+        "worse": 136,
+        "same": 30
+      },
+      "jev-score": {
+        "mean": 0.0613,
+        "ci95": [
+          0.0432,
+          0.0794
+        ],
+        "better": 145,
+        "worse": 60,
+        "same": 47
+      },
+      "cross-encoder": {
+        "mean": 0.0204,
+        "ci95": [
+          0.0046,
+          0.0362
+        ],
+        "better": 102,
+        "worse": 84,
+        "same": 66
+      }
+    },
+    "head_to_head": [
+      {
+        "method": "laya-score",
+        "against": "laya-typed-score",
+        "mean": 0.0047,
+        "ci95": [
+          -0.0065,
+          0.0159
+        ],
+        "better": 102,
+        "worse": 101,
+        "same": 49
+      },
+      {
+        "method": "laya-score",
+        "against": "jev-score",
+        "mean": -0.0923,
+        "ci95": [
+          -0.1123,
+          -0.0722
+        ],
+        "better": 46,
+        "worse": 161,
+        "same": 45
+      },
+      {
+        "method": "laya-score",
+        "against": "cross-encoder",
+        "mean": -0.0514,
+        "ci95": [
+          -0.0704,
+          -0.0323
+        ],
+        "better": 65,
+        "worse": 146,
+        "same": 41
+      },
+      {
+        "method": "laya-typed-score",
+        "against": "jev-score",
+        "mean": -0.0969,
+        "ci95": [
+          -0.1184,
+          -0.0755
+        ],
+        "better": 56,
+        "worse": 159,
+        "same": 37
+      },
+      {
+        "method": "laya-typed-score",
+        "against": "cross-encoder",
+        "mean": -0.056,
+        "ci95": [
+          -0.0761,
+          -0.0359
+        ],
+        "better": 76,
+        "worse": 146,
+        "same": 30
+      },
+      {
+        "method": "jev-score",
+        "against": "cross-encoder",
+        "mean": 0.0409,
+        "ci95": [
+          0.0243,
+          0.0575
+        ],
+        "better": 124,
+        "worse": 67,
+        "same": 61
+      }
+    ]
+  }
 }

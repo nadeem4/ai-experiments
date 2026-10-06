@@ -11,6 +11,7 @@ only the unscored pairs are sent.
 Nothing is trained here. This is the zero-shot number.
 """
 import argparse
+import itertools
 import json
 import statistics
 import subprocess
@@ -137,6 +138,26 @@ def ties(records):
     return {"tied": tied, "largest_group": largest}
 
 
+def paired(mine, theirs, only=None):
+    """The per-query nDCG@10 difference `mine - theirs`, with its 95% interval,
+    over the queries both sides scored (and only those in `only`, if given)."""
+    shared = [qid for qid in mine if qid in theirs and (only is None or qid in only)]
+    deltas = [mine[qid] - theirs[qid] for qid in shared]
+    mean, low, high = mean_ci(deltas)
+    return {"mean": round(mean, 4),
+            "ci95": [round(low, 4), round(high, 4)] if low is not None else None,
+            "better": sum(d > 0 for d in deltas), "worse": sum(d < 0 for d in deltas),
+            "same": sum(d == 0 for d in deltas)}
+
+
+def head_to_head(ndcg, only=None):
+    """Every pair of re-rankers once, in the order they were listed.
+    Two intervals that both clear the floor do not rank the two methods; the
+    paired difference between them does."""
+    return [{"method": a, "against": b, **paired(ndcg[a], ndcg[b], only)}
+            for a, b in itertools.combinations(ndcg, 2)]
+
+
 def summarize(method, records, qrels, rankings, floor=None):
     """Metrics, latency, and whether the scores actually vary. A model that
     returns the same number for every passage is the failure mode to catch.
@@ -156,13 +177,7 @@ def summarize(method, records, qrels, rankings, floor=None):
         out["ndcg@10_ci95"] = [round(low, 4), round(high, 4)] if low is not None else None
     # The floor is not compared with itself.
     if floor and ndcg and method != FLOOR:
-        shared = [qid for qid in ndcg if qid in floor]
-        deltas = [ndcg[qid] - floor[qid] for qid in shared]
-        mean, low, high = mean_ci(deltas)
-        out["ndcg@10_vs_floor"] = {"mean": round(mean, 4),
-                                  "ci95": [round(low, 4), round(high, 4)] if low is not None else None,
-                                  "better": sum(d > 0 for d in deltas), "worse": sum(d < 0 for d in deltas),
-                                  "same": sum(d == 0 for d in deltas)}
+        out["ndcg@10_vs_floor"] = paired(ndcg, floor)
     ok = [r for r in mine if not r.get("failed")]
     out["latency"] = latency([r["latency_ms"] for r in ok])
     out["scoring_wall_clock_s"] = round(sum(r["latency_ms"] for r in ok) / 1000, 1)
@@ -317,7 +332,14 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
     floor = {qid: s["ndcg@10"] for qid, s in per_query(qrels, build_run(candidates)).items()}
     records = store.load(scores_path)
 
-    summaries, deltas = [], {}
+    # How many of a query's candidates the qrels actually judge relevant. A query
+    # with none cannot be re-ranked into a better score by anybody, so the tables
+    # carry the count rather than leaving it to be rediscovered.
+    relevant = {qid: sum(1 for doc in docs if qrels.get(qid, {}).get(doc, 0) > 0)
+                for qid, docs in candidates.items()}
+    movable = {qid for qid, n in relevant.items() if n}
+
+    summaries, deltas, ndcg = [], {}, {}
     for method in methods:
         rankings = rankings_for(method, candidates, records)
         summary = summarize(method, records, qrels, rankings, floor)
@@ -326,6 +348,7 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
         summaries.append(summary)
         if method not in FREE:
             scored = per_query(qrels, build_run(rankings))
+            ndcg[method] = {qid: s["ndcg@10"] for qid, s in scored.items()}
             deltas[method] = {qid: round(s["ndcg@10"] - floor[qid], 4)
                               for qid, s in scored.items() if qid in floor}
         log(format_table([summary]))
@@ -333,16 +356,17 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
     results = {"dataset": f"BEIR NFCorpus ({split})", "tag": tag, "queries": len(queries),
                "top_k": top_k, **provenance(config),
                "finished": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-               "methods": summaries}
+               "methods": summaries,
+               "head_to_head": head_to_head(ndcg),
+               # Every query's mean is diluted by the ones nothing could move, so
+               # the same comparisons are reported over the ones that could.
+               "movable": {"queries": len(movable),
+                           "vs_floor": {m: paired(ndcg[m], floor, movable) for m in ndcg},
+                           "head_to_head": head_to_head(ndcg, movable)}}
     results_dir = Path(out_dir) / "results" / tag
     results_dir.mkdir(parents=True, exist_ok=True)
     (results_dir / "summary.json").write_text(json.dumps(results, indent=2) + "\n")
 
-    # How many of a query's candidates the qrels actually judge relevant. A query
-    # with none cannot be re-ranked into a better score by anybody, so the tables
-    # carry the count rather than leaving it to be rediscovered.
-    relevant = {qid: sum(1 for doc in docs if qrels.get(qid, {}).get(doc, 0) > 0)
-                for qid, docs in candidates.items()}
     written = [tables.write_methods(summaries, results_dir),
                tables.write_per_query(floor, deltas, relevant, results_dir),
                tables.write_scores(records, results_dir),

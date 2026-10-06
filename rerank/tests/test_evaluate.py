@@ -2,7 +2,7 @@
 score, turn the records back into rankings, and read the two things the
 full-scale run exists to check -- what the calls cost, and how many passages the
 scores leave tied."""
-from rerank.evaluate import market_cost, pending, rankings_from_records, ties
+from rerank.evaluate import head_to_head, market_cost, paired, pending, rankings_from_records, ties
 import pytest
 
 CANDIDATES = {"q1": ["d1", "d2"], "q2": ["d3"]}
@@ -109,6 +109,36 @@ def test_a_failed_call_is_not_tied_with_anything():
     """`None` is an absent opinion, not a score every failure shares."""
     records = [_scored("q1", "d1", None), _scored("q1", "d2", None), _scored("q1", "d3", 0.9)]
     assert ties(records) == {"tied": 0, "largest_group": 0}
+
+
+class TestPaired:
+    """Every method re-ranks the same candidates for the same queries, so any two
+    can be compared query by query. Two intervals against a common floor say
+    nothing about how the two compare; this does."""
+
+    def test_counts_which_side_of_the_other_each_query_lands(self):
+        mine = {"q1": 0.5, "q2": 0.2, "q3": 0.4}
+        theirs = {"q1": 0.3, "q2": 0.4, "q3": 0.4}
+        out = paired(mine, theirs)
+        assert (out["better"], out["worse"], out["same"]) == (1, 1, 1)
+        assert out["mean"] == 0.0
+
+    def test_only_queries_both_sides_scored_are_compared(self):
+        assert paired({"q1": 0.5, "q2": 0.9}, {"q1": 0.4})["better"] == 1
+
+    def test_an_interval_comes_with_more_than_one_query(self):
+        low, high = paired({"q1": 0.5, "q2": 0.7}, {"q1": 0.4, "q2": 0.4})["ci95"]
+        assert low < 0.2 < high
+
+    def test_only_the_named_queries_count_when_a_subset_is_given(self):
+        out = paired({"q1": 0.5, "q2": 0.1}, {"q1": 0.4, "q2": 0.4}, only={"q1"})
+        assert (out["better"], out["worse"]) == (1, 0)
+
+
+def test_head_to_head_compares_every_pair_of_rerankers_once():
+    ndcg = {"a": {"q1": 0.5}, "b": {"q1": 0.4}, "c": {"q1": 0.3}}
+    pairs = [(row["method"], row["against"]) for row in head_to_head(ndcg)]
+    assert pairs == [("a", "b"), ("a", "c"), ("b", "c")]
 
 
 class TestOutputLandsInsideTheExperiment:
