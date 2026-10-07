@@ -6,13 +6,18 @@
   "top_k": 20,
   "device": "cuda",
   "commit": "a41a908",
-  "finished": "2026-10-06T14:08:31+00:00",
+  "finished": "2026-10-07T02:52:27+00:00",
   "methods": [
     {
       "method": "hybrid",
       "ndcg@10": 0.3306,
       "recall@10": 0.1612,
       "mrr@10": 0.5352,
+      "success@1": 0.4458,
+      "p@10": 0.2443,
+      "map@10": 0.1216,
+      "ndcg@3": 0.3876,
+      "ndcg@5": 0.3617,
       "queries": 323,
       "ndcg@10_ci95": [
         0.2965,
@@ -30,6 +35,11 @@
       "ndcg@10": 0.3065,
       "recall@10": 0.153,
       "mrr@10": 0.491,
+      "success@1": 0.3839,
+      "p@10": 0.2362,
+      "map@10": 0.1082,
+      "ndcg@3": 0.3413,
+      "ndcg@5": 0.3214,
       "queries": 323,
       "ndcg@10_ci95": [
         0.2734,
@@ -73,6 +83,11 @@
       "ndcg@10": 0.3028,
       "recall@10": 0.1551,
       "mrr@10": 0.485,
+      "success@1": 0.3839,
+      "p@10": 0.2331,
+      "map@10": 0.1042,
+      "ndcg@3": 0.3358,
+      "ndcg@5": 0.3231,
       "queries": 323,
       "ndcg@10_ci95": [
         0.2706,
@@ -116,6 +131,11 @@
       "ndcg@10": 0.3785,
       "recall@10": 0.1815,
       "mrr@10": 0.5905,
+      "success@1": 0.5046,
+      "p@10": 0.2731,
+      "map@10": 0.1514,
+      "ndcg@3": 0.4488,
+      "ndcg@5": 0.4167,
       "queries": 323,
       "ndcg@10_ci95": [
         0.3425,
@@ -159,6 +179,11 @@
       "ndcg@10": 0.3465,
       "recall@10": 0.166,
       "mrr@10": 0.5615,
+      "success@1": 0.4892,
+      "p@10": 0.2464,
+      "map@10": 0.1351,
+      "ndcg@3": 0.4136,
+      "ndcg@5": 0.3793,
       "queries": 323,
       "ndcg@10_ci95": [
         0.3113,
@@ -272,6 +297,952 @@
       "same": 132
     }
   ],
+  "by_metric": {
+    "ndcg@10": {
+      "vs_floor": {
+        "laya-score": {
+          "mean": -0.0241,
+          "ci95": [
+            -0.039,
+            -0.0093
+          ],
+          "better": 90,
+          "worse": 125,
+          "same": 108
+        },
+        "laya-typed-score": {
+          "mean": -0.0278,
+          "ci95": [
+            -0.0436,
+            -0.012
+          ],
+          "better": 86,
+          "worse": 136,
+          "same": 101
+        },
+        "jev-score": {
+          "mean": 0.0478,
+          "ci95": [
+            0.0334,
+            0.0622
+          ],
+          "better": 145,
+          "worse": 60,
+          "same": 118
+        },
+        "cross-encoder": {
+          "mean": 0.0159,
+          "ci95": [
+            0.0035,
+            0.0283
+          ],
+          "better": 102,
+          "worse": 84,
+          "same": 137
+        }
+      },
+      "head_to_head": [
+        {
+          "method": "laya-score",
+          "against": "laya-typed-score",
+          "mean": 0.0036,
+          "ci95": [
+            -0.0051,
+            0.0124
+          ],
+          "better": 102,
+          "worse": 101,
+          "same": 120
+        },
+        {
+          "method": "laya-score",
+          "against": "jev-score",
+          "mean": -0.072,
+          "ci95": [
+            -0.0882,
+            -0.0558
+          ],
+          "better": 46,
+          "worse": 161,
+          "same": 116
+        },
+        {
+          "method": "laya-score",
+          "against": "cross-encoder",
+          "mean": -0.0401,
+          "ci95": [
+            -0.0551,
+            -0.025
+          ],
+          "better": 65,
+          "worse": 146,
+          "same": 112
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "jev-score",
+          "mean": -0.0756,
+          "ci95": [
+            -0.0929,
+            -0.0583
+          ],
+          "better": 56,
+          "worse": 159,
+          "same": 108
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "cross-encoder",
+          "mean": -0.0437,
+          "ci95": [
+            -0.0596,
+            -0.0279
+          ],
+          "better": 76,
+          "worse": 146,
+          "same": 101
+        },
+        {
+          "method": "jev-score",
+          "against": "cross-encoder",
+          "mean": 0.0319,
+          "ci95": [
+            0.0188,
+            0.045
+          ],
+          "better": 124,
+          "worse": 67,
+          "same": 132
+        }
+      ]
+    },
+    "recall@10": {
+      "vs_floor": {
+        "laya-score": {
+          "mean": -0.0081,
+          "ci95": [
+            -0.0165,
+            0.0002
+          ],
+          "better": 52,
+          "worse": 64,
+          "same": 207
+        },
+        "laya-typed-score": {
+          "mean": -0.0061,
+          "ci95": [
+            -0.0163,
+            0.0041
+          ],
+          "better": 54,
+          "worse": 72,
+          "same": 197
+        },
+        "jev-score": {
+          "mean": 0.0203,
+          "ci95": [
+            0.0109,
+            0.0298
+          ],
+          "better": 93,
+          "worse": 32,
+          "same": 198
+        },
+        "cross-encoder": {
+          "mean": 0.0049,
+          "ci95": [
+            -0.0018,
+            0.0115
+          ],
+          "better": 54,
+          "worse": 48,
+          "same": 221
+        }
+      },
+      "head_to_head": [
+        {
+          "method": "laya-score",
+          "against": "laya-typed-score",
+          "mean": -0.0021,
+          "ci95": [
+            -0.0084,
+            0.0043
+          ],
+          "better": 41,
+          "worse": 33,
+          "same": 249
+        },
+        {
+          "method": "laya-score",
+          "against": "jev-score",
+          "mean": -0.0285,
+          "ci95": [
+            -0.0395,
+            -0.0175
+          ],
+          "better": 18,
+          "worse": 99,
+          "same": 206
+        },
+        {
+          "method": "laya-score",
+          "against": "cross-encoder",
+          "mean": -0.013,
+          "ci95": [
+            -0.0223,
+            -0.0037
+          ],
+          "better": 51,
+          "worse": 73,
+          "same": 199
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "jev-score",
+          "mean": -0.0264,
+          "ci95": [
+            -0.0378,
+            -0.0151
+          ],
+          "better": 20,
+          "worse": 102,
+          "same": 201
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "cross-encoder",
+          "mean": -0.0109,
+          "ci95": [
+            -0.0214,
+            -0.0005
+          ],
+          "better": 49,
+          "worse": 76,
+          "same": 198
+        },
+        {
+          "method": "jev-score",
+          "against": "cross-encoder",
+          "mean": 0.0155,
+          "ci95": [
+            0.0071,
+            0.0239
+          ],
+          "better": 87,
+          "worse": 27,
+          "same": 209
+        }
+      ]
+    },
+    "mrr@10": {
+      "vs_floor": {
+        "laya-score": {
+          "mean": -0.0441,
+          "ci95": [
+            -0.0795,
+            -0.0088
+          ],
+          "better": 48,
+          "worse": 83,
+          "same": 192
+        },
+        "laya-typed-score": {
+          "mean": -0.0502,
+          "ci95": [
+            -0.0871,
+            -0.0132
+          ],
+          "better": 54,
+          "worse": 87,
+          "same": 182
+        },
+        "jev-score": {
+          "mean": 0.0554,
+          "ci95": [
+            0.0252,
+            0.0855
+          ],
+          "better": 66,
+          "worse": 39,
+          "same": 218
+        },
+        "cross-encoder": {
+          "mean": 0.0263,
+          "ci95": [
+            -0.0011,
+            0.0538
+          ],
+          "better": 45,
+          "worse": 41,
+          "same": 237
+        }
+      },
+      "head_to_head": [
+        {
+          "method": "laya-score",
+          "against": "laya-typed-score",
+          "mean": 0.0061,
+          "ci95": [
+            -0.0198,
+            0.0319
+          ],
+          "better": 59,
+          "worse": 60,
+          "same": 204
+        },
+        {
+          "method": "laya-score",
+          "against": "jev-score",
+          "mean": -0.0995,
+          "ci95": [
+            -0.133,
+            -0.066
+          ],
+          "better": 32,
+          "worse": 90,
+          "same": 201
+        },
+        {
+          "method": "laya-score",
+          "against": "cross-encoder",
+          "mean": -0.0705,
+          "ci95": [
+            -0.1048,
+            -0.0361
+          ],
+          "better": 42,
+          "worse": 82,
+          "same": 199
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "jev-score",
+          "mean": -0.1056,
+          "ci95": [
+            -0.1411,
+            -0.07
+          ],
+          "better": 35,
+          "worse": 90,
+          "same": 198
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "cross-encoder",
+          "mean": -0.0765,
+          "ci95": [
+            -0.1138,
+            -0.0393
+          ],
+          "better": 46,
+          "worse": 84,
+          "same": 193
+        },
+        {
+          "method": "jev-score",
+          "against": "cross-encoder",
+          "mean": 0.029,
+          "ci95": [
+            -0.0012,
+            0.0592
+          ],
+          "better": 58,
+          "worse": 41,
+          "same": 224
+        }
+      ]
+    },
+    "success@1": {
+      "vs_floor": {
+        "laya-score": {
+          "mean": -0.0619,
+          "ci95": [
+            -0.1116,
+            -0.0123
+          ],
+          "better": 24,
+          "worse": 44,
+          "same": 255
+        },
+        "laya-typed-score": {
+          "mean": -0.0619,
+          "ci95": [
+            -0.113,
+            -0.0108
+          ],
+          "better": 26,
+          "worse": 46,
+          "same": 251
+        },
+        "jev-score": {
+          "mean": 0.0588,
+          "ci95": [
+            0.0186,
+            0.0991
+          ],
+          "better": 32,
+          "worse": 13,
+          "same": 278
+        },
+        "cross-encoder": {
+          "mean": 0.0433,
+          "ci95": [
+            0.0052,
+            0.0815
+          ],
+          "better": 27,
+          "worse": 13,
+          "same": 283
+        }
+      },
+      "head_to_head": [
+        {
+          "method": "laya-score",
+          "against": "laya-typed-score",
+          "mean": 0.0,
+          "ci95": [
+            -0.0412,
+            0.0412
+          ],
+          "better": 23,
+          "worse": 23,
+          "same": 277
+        },
+        {
+          "method": "laya-score",
+          "against": "jev-score",
+          "mean": -0.1207,
+          "ci95": [
+            -0.1679,
+            -0.0736
+          ],
+          "better": 13,
+          "worse": 52,
+          "same": 258
+        },
+        {
+          "method": "laya-score",
+          "against": "cross-encoder",
+          "mean": -0.1053,
+          "ci95": [
+            -0.1548,
+            -0.0557
+          ],
+          "better": 18,
+          "worse": 52,
+          "same": 253
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "jev-score",
+          "mean": -0.1207,
+          "ci95": [
+            -0.1702,
+            -0.0713
+          ],
+          "better": 16,
+          "worse": 55,
+          "same": 252
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "cross-encoder",
+          "mean": -0.1053,
+          "ci95": [
+            -0.1555,
+            -0.055
+          ],
+          "better": 19,
+          "worse": 53,
+          "same": 251
+        },
+        {
+          "method": "jev-score",
+          "against": "cross-encoder",
+          "mean": 0.0155,
+          "ci95": [
+            -0.027,
+            0.058
+          ],
+          "better": 27,
+          "worse": 22,
+          "same": 274
+        }
+      ]
+    },
+    "p@10": {
+      "vs_floor": {
+        "laya-score": {
+          "mean": -0.008,
+          "ci95": [
+            -0.0177,
+            0.0016
+          ],
+          "better": 52,
+          "worse": 64,
+          "same": 207
+        },
+        "laya-typed-score": {
+          "mean": -0.0111,
+          "ci95": [
+            -0.0212,
+            -0.001
+          ],
+          "better": 54,
+          "worse": 72,
+          "same": 197
+        },
+        "jev-score": {
+          "mean": 0.0288,
+          "ci95": [
+            0.0196,
+            0.038
+          ],
+          "better": 93,
+          "worse": 32,
+          "same": 198
+        },
+        "cross-encoder": {
+          "mean": 0.0022,
+          "ci95": [
+            -0.0071,
+            0.0114
+          ],
+          "better": 54,
+          "worse": 48,
+          "same": 221
+        }
+      },
+      "head_to_head": [
+        {
+          "method": "laya-score",
+          "against": "laya-typed-score",
+          "mean": 0.0031,
+          "ci95": [
+            -0.0032,
+            0.0094
+          ],
+          "better": 41,
+          "worse": 33,
+          "same": 249
+        },
+        {
+          "method": "laya-score",
+          "against": "jev-score",
+          "mean": -0.0368,
+          "ci95": [
+            -0.0463,
+            -0.0274
+          ],
+          "better": 18,
+          "worse": 99,
+          "same": 206
+        },
+        {
+          "method": "laya-score",
+          "against": "cross-encoder",
+          "mean": -0.0102,
+          "ci95": [
+            -0.02,
+            -0.0004
+          ],
+          "better": 51,
+          "worse": 73,
+          "same": 199
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "jev-score",
+          "mean": -0.0399,
+          "ci95": [
+            -0.0498,
+            -0.0301
+          ],
+          "better": 20,
+          "worse": 102,
+          "same": 201
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "cross-encoder",
+          "mean": -0.0133,
+          "ci95": [
+            -0.0228,
+            -0.0038
+          ],
+          "better": 49,
+          "worse": 76,
+          "same": 198
+        },
+        {
+          "method": "jev-score",
+          "against": "cross-encoder",
+          "mean": 0.0266,
+          "ci95": [
+            0.0176,
+            0.0356
+          ],
+          "better": 87,
+          "worse": 27,
+          "same": 209
+        }
+      ]
+    },
+    "map@10": {
+      "vs_floor": {
+        "laya-score": {
+          "mean": -0.0135,
+          "ci95": [
+            -0.0242,
+            -0.0027
+          ],
+          "better": 88,
+          "worse": 124,
+          "same": 111
+        },
+        "laya-typed-score": {
+          "mean": -0.0174,
+          "ci95": [
+            -0.0296,
+            -0.0051
+          ],
+          "better": 90,
+          "worse": 130,
+          "same": 103
+        },
+        "jev-score": {
+          "mean": 0.0298,
+          "ci95": [
+            0.0179,
+            0.0418
+          ],
+          "better": 144,
+          "worse": 59,
+          "same": 120
+        },
+        "cross-encoder": {
+          "mean": 0.0135,
+          "ci95": [
+            0.0037,
+            0.0234
+          ],
+          "better": 100,
+          "worse": 84,
+          "same": 139
+        }
+      },
+      "head_to_head": [
+        {
+          "method": "laya-score",
+          "against": "laya-typed-score",
+          "mean": 0.0039,
+          "ci95": [
+            -0.0026,
+            0.0104
+          ],
+          "better": 104,
+          "worse": 95,
+          "same": 124
+        },
+        {
+          "method": "laya-score",
+          "against": "jev-score",
+          "mean": -0.0433,
+          "ci95": [
+            -0.0575,
+            -0.029
+          ],
+          "better": 48,
+          "worse": 157,
+          "same": 118
+        },
+        {
+          "method": "laya-score",
+          "against": "cross-encoder",
+          "mean": -0.027,
+          "ci95": [
+            -0.0389,
+            -0.015
+          ],
+          "better": 72,
+          "worse": 137,
+          "same": 114
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "jev-score",
+          "mean": -0.0472,
+          "ci95": [
+            -0.0626,
+            -0.0317
+          ],
+          "better": 54,
+          "worse": 160,
+          "same": 109
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "cross-encoder",
+          "mean": -0.0309,
+          "ci95": [
+            -0.0443,
+            -0.0175
+          ],
+          "better": 79,
+          "worse": 141,
+          "same": 103
+        },
+        {
+          "method": "jev-score",
+          "against": "cross-encoder",
+          "mean": 0.0163,
+          "ci95": [
+            0.0065,
+            0.0261
+          ],
+          "better": 129,
+          "worse": 59,
+          "same": 135
+        }
+      ]
+    },
+    "ndcg@3": {
+      "vs_floor": {
+        "laya-score": {
+          "mean": -0.0464,
+          "ci95": [
+            -0.0759,
+            -0.0169
+          ],
+          "better": 65,
+          "worse": 100,
+          "same": 158
+        },
+        "laya-typed-score": {
+          "mean": -0.0519,
+          "ci95": [
+            -0.0815,
+            -0.0223
+          ],
+          "better": 63,
+          "worse": 100,
+          "same": 160
+        },
+        "jev-score": {
+          "mean": 0.0611,
+          "ci95": [
+            0.0351,
+            0.0872
+          ],
+          "better": 100,
+          "worse": 52,
+          "same": 171
+        },
+        "cross-encoder": {
+          "mean": 0.026,
+          "ci95": [
+            0.0032,
+            0.0487
+          ],
+          "better": 71,
+          "worse": 48,
+          "same": 204
+        }
+      },
+      "head_to_head": [
+        {
+          "method": "laya-score",
+          "against": "laya-typed-score",
+          "mean": 0.0055,
+          "ci95": [
+            -0.0128,
+            0.0238
+          ],
+          "better": 64,
+          "worse": 57,
+          "same": 202
+        },
+        {
+          "method": "laya-score",
+          "against": "jev-score",
+          "mean": -0.1075,
+          "ci95": [
+            -0.1373,
+            -0.0777
+          ],
+          "better": 40,
+          "worse": 112,
+          "same": 171
+        },
+        {
+          "method": "laya-score",
+          "against": "cross-encoder",
+          "mean": -0.0724,
+          "ci95": [
+            -0.0995,
+            -0.0453
+          ],
+          "better": 46,
+          "worse": 99,
+          "same": 178
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "jev-score",
+          "mean": -0.113,
+          "ci95": [
+            -0.1429,
+            -0.0831
+          ],
+          "better": 37,
+          "worse": 118,
+          "same": 168
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "cross-encoder",
+          "mean": -0.0779,
+          "ci95": [
+            -0.1062,
+            -0.0495
+          ],
+          "better": 49,
+          "worse": 106,
+          "same": 168
+        },
+        {
+          "method": "jev-score",
+          "against": "cross-encoder",
+          "mean": 0.0352,
+          "ci95": [
+            0.0125,
+            0.0578
+          ],
+          "better": 75,
+          "worse": 55,
+          "same": 193
+        }
+      ]
+    },
+    "ndcg@5": {
+      "vs_floor": {
+        "laya-score": {
+          "mean": -0.0404,
+          "ci95": [
+            -0.0629,
+            -0.0179
+          ],
+          "better": 79,
+          "worse": 112,
+          "same": 132
+        },
+        "laya-typed-score": {
+          "mean": -0.0387,
+          "ci95": [
+            -0.0609,
+            -0.0165
+          ],
+          "better": 81,
+          "worse": 120,
+          "same": 122
+        },
+        "jev-score": {
+          "mean": 0.0549,
+          "ci95": [
+            0.035,
+            0.0749
+          ],
+          "better": 116,
+          "worse": 59,
+          "same": 148
+        },
+        "cross-encoder": {
+          "mean": 0.0176,
+          "ci95": [
+            0.0003,
+            0.0348
+          ],
+          "better": 87,
+          "worse": 63,
+          "same": 173
+        }
+      },
+      "head_to_head": [
+        {
+          "method": "laya-score",
+          "against": "laya-typed-score",
+          "mean": -0.0017,
+          "ci95": [
+            -0.0149,
+            0.0115
+          ],
+          "better": 80,
+          "worse": 83,
+          "same": 160
+        },
+        {
+          "method": "laya-score",
+          "against": "jev-score",
+          "mean": -0.0953,
+          "ci95": [
+            -0.1181,
+            -0.0725
+          ],
+          "better": 42,
+          "worse": 136,
+          "same": 145
+        },
+        {
+          "method": "laya-score",
+          "against": "cross-encoder",
+          "mean": -0.0579,
+          "ci95": [
+            -0.0793,
+            -0.0366
+          ],
+          "better": 62,
+          "worse": 111,
+          "same": 150
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "jev-score",
+          "mean": -0.0936,
+          "ci95": [
+            -0.1172,
+            -0.07
+          ],
+          "better": 50,
+          "worse": 140,
+          "same": 133
+        },
+        {
+          "method": "laya-typed-score",
+          "against": "cross-encoder",
+          "mean": -0.0562,
+          "ci95": [
+            -0.0776,
+            -0.0349
+          ],
+          "better": 66,
+          "worse": 128,
+          "same": 129
+        },
+        {
+          "method": "jev-score",
+          "against": "cross-encoder",
+          "mean": 0.0374,
+          "ci95": [
+            0.0197,
+            0.0551
+          ],
+          "better": 99,
+          "worse": 56,
+          "same": 168
+        }
+      ]
+    }
+  },
   "movable": {
     "queries": 252,
     "vs_floor": {

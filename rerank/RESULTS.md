@@ -6,7 +6,7 @@ What the experiment is and how to run it: [README.md](README.md). What the data 
 
 **Jev, the hosted decision model, makes the ranking better, and better than a cross-encoder does. The open-weights Laya makes it worse than leaving it alone.**
 
-Over all 323 NFCorpus test queries, Jev lifted nDCG@10 from **0.331 to 0.379**, **+0.0478**, 14.5% over the retriever's own order. Measured directly against the MiniLM cross-encoder on the same queries, Jev is ahead by **+0.0319 [+0.0188, +0.0450]**. The cross-encoder helps a little (+0.0159). Both Laya checkpoints come out **negative**, at −0.0241 and −0.0278, and are indistinguishable from each other. All four paired intervals against the floor exclude zero.
+Over all 323 NFCorpus test queries, Jev lifted nDCG@10 from **0.331 to 0.379**, **+0.0478**, 14.5% over the retriever's own order. Measured directly against the MiniLM cross-encoder on the same queries, Jev is ahead by **+0.0319 [+0.0188, +0.0450]**. The cross-encoder helps a little (+0.0159). Both Laya checkpoints come out **negative**, at −0.0241 and −0.0278, and are indistinguishable from each other. All four paired intervals against the floor exclude zero, the cross-encoder's only just: corrected for the ten pairwise nDCG@10 comparisons the report makes, its gain crosses zero (a 99.5% t interval over `results/gpu/per-query.csv`, [−0.0019, +0.0338]; computed from that file, not written by the report). Jev clears the floor on all eight measures now reported and beats the cross-encoder on six; on whether the top result is relevant, and on MRR@10, the two cannot be told apart.
 
 ## The numbers
 
@@ -32,11 +32,14 @@ Each row above is against the floor, and two intervals that both clear the floor
 
 | | difference | 95% interval | first better | second better | same |
 |---|---:|---|---:|---:|---:|
-| **`jev-score` − `cross-encoder`** | **+0.0319** | [+0.0188, +0.0450] | **124** | 67 | 132 |
+| `jev-score` − `laya-typed-score` | +0.0756 | [+0.0583, +0.0929] | 159 | 56 | 108 |
 | `jev-score` − `laya-score` | +0.0720 | [+0.0558, +0.0882] | 161 | 46 | 116 |
+| `cross-encoder` − `laya-typed-score` | +0.0437 | [+0.0279, +0.0596] | 146 | 76 | 101 |
+| `cross-encoder` − `laya-score` | +0.0401 | [+0.0250, +0.0551] | 146 | 65 | 112 |
+| `jev-score` − `cross-encoder` | +0.0319 | [+0.0188, +0.0450] | 124 | 67 | 132 |
 | `laya-score` − `laya-typed-score` | +0.0036 | [−0.0051, +0.0124] | 102 | 101 | 120 |
 
-Jev beats the cross-encoder outright. The two Laya checkpoints cannot be told apart: the interval straddles zero and they win almost exactly as often as each other. Every pair is in `results/gpu/summary.json` under `head_to_head`.
+Jev beats the cross-encoder on nDCG@10, and every re-ranker beats both Laya checkpoints. The two Laya checkpoints cannot be told apart: the interval straddles zero and they win almost exactly as often as each other. Every pair is in `results/gpu/summary.json` under `head_to_head`.
 
 ### It is not only reordering, it is retrieving better
 
@@ -48,7 +51,47 @@ Jev beats the cross-encoder outright. The two Laya checkpoints cannot be told ap
 | `laya-score` | 0.1530 | 0.4910 |
 | `laya-typed-score` | 0.1551 | 0.4850 |
 
-Recall@10 rises for Jev because it pulls relevant passages up from positions 11 to 20 into the top 10. MRR@10 rises because the *first* relevant result arrives sooner, which is what a person actually feels. Both Laya checkpoints push relevant passages **down**, out of the top 10.
+Recall@10 rises for Jev because it pulls relevant passages up from positions 11 to 20 into the top 10. MRR@10 rises because the *first* relevant result arrives sooner, which is what a person actually feels. Both Laya checkpoints push relevant passages **down** within the top 10. Whether they push them out of it, this run cannot say: their Recall@10 differences cross zero (see every measure, below).
+
+### Every measure, with its interval
+
+nDCG@10 is the headline, but a reader may ask a narrower question: was the first result right, how soon does the first relevant passage arrive, how much of the top ten is relevant, how good are only the first three or five places. Each has the same paired comparison nDCG@10 has. These five were added after the results were known (see the README's protocol amendments), and with eight measures and ten pairs a borderline interval or two can clear zero by chance, so read them as secondary.
+
+| Method | Top result relevant (success@1) | MRR@10 | Recall@10 | P@10 | MAP@10 | nDCG@3 | nDCG@5 | nDCG@10 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `hybrid` *(floor)* | 0.4458 | 0.5352 | 0.1612 | 0.2443 | 0.1216 | 0.3876 | 0.3617 | 0.3306 |
+| `jev-score` | 0.5046 | 0.5905 | 0.1815 | 0.2731 | 0.1514 | 0.4488 | 0.4167 | 0.3785 |
+| `cross-encoder` | 0.4892 | 0.5615 | 0.1660 | 0.2464 | 0.1351 | 0.4136 | 0.3793 | 0.3465 |
+| `laya-score` | 0.3839 | 0.4910 | 0.1530 | 0.2362 | 0.1082 | 0.3413 | 0.3214 | 0.3065 |
+| `laya-typed-score` | 0.3839 | 0.4850 | 0.1551 | 0.2331 | 0.1042 | 0.3358 | 0.3231 | 0.3028 |
+
+Every method against the floor, paired per query. `~` marks an interval that crosses zero:
+
+| Against the floor | `jev-score` | `cross-encoder` | `laya-score` | `laya-typed-score` |
+|---|---|---|---|---|
+| Top result relevant (success@1) | +0.0588 [+0.0186, +0.0991] | +0.0433 [+0.0052, +0.0815] | −0.0619 [−0.1116, −0.0123] | −0.0619 [−0.1130, −0.0108] |
+| MRR@10 | +0.0554 [+0.0252, +0.0855] | +0.0263 [−0.0011, +0.0538] ~ | −0.0441 [−0.0795, −0.0088] | −0.0502 [−0.0871, −0.0132] |
+| Recall@10 | +0.0203 [+0.0109, +0.0298] | +0.0049 [−0.0018, +0.0115] ~ | −0.0081 [−0.0165, +0.0002] ~ | −0.0061 [−0.0163, +0.0041] ~ |
+| P@10 | +0.0288 [+0.0196, +0.0380] | +0.0022 [−0.0071, +0.0114] ~ | −0.0080 [−0.0177, +0.0016] ~ | −0.0111 [−0.0212, −0.0010] |
+| MAP@10 | +0.0298 [+0.0179, +0.0418] | +0.0135 [+0.0037, +0.0234] | −0.0135 [−0.0242, −0.0027] | −0.0174 [−0.0296, −0.0051] |
+| nDCG@3 | +0.0611 [+0.0351, +0.0872] | +0.0260 [+0.0032, +0.0487] | −0.0464 [−0.0759, −0.0169] | −0.0519 [−0.0815, −0.0223] |
+| nDCG@5 | +0.0549 [+0.0350, +0.0749] | +0.0176 [+0.0003, +0.0348] | −0.0404 [−0.0629, −0.0179] | −0.0387 [−0.0609, −0.0165] |
+| nDCG@10 | +0.0478 [+0.0334, +0.0622] | +0.0159 [+0.0035, +0.0283] | −0.0241 [−0.0390, −0.0093] | −0.0278 [−0.0436, −0.0120] |
+
+Jev against the cross-encoder on each measure:
+
+| `jev-score` − `cross-encoder` | difference | 95% interval | Jev better | cross-encoder better | same |
+|---|---:|---|---:|---:|---:|
+| Top result relevant (success@1) | +0.0155 | [−0.0270, +0.0580] ~ | 27 | 22 | 274 |
+| MRR@10 | +0.0290 | [−0.0012, +0.0592] ~ | 58 | 41 | 224 |
+| Recall@10 | +0.0155 | [+0.0071, +0.0239] | 87 | 27 | 209 |
+| P@10 | +0.0266 | [+0.0176, +0.0356] | 87 | 27 | 209 |
+| MAP@10 | +0.0163 | [+0.0065, +0.0261] | 129 | 59 | 135 |
+| nDCG@3 | +0.0352 | [+0.0125, +0.0578] | 75 | 55 | 193 |
+| nDCG@5 | +0.0374 | [+0.0197, +0.0551] | 99 | 56 | 168 |
+| nDCG@10 | +0.0319 | [+0.0188, +0.0450] | 124 | 67 | 132 |
+
+**Jev clears the floor on all eight.** The cross-encoder does on the measures weighted to the first few places (success@1, nDCG@3, nDCG@5, MAP@10, nDCG@10) and not on MRR@10, Recall@10 or P@10: it reorders the top of the list but rarely brings a relevant passage up from below tenth. Jev does both, which is where its lead over the cross-encoder comes from. On the first result alone the two cannot be told apart: Jev's top result is relevant for 50.5% of queries, the cross-encoder's for 48.9%, an interval across zero. Both Laya checkpoints are worse than the floor on six of the eight and indistinguishable from each other on all eight. Every comparison is in `results/gpu/summary.json` under `by_metric`.
 
 ### What each one costs
 
@@ -107,7 +150,9 @@ Jev against the cross-encoder on the same 252 is +0.0409 [+0.0243, +0.0575]. Not
 
 4. **Jev improves recall@10 as well as ordering**, 0.1612 to 0.1815. It is not only rearranging the top ten, it is pulling relevant passages into it from below.
 
-5. **Jev's resolution is its own ceiling.** 395 distinct values is not a rounding detail when 1,450 passages tie because of it.
+5. **At the very top, Jev's lead disappears.** It beats the cross-encoder on nDCG@10, Recall@10, P@10, MAP@10, nDCG@3 and nDCG@5, but not on whether the first result is relevant (+0.0155 [−0.0270, +0.0580]) or on MRR@10. Its advantage is in the rest of the top ten, not the first place.
+
+6. **Jev's resolution is its own ceiling.** 395 distinct values is not a rounding detail when 1,450 passages tie because of it.
 
 ## What this does not answer
 
@@ -122,7 +167,7 @@ Jev against the cross-encoder on the same 252 is +0.0409 [+0.0243, +0.0575]. Not
 
 | | |
 |---|---|
-| `results/gpu/summary.json` | every metric above, the head-to-head comparisons, the 252-query view, and the run's provenance |
+| `results/gpu/summary.json` | every metric above, the head-to-head comparisons, every measure's comparisons (`by_metric`), the 252-query view, and the run's provenance |
 | `results/gpu/methods.csv` | the headline table, one row per method |
 | `results/gpu/per-query.csv` | 323 rows: the floor's nDCG@10, each method's delta, whether the query could move |
 | `results/gpu/scores.csv` | every distinct score value and how many calls landed on it |
@@ -145,6 +190,6 @@ Jev against the cross-encoder on the same 252 is +0.0409 [+0.0243, +0.0575]. Not
 | Spend | $0.1603, from the provider's own per-call figure rather than tokens times a rate |
 | Commit | `a41a908`, recorded by the run rather than by the report |
 | Finished | the run, 2026-09-26T18:29:46Z. The report was regenerated on 2026-10-06 to add the head-to-head and 252-query comparisons, so that is the timestamp `summary.json` now carries |
-| Reproduces | re-running the report over the same wire log reproduces every method row exactly, differing only in the timestamp. Checked again on 2026-10-06: the CSV tables came back byte-identical |
+| Reproduces | re-running the report over the same wire log reproduces every method row exactly, differing only in the timestamp. Checked again on 2026-10-06, twice: after the head-to-head comparisons and after the further measures were added, the CSV tables came back byte-identical |
 
 **Claims here are measured in this run.** The paired differences are computed over the queries both a method and the floor scored, and the failed call is reported rather than dropped.
