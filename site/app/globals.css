@@ -111,3 +111,294 @@ svg :where([tabindex]):focus-visible .focus-ring {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* A word that explains itself. Dotted rather than solid so it never reads as a
+   link out of the page; the link out lives inside the card. */
+.term-trigger {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline dotted var(--line-strong);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.22em;
+}
+
+.term-trigger:hover,
+.term-trigger:focus-visible {
+  text-decoration-color: var(--ink);
+}
+
+/* The card. Absolute in the top layer, so it scrolls with the word it explains;
+   term.tsx sets top and left when it opens on a wide screen. */
+.term-card {
+  position: absolute;
+  inset: auto;
+  margin: 0;
+  width: min(22rem, calc(100vw - 2rem));
+  padding: 1.25rem;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 12px 32px -12px rgb(19 24 32 / 0.28);
+  opacity: 1;
+  translate: 0 0;
+  transition:
+    opacity 160ms cubic-bezier(0.2, 0.85, 0.25, 1),
+    translate 160ms cubic-bezier(0.2, 0.85, 0.25, 1),
+    overlay 160ms allow-discrete,
+    display 160ms allow-discrete;
+}
+
+@starting-style {
+  .term-card:popover-open {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+
+.term-close {
+  display: none;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: -0.75rem -0.75rem 0 0;
+  color: var(--ink-soft);
+}
+
+/* On a phone the card rises as a sheet: full width, at thumb height, with the
+   page dimmed behind it and a close button as large as a fingertip. */
+@media (max-width: 639px) {
+  .term-card {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: 100%;
+    max-height: 75dvh;
+    overflow-y: auto;
+    padding: 1.5rem 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+    border-width: 1px 0 0;
+  }
+
+  @starting-style {
+    .term-card:popover-open {
+      translate: 0 2rem;
+    }
+  }
+
+  .term-card::backdrop {
+    background: rgb(14 17 20 / 0.32);
+  }
+
+  .term-close {
+    display: grid;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .term-card {
+    box-shadow: 0 12px 32px -12px rgb(0 0 0 / 0.6);
+  }
+}
+
+/* ---- Watch one question: the question sheet, the strips and the moving list ---- */
+
+/* The question sheet: a dropdown under its control on wide screens, a bottom
+   sheet on phones. rerank-watch-picker.tsx places it when it opens. */
+.watch-sheet {
+  position: absolute;
+  inset: auto;
+  margin: 0;
+  padding: 0;
+  width: min(30rem, calc(100vw - 2rem));
+  max-height: min(70dvh, 34rem);
+  display: none;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 16px 40px -16px rgb(19 24 32 / 0.35);
+}
+.watch-sheet:popover-open {
+  display: grid;
+}
+@media (max-width: 1023px) {
+  .watch-sheet {
+    position: fixed;
+    inset: auto 0 0 0;
+    width: 100%;
+    max-height: 82dvh;
+    border-width: 1px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .watch-sheet::backdrop {
+    background: rgb(14 17 20 / 0.32);
+  }
+}
+
+/* Strip cells: 20 per ranking, answers in violet and numbered while the ids
+   are single digits, a ring for anything the reader has highlighted. */
+.watch-cells {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr)) 8px repeat(10, minmax(0, 1fr));
+  gap: 2px;
+}
+.watch-cells i {
+  height: 24px;
+  display: grid;
+  place-items: center;
+  font: 600 11px/1 var(--font-plex-mono), ui-monospace, monospace;
+  font-style: normal;
+  color: var(--page);
+  background: var(--surface-sunk);
+}
+.watch-cells i.top {
+  background: var(--line);
+}
+.watch-cells i.ans {
+  background: var(--mark);
+}
+.watch-cells i.lit {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
+}
+.watch-cells b {
+  width: 2px;
+  justify-self: center;
+  background: var(--ink);
+}
+@media (max-width: 480px) {
+  .watch-cells i {
+    height: 20px;
+    font-size: 0;
+  }
+}
+
+/* The list: slots stay put and the candidates travel between them. */
+.watch-lane {
+  --row: 50px;
+  --divider: 30px;
+  --travel: 500ms;
+  position: relative;
+  height: calc(var(--row) * 20 + var(--divider));
+  scroll-margin-top: calc(var(--watch-bar, 0px) + 12px);
+}
+.watch-cand {
+  transition: transform var(--travel) cubic-bezier(0.16, 1, 0.3, 1);
+}
+.watch-lane.still .watch-cand {
+  transition: none;
+}
+.watch-cand.lit {
+  box-shadow: 0 0 0 2px var(--page), 0 0 0 4px var(--ink);
+}
+@media (prefers-reduced-motion: reduce) {
+  .watch-cand {
+    transition: none;
+  }
+  .watch-lane.fade {
+    animation: watch-fade 220ms ease-out;
+  }
+  @keyframes watch-fade {
+    from {
+      opacity: 0.35;
+    }
+  }
+}
+
+/* ---- The story: the problem, the idea, the experiment, the finding ---- */
+
+/* Part 1 plays once on arrival, entirely in CSS. Every element's resting state
+   is its final one and the keyframes only hold it back, so the HTML reads
+   complete without JavaScript and reduced motion simply skips to the end. */
+.story-typed span {
+  animation: story-in 1ms linear backwards;
+  animation-delay: calc(300ms + var(--i) * 70ms);
+}
+.story-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.25em;
+  margin-left: 2px;
+  vertical-align: -0.2em;
+  background: var(--ink);
+  animation: story-blink 1s steps(1) infinite;
+}
+.story-result {
+  animation: story-rise 360ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--t0) + var(--i) * 45ms);
+}
+.story-result.answer {
+  animation:
+    story-rise 360ms cubic-bezier(0.16, 1, 0.3, 1) backwards calc(var(--t0) + var(--i) * 45ms),
+    story-unlit 1ms linear backwards calc(var(--t0) + 950ms);
+}
+.story-after {
+  animation: story-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--t0) + 1500ms);
+}
+@keyframes story-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes story-rise {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+@keyframes story-unlit {
+  from {
+    border-color: var(--line);
+    background: var(--surface);
+  }
+}
+@keyframes story-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-typed span,
+  .story-result,
+  .story-result.answer,
+  .story-after,
+  .story-caret {
+    animation: none;
+  }
+}
+
+/* Part 2: the same 20 abstracts as a board whose rows travel between fixed slots. */
+.story-board {
+  --row: 32px;
+  --head: 30px;
+  position: relative;
+  height: calc(var(--head) + var(--row) * 20);
+}
+.story-row {
+  transition:
+    transform 800ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 250ms;
+}
+.story-row .story-bar {
+  transition: width 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-row,
+  .story-row .story-bar {
+    transition: none;
+  }
+}
+
+/* Part 4: bars grow from the search's own score; switching measures slides them. */
+.story-track i {
+  transition:
+    left 450ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 450ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-track i {
+    transition: none;
+  }
+}
