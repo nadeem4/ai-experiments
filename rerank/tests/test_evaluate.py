@@ -2,7 +2,7 @@
 score, turn the records back into rankings, and read the two things the
 full-scale run exists to check -- what the calls cost, and how many passages the
 scores leave tied."""
-from rerank.evaluate import head_to_head, market_cost, paired, pending, rankings_from_records, ties
+from rerank.evaluate import by_metric, head_to_head, market_cost, paired, pending, rankings_from_records, ties
 import pytest
 
 CANDIDATES = {"q1": ["d1", "d2"], "q2": ["d3"]}
@@ -139,6 +139,26 @@ def test_head_to_head_compares_every_pair_of_rerankers_once():
     ndcg = {"a": {"q1": 0.5}, "b": {"q1": 0.4}, "c": {"q1": 0.3}}
     pairs = [(row["method"], row["against"]) for row in head_to_head(ndcg)]
     assert pairs == [("a", "b"), ("a", "c"), ("b", "c")]
+
+
+class TestByMetric:
+    """nDCG@10 is not the only measure a claim gets made on, so every measure
+    carries the same paired comparisons: each method against the floor, and
+    every pair against each other."""
+
+    SCORES = {"a": {"q1": {"m1": 0.9, "m2": 1.0}, "q2": {"m1": 0.5, "m2": 0.0}},
+              "b": {"q1": {"m1": 0.1, "m2": 0.0}, "q2": {"m1": 0.5, "m2": 1.0}}}
+    FLOOR = {"q1": {"m1": 0.5, "m2": 0.0}, "q2": {"m1": 0.5, "m2": 0.0}}
+
+    def test_every_measure_is_compared_with_the_floor(self):
+        out = by_metric(self.SCORES, self.FLOOR)
+        assert set(out) == {"m1", "m2"}
+        assert (out["m1"]["vs_floor"]["a"]["better"], out["m1"]["vs_floor"]["a"]["same"]) == (1, 1)
+        assert out["m2"]["vs_floor"]["b"]["mean"] == 0.5
+
+    def test_every_measure_compares_every_pair(self):
+        rows = by_metric(self.SCORES, self.FLOOR)["m1"]["head_to_head"]
+        assert [(r["method"], r["against"], r["better"]) for r in rows] == [("a", "b", 1)]
 
 
 class TestOutputLandsInsideTheExperiment:
