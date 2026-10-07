@@ -352,3 +352,13 @@ measured: whether Jev beats the cross-encoder.
 **2026-10-06, this file was reordered.** "Re-ranking in two minutes", "What we expect",
 "How to run it" and this section were added, and the code and output tables moved to the
 end. No sentence of the original protocol was reworded.
+
+**2026-10-06, five more measures and intervals for all eight, after the results were known.**
+"Metrics" names nDCG@10, Recall@10 and MRR@10, and gives only nDCG@10 a paired interval.
+The report now also computes success@1 (whether the top result is relevant), P@10,
+MAP@10, nDCG@3 and nDCG@5, all through trec_eval, and writes for every one of the eight
+the paired difference against the floor with its 95% interval and every pair head to
+head (`by_metric` in `summary.json`). They read the same wire log and change no number
+already reported. nDCG@10 stays the primary measure. The others are secondary: they were
+chosen once the nDCG@10 result was known, and across eight measures and ten pairs some
+borderline intervals will clear zero by chance.

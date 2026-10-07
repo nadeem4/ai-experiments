@@ -1,8 +1,11 @@
 """Retrieval metrics via pytrec_eval (the trec_eval C code), never by hand.
 
-nDCG@10 is the headline; Recall@10 and MRR@10 are alongside it. trec_eval has no
-MRR@10 measure -- `recip_rank` runs over the whole ranking -- so the run is cut
-to the top k before it is asked for one.
+nDCG@10 is the headline; Recall@10 and MRR@10 are alongside it. The rest each
+answer a narrower question a reader may ask instead: was the top result right
+(success@1), how much of the top ten is relevant (P@10), how the whole top ten
+ranks on binary relevance (MAP@10), and how good only the first places are
+(nDCG@3, nDCG@5). trec_eval has no MRR@10 measure -- `recip_rank` runs over the
+whole ranking -- so the run is cut to the top k before it is asked for one.
 
 `mean_ci` is a plain t interval written out here rather than pulled from scipy,
 which would be a large dependency for twenty lines.
@@ -32,25 +35,35 @@ def _cut(run, k):
     return {qid: dict(sorted(docs.items(), key=lambda kv: -kv[1])[:k]) for qid, docs in run.items()}
 
 
+def measures(k=10):
+    """Every measure reported, headline first."""
+    return [f"ndcg@{k}", f"recall@{k}", f"mrr@{k}", "success@1", f"p@{k}", f"map@{k}", "ndcg@3", "ndcg@5"]
+
+
 def per_query(qrels, run, k=10):
-    """{query_id: {"ndcg@10":..., "recall@10":..., "mrr@10":...}} for queries in both."""
+    """{query_id: {measure: value}} for queries in both, one entry per `measures(k)`."""
     qrels = {qid: rels for qid, rels in qrels.items() if qid in run}
     if not qrels:
         return {}
-    graded = pytrec_eval.RelevanceEvaluator(qrels, {f"ndcg_cut.{k}", f"recall.{k}"}).evaluate(run)
+    graded = pytrec_eval.RelevanceEvaluator(qrels, {
+        f"ndcg_cut.3,5,{k}", f"recall.{k}", "success.1", f"P.{k}", f"map_cut.{k}"}).evaluate(run)
     reciprocal = pytrec_eval.RelevanceEvaluator(qrels, {"recip_rank"}).evaluate(_cut(run, k))
     return {qid: {f"ndcg@{k}": graded[qid][f"ndcg_cut_{k}"],
                   f"recall@{k}": graded[qid][f"recall_{k}"],
-                  f"mrr@{k}": reciprocal[qid]["recip_rank"]} for qid in graded}
+                  f"mrr@{k}": reciprocal[qid]["recip_rank"],
+                  "success@1": graded[qid]["success_1"],
+                  f"p@{k}": graded[qid][f"P_{k}"],
+                  f"map@{k}": graded[qid][f"map_cut_{k}"],
+                  "ndcg@3": graded[qid]["ndcg_cut_3"],
+                  "ndcg@5": graded[qid]["ndcg_cut_5"]} for qid in graded}
 
 
 def evaluate(qrels, run, k=10):
     """Means over the queries that appear in both the qrels and the run."""
     scores = per_query(qrels, run, k)
     if not scores:
-        return {f"ndcg@{k}": 0.0, f"recall@{k}": 0.0, f"mrr@{k}": 0.0, "queries": 0}
-    keys = [f"ndcg@{k}", f"recall@{k}", f"mrr@{k}"]
-    out = {key: round(statistics.fmean(s[key] for s in scores.values()), 4) for key in keys}
+        return {**{key: 0.0 for key in measures(k)}, "queries": 0}
+    out = {key: round(statistics.fmean(s[key] for s in scores.values()), 4) for key in measures(k)}
     return {**out, "queries": len(scores)}
 
 

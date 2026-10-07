@@ -139,8 +139,9 @@ def ties(records):
 
 
 def paired(mine, theirs, only=None):
-    """The per-query nDCG@10 difference `mine - theirs`, with its 95% interval,
-    over the queries both sides scored (and only those in `only`, if given)."""
+    """The per-query difference `mine - theirs` in one measure, with its 95%
+    interval, over the queries both sides scored (and only those in `only`, if
+    given)."""
     shared = [qid for qid in mine if qid in theirs and (only is None or qid in only)]
     deltas = [mine[qid] - theirs[qid] for qid in shared]
     mean, low, high = mean_ci(deltas)
@@ -156,6 +157,23 @@ def head_to_head(ndcg, only=None):
     paired difference between them does."""
     return [{"method": a, "against": b, **paired(ndcg[a], ndcg[b], only)}
             for a, b in itertools.combinations(ndcg, 2)]
+
+
+def by_metric(scores, floor):
+    """The paired comparisons for every measure, not only nDCG@10.
+
+    `scores` is {method: {query_id: {measure: value}}} and `floor` the same for
+    the first stage's own order. A claim made on MRR@10 or Recall@10 needs the
+    same interval nDCG@10 has, so each measure gets the method-against-floor
+    difference and every pair head to head."""
+    names = next(iter(floor.values()), {})
+    out = {}
+    for measure in names:
+        floor_m = {qid: s[measure] for qid, s in floor.items()}
+        each = {m: {qid: s[measure] for qid, s in per.items()} for m, per in scores.items()}
+        out[measure] = {"vs_floor": {m: paired(values, floor_m) for m, values in each.items()},
+                        "head_to_head": head_to_head(each)}
+    return out
 
 
 def summarize(method, records, qrels, rankings, floor=None):
@@ -329,7 +347,8 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
     # BM25's per-query nDCG@10 is the floor every method is measured against, so
     # it is computed whether or not bm25 was asked for.
     # The first stage's own order is the floor: it is what doing nothing gives.
-    floor = {qid: s["ndcg@10"] for qid, s in per_query(qrels, build_run(candidates)).items()}
+    floor_scores = per_query(qrels, build_run(candidates))
+    floor = {qid: s["ndcg@10"] for qid, s in floor_scores.items()}
     records = store.load(scores_path)
 
     # How many of a query's candidates the qrels actually judge relevant. A query
@@ -339,7 +358,7 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
                 for qid, docs in candidates.items()}
     movable = {qid for qid, n in relevant.items() if n}
 
-    summaries, deltas, ndcg = [], {}, {}
+    summaries, deltas, ndcg, every = [], {}, {}, {}
     for method in methods:
         rankings = rankings_for(method, candidates, records)
         summary = summarize(method, records, qrels, rankings, floor)
@@ -348,6 +367,7 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
         summaries.append(summary)
         if method not in FREE:
             scored = per_query(qrels, build_run(rankings))
+            every[method] = scored
             ndcg[method] = {qid: s["ndcg@10"] for qid, s in scored.items()}
             deltas[method] = {qid: round(s["ndcg@10"] - floor[qid], 4)
                               for qid, s in scored.items() if qid in floor}
@@ -359,6 +379,9 @@ def report(limit, top_k, methods, out_dir, tag, split="test", cache_dir=None, lo
                "finished": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                "methods": summaries,
                "head_to_head": head_to_head(ndcg),
+               # The same comparisons for every other measure, so a claim made
+               # on any of them has its interval beside it.
+               "by_metric": by_metric(every, floor_scores),
                # Every query's mean is diluted by the ones nothing could move, so
                # the same comparisons are reported over the ones that could.
                "movable": {"queries": len(movable),
