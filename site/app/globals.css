@@ -305,3 +305,100 @@ svg :where([tabindex]):focus-visible .focus-ring {
     }
   }
 }
+
+/* ---- The story: the problem, the idea, the experiment, the finding ---- */
+
+/* Part 1 plays once on arrival, entirely in CSS. Every element's resting state
+   is its final one and the keyframes only hold it back, so the HTML reads
+   complete without JavaScript and reduced motion simply skips to the end. */
+.story-typed span {
+  animation: story-in 1ms linear backwards;
+  animation-delay: calc(300ms + var(--i) * 70ms);
+}
+.story-caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.25em;
+  margin-left: 2px;
+  vertical-align: -0.2em;
+  background: var(--ink);
+  animation: story-blink 1s steps(1) infinite;
+}
+.story-result {
+  animation: story-rise 360ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--t0) + var(--i) * 45ms);
+}
+.story-result.answer {
+  animation:
+    story-rise 360ms cubic-bezier(0.16, 1, 0.3, 1) backwards calc(var(--t0) + var(--i) * 45ms),
+    story-unlit 1ms linear backwards calc(var(--t0) + 950ms);
+}
+.story-after {
+  animation: story-rise 600ms cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  animation-delay: calc(var(--t0) + 1500ms);
+}
+@keyframes story-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes story-rise {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}
+@keyframes story-unlit {
+  from {
+    border-color: var(--line);
+    background: var(--surface);
+  }
+}
+@keyframes story-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-typed span,
+  .story-result,
+  .story-result.answer,
+  .story-after,
+  .story-caret {
+    animation: none;
+  }
+}
+
+/* Part 2: the same 20 abstracts as a board whose rows travel between fixed slots. */
+.story-board {
+  --row: 32px;
+  --head: 30px;
+  position: relative;
+  height: calc(var(--head) + var(--row) * 20);
+}
+.story-row {
+  transition:
+    transform 800ms cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 250ms;
+}
+.story-row .story-bar {
+  transition: width 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-row,
+  .story-row .story-bar {
+    transition: none;
+  }
+}
+
+/* Part 4: bars grow from the search's own score; switching measures slides them. */
+.story-track i {
+  transition:
+    left 450ms cubic-bezier(0.16, 1, 0.3, 1),
+    width 450ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .story-track i {
+    transition: none;
+  }
+}

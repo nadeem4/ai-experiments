@@ -53,6 +53,9 @@ export interface RerankMethod {
   scores?: RerankScores;
 }
 
+/** One pair as the run writes it: `method - against`. */
+export type PairRow = Paired & { method: string; against: string };
+
 export interface RerankQuery {
   id: string;
   text: string;
@@ -76,7 +79,9 @@ export interface Rerank {
     /** The corpus every question was searched over. Absent from runs reported before it was recorded. */
     documents?: number;
     /** Every pair of re-rankers, `method - against`, per query. */
-    head_to_head?: (Paired & { method: string; against: string })[];
+    head_to_head?: PairRow[];
+    /** The same comparisons for every measure the run reports, nDCG@10 among them. */
+    by_metric?: Record<string, { vs_floor: Record<string, Paired>; head_to_head: PairRow[] }>;
     methods: RerankMethod[];
   };
   config: Record<string, unknown>;
@@ -99,9 +104,9 @@ const FLOOR_NDCG = "floor_ndcg@10";
 const LABELS: Record<string, string> = {
   hybrid: "hybrid, the floor",
   "jev-score": "Jev",
-  "cross-encoder": "cross-encoder MiniLM",
+  "cross-encoder": "Cross-encoder",
   "laya-score": "Laya",
-  "laya-typed-score": "Laya typed-decisions",
+  "laya-typed-score": "Laya typed",
 };
 
 export function label(method: string): string {
@@ -109,7 +114,6 @@ export function label(method: string): string {
 }
 
 export const signed = (n: number, digits = 4) => `${n >= 0 ? "+" : "−"}${Math.abs(n).toFixed(digits)}`;
-export const pct = (n: number, digits = 0) => `${(n * 100).toFixed(digits)}%`;
 
 export interface RerankerRow {
   method: string;
@@ -202,13 +206,8 @@ export function runFacts(data: Rerank): RunFacts {
   };
 }
 
-/**
- * How `method` did against `against`, query by query. The run writes each pair
- * once, so asking the other way round turns it: the sign, the interval and the
- * win and loss counts all swap, and the first name is always the subject.
- */
-export function headToHead(data: Rerank, method: string, against: string): Paired | undefined {
-  const pairs = data.summary.head_to_head ?? [];
+/** `method` against `against` out of a list that holds each pair once, either way round. */
+export function pairFrom(pairs: PairRow[], method: string, against: string): Paired | undefined {
   const same = pairs.find((p) => p.method === method && p.against === against);
   if (same) return { mean: same.mean, ci95: same.ci95, better: same.better, worse: same.worse, same: same.same };
   const turned = pairs.find((p) => p.method === against && p.against === method);
@@ -230,155 +229,10 @@ export function verdict(mean: number, ci: Interval | undefined): Verdict {
   return mean > 0 ? "better" : "worse";
 }
 
-export interface RangeAxis {
-  lo: number;
-  hi: number;
-  x: (value: number) => number;
-  ticks: number[];
-}
-
-/** An absolute scale, for showing where a score landed rather than how far it
- * moved: the domain rounded out to the nearest `step` on either side. */
-export function rangeAxis(values: number[], width: number, step: number): RangeAxis {
-  const loSteps = Math.floor(Math.min(...values) / step);
-  const hiSteps = Math.ceil(Math.max(...values) / step);
-  const lo = loSteps * step;
-  const hi = hiSteps * step;
-  return {
-    lo,
-    hi,
-    x: (value: number) => ((value - lo) / (hi - lo)) * width,
-    ticks: Array.from({ length: hiSteps - loSteps + 1 }, (_, i) => (loSteps + i) * step),
-  };
-}
-
-/** Half-width of a domain centred on zero that covers every value, rounded out
- * to the next `step` so the axis lands on ticks a reader can name. */
-export function symmetricHalf(values: number[], step: number): number {
-  const extent = Math.max(0, ...values.map(Math.abs));
-  return Math.max(step, Math.ceil(extent / step - 1e-9) * step);
-}
-
-export interface Axis {
-  half: number;
-  x: (value: number) => number;
-  ticks: number[];
-}
-
-/** A horizontal scale centred on zero. Zero is the whole point of these charts,
- * so it sits at the middle of the drawing rather than wherever the data ends up
- * putting it. */
-export function axis(values: number[], width: number, step: number): Axis {
-  const half = symmetricHalf(values, step);
-  return {
-    half,
-    x: (value: number) => width / 2 + (value / half) * (width / 2),
-    ticks: [-half, -half / 2, 0, half / 2, half],
-  };
-}
-
-export interface DeltaPoint {
-  id: string;
-  text: string;
-  delta: number;
-}
-
-/** One method's change against the floor, per query, largest gain first.
- * Only the queries that could move: for the rest every method scores zero
- * whatever order it picks, so a bar of zero would say nothing. */
-export function deltaSeries(data: Rerank, method: string): DeltaPoint[] {
-  return data.queries
-    .filter((q) => q.can_move && q.ndcg[method] !== undefined)
-    .map((q) => ({ id: q.id, text: q.text, delta: q.ndcg[method] }))
-    .sort((a, b) => b.delta - a.delta);
-}
-
 /** How many queries had something relevant to find, and how many did not. */
 export function movableSplit(data: Rerank): { movable: number; excluded: number } {
   const movable = data.queries.filter((q) => q.can_move).length;
   return { movable, excluded: data.queries.length - movable };
-}
-
-export interface Bar {
-  id: string;
-  text: string;
-  delta: number;
-  x: number;
-  width: number;
-  y: number;
-  height: number;
-}
-
-export interface BarLayout {
-  bars: Bar[];
-  zeroY: number;
-  half: number;
-}
-
-/** Every movable query as one thin bar, hung off a zero line in the middle. */
-export function barLayout(
-  series: DeltaPoint[],
-  {
-    width,
-    height,
-    step,
-    gap = 0,
-    half: given,
-  }: { width: number; height: number; step: number; gap?: number; half?: number },
-): BarLayout {
-  // A panel sized to its own data makes a ±0.6 chart look like a ±1.0 one, so
-  // panels meant to be read side by side are handed one scale.
-  const half =
-    given ??
-    symmetricHalf(
-      series.map((point) => point.delta),
-      step,
-    );
-  const zeroY = height / 2;
-  const slot = width / Math.max(1, series.length);
-  const barWidth = Math.max(slot - gap, slot * 0.5);
-
-  return {
-    half,
-    zeroY,
-    bars: series.map((point, i) => {
-      const length = (Math.abs(point.delta) / half) * (height / 2);
-      return {
-        ...point,
-        x: i * slot,
-        width: barWidth,
-        y: point.delta >= 0 ? zeroY - length : zeroY,
-        height: length,
-      };
-    }),
-  };
-}
-
-/**
- * The bars as three paths rather than 252 elements.
- *
- * A bar per query, four methods deep, is a thousand shapes, and a thousand
- * shapes is a thousand tags in the HTML and a thousand tab stops in the page.
- * Drawn as one path per direction the chart costs a few hundred bytes, and the
- * one thing a path cannot do -- be pointed at -- is done by arithmetic in
- * `barIndexAt` instead.
- */
-export function barPaths(bars: Bar[], minHeight = 0.8): { gain: string; loss: string; flat: string } {
-  const round = (n: number) => Math.round(n * 100) / 100;
-  const out = { gain: "", loss: "", flat: "" };
-  for (const bar of bars) {
-    const height = Math.max(bar.height, minHeight);
-    const key = bar.delta > 0 ? "gain" : bar.delta < 0 ? "loss" : "flat";
-    out[key] += `M${round(bar.x)} ${round(bar.y)}h${round(bar.width)}v${round(height)}h${-round(bar.width)}z`;
-  }
-  return out;
-}
-
-/** Which bar a pointer at `x` is over, in the drawing's own coordinates. */
-export function barIndexAt(x: number, width: number, count: number): number {
-  if (count <= 0) return -1;
-  const index = Math.floor((x / width) * count);
-  return Math.min(count - 1, Math.max(0, index));
 }
 
 /** What this query scored under this method, and what the floor scored on it.
@@ -407,43 +261,6 @@ export function openingQuery(data: Rerank, helped: string, hurt: string): string
   if (!split.length) return (data.queries.find((q) => q.can_move) ?? data.queries[0]).id;
   const margin = (q: RerankQuery) => q.ndcg[helped] - q.ndcg[hurt];
   return split.reduce((a, b) => (margin(b) > margin(a) ? b : a)).id;
-}
-
-export interface WalkthroughFacts {
-  /** The relevant passage the search ranked highest: the one the story follows. */
-  answer: string;
-  from: number;
-  helpedTo: number | null;
-  hurtTo: number | null;
-  floorNdcg: number;
-  helpedNdcg: number;
-  hurtNdcg: number;
-}
-
-/** Where one question's answer starts and lands under two methods, and what each order scores. */
-export function walkthroughFacts(
-  query: RerankQuery,
-  detail: DetailQuery,
-  helped: string,
-  hurt: string,
-  floor: string,
-): WalkthroughFacts {
-  const searchOrder = detail.orders[floor] ?? [];
-  const answer = [...query.relevant].sort((a, b) => searchOrder.indexOf(a) - searchOrder.indexOf(b))[0];
-  const rank = (method: string) => {
-    const order = detail.orders[method];
-    return order ? order.indexOf(answer) + 1 : null;
-  };
-  const floorNdcg = query.ndcg[FLOOR_NDCG];
-  return {
-    answer,
-    from: searchOrder.indexOf(answer) + 1,
-    helpedTo: rank(helped),
-    hurtTo: rank(hurt),
-    floorNdcg,
-    helpedNdcg: floorNdcg + (query.ndcg[helped] ?? 0),
-    hurtNdcg: floorNdcg + (query.ndcg[hurt] ?? 0),
-  };
 }
 
 /**

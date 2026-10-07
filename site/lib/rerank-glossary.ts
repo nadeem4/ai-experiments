@@ -117,11 +117,3 @@ const ENTRIES = {
 
 export type TermId = keyof typeof ENTRIES;
 export const GLOSSARY: Record<TermId, GlossaryEntry> = ENTRIES;
-
-/** The term that explains each method, so a method's name can explain itself wherever it appears. */
-export const METHOD_TERM: Record<string, TermId> = {
-  "jev-score": "jev",
-  "cross-encoder": "cross-encoder",
-  "laya-score": "laya",
-  "laya-typed-score": "laya",
-};

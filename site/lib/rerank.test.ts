@@ -11,16 +11,8 @@
 import { describe, expect, it } from "vitest";
 import rerankData from "@/data/rerank.json";
 import {
-  barIndexAt,
-  barLayout,
-  barPaths,
-  deltaSeries,
-  axis,
-  headToHead,
   openingQuery,
-  rangeAxis,
   verdict,
-  walkthroughFacts,
   label,
   matchQueries,
   methodOrder,
@@ -28,8 +20,6 @@ import {
   queryNdcg,
   rerankerRows,
   runFacts,
-  symmetricHalf,
-  type Detail,
   type Rerank,
 } from "@/lib/rerank";
 
@@ -109,19 +99,6 @@ const fixture: Rerank = {
   config: { top_k: 3, queries: 3, first_stage: "hybrid", encoder: "e", fusion: "reciprocal-rank", rrf_k: 60 },
 };
 
-const detail: Detail = {
-  queries: {
-    "Q-1": {
-      orders: {
-        hybrid: ["D-1", "D-2", "D-3"],
-        "jev-score": ["D-2", "D-3", "D-1"],
-      },
-      scores: { "jev-score": [3.5, 1.25, 0.5] },
-    },
-  },
-  passages: { "D-1": "first passage", "D-2": "second passage" },
-};
-
 describe("label", () => {
   it("never calls the floor BM25", () => {
     expect(label("hybrid").toLowerCase()).not.toContain("bm25");
@@ -199,54 +176,6 @@ describe("runFacts", () => {
   });
 });
 
-describe("symmetricHalf", () => {
-  it("has a domain even when there is nothing to plot", () => {
-    expect(symmetricHalf([], 0.01)).toBeCloseTo(0.01, 10);
-  });
-
-  it("covers the largest value in either direction, rounded out to a readable tick", () => {
-    expect(symmetricHalf([0.031, -0.02], 0.01)).toBeCloseTo(0.04, 10);
-    expect(symmetricHalf([-0.62, 0.1], 0.25)).toBeCloseTo(0.75, 10);
-  });
-});
-
-describe("axis", () => {
-  it("puts zero in the middle and a gain to the right of it", () => {
-    const a = axis([0.05, -0.05], 1000, 0.01);
-    expect(a.x(0)).toBe(500);
-    expect(a.x(0.05)).toBeGreaterThan(500);
-    expect(a.x(-0.05)).toBe(1000 - a.x(0.05));
-  });
-
-  it("offers ticks that include zero and both ends", () => {
-    const a = axis([0.05], 1000, 0.01);
-    expect(a.ticks[0]).toBeCloseTo(-a.half, 10);
-    expect(a.ticks).toContain(0);
-    expect(a.ticks[a.ticks.length - 1]).toBeCloseTo(a.half, 10);
-  });
-});
-
-describe("deltaSeries", () => {
-  it("keeps only the queries that could move", () => {
-    expect(deltaSeries(fixture, "jev-score").map((d) => d.id)).toEqual(["Q-1", "Q-3"]);
-  });
-
-  it("sorts by the delta, largest gain first", () => {
-    expect(deltaSeries(fixture, "cross-encoder").map((d) => d.delta)).toEqual([0.4, -0.1]);
-  });
-
-  it("carries the query text so a bar can name itself", () => {
-    expect(deltaSeries(fixture, "jev-score")[0].text).toBe("vitamin d");
-  });
-
-  it("covers every movable query of the run for every re-ranker", () => {
-    const { movable } = movableSplit(run);
-    for (const row of rerankerRows(run)) {
-      expect(deltaSeries(run, row.method)).toHaveLength(movable);
-    }
-  });
-});
-
 describe("movableSplit", () => {
   it("separates the queries with nothing relevant retrieved from the rest", () => {
     expect(movableSplit(fixture)).toEqual({ movable: 2, excluded: 1 });
@@ -256,96 +185,6 @@ describe("movableSplit", () => {
     const split = movableSplit(run);
     expect(split.movable + split.excluded).toBe(run.summary.queries);
     expect(split.excluded).toBeGreaterThan(0);
-  });
-});
-
-describe("barLayout", () => {
-  const series = [
-    { id: "a", text: "a", delta: 0.4 },
-    { id: "b", text: "b", delta: 0 },
-    { id: "c", text: "c", delta: -0.2 },
-  ];
-
-  it("hangs a gain above the zero line and a loss below it", () => {
-    const { bars, zeroY } = barLayout(series, { width: 300, height: 100, step: 0.1 });
-    expect(bars[0].y + bars[0].height).toBeCloseTo(zeroY, 10);
-    expect(bars[0].y).toBeLessThan(zeroY);
-    expect(bars[2].y).toBeCloseTo(zeroY, 10);
-    expect(bars[2].height).toBeGreaterThan(0);
-  });
-
-  it("gives a query that did not move no height at all", () => {
-    const { bars } = barLayout(series, { width: 300, height: 100, step: 0.1 });
-    expect(bars[1].height).toBe(0);
-  });
-
-  it("lays the bars left to right in the order it was given", () => {
-    const { bars } = barLayout(series, { width: 300, height: 100, step: 0.1 });
-    expect(bars.map((b) => b.id)).toEqual(["a", "b", "c"]);
-    expect(bars[0].x).toBeLessThan(bars[1].x);
-    expect(bars[2].x + bars[2].width).toBeLessThanOrEqual(300);
-  });
-
-  it("draws on a scale it is handed, so panels side by side share one", () => {
-    const own = barLayout(series, { width: 300, height: 100, step: 0.1 });
-    const shared = barLayout(series, { width: 300, height: 100, step: 0.1, half: 1 });
-    expect(shared.half).toBe(1);
-    expect(shared.bars[0].height).toBeLessThan(own.bars[0].height);
-  });
-
-  it("keeps every bar wide enough to see and to hit", () => {
-    const many = Array.from({ length: 252 }, (_, i) => ({ id: `q${i}`, text: "", delta: 0.1 }));
-    const { bars } = barLayout(many, { width: 1000, height: 100, step: 0.1 });
-    expect(bars).toHaveLength(252);
-    expect(bars.every((b) => b.width > 0)).toBe(true);
-  });
-});
-
-describe("barPaths", () => {
-  const series = [
-    { id: "a", text: "a", delta: 0.4 },
-    { id: "b", text: "b", delta: 0 },
-    { id: "c", text: "c", delta: -0.2 },
-  ];
-  const { bars, zeroY } = barLayout(series, { width: 300, height: 100, step: 0.1 });
-
-  it("sorts the bars into a gain path, a loss path and a path of the unmoved", () => {
-    const paths = barPaths(bars);
-    expect(paths.gain.match(/M/g)).toHaveLength(1);
-    expect(paths.loss.match(/M/g)).toHaveLength(1);
-    expect(paths.flat.match(/M/g)).toHaveLength(1);
-  });
-
-  it("starts a gain above the zero line and a loss on it", () => {
-    const paths = barPaths(bars);
-    expect(Number(paths.gain.slice(1).split(" ")[1].split("h")[0])).toBeLessThan(zeroY);
-    expect(Number(paths.loss.slice(1).split(" ")[1].split("h")[0])).toBeCloseTo(zeroY, 1);
-  });
-
-  it("leaves a path empty when nothing went that way", () => {
-    const only = barLayout([{ id: "a", text: "a", delta: 0.4 }], { width: 10, height: 10, step: 0.1 });
-    expect(barPaths(only.bars).loss).toBe("");
-  });
-
-  it("gives a query that did not move a hairline, so it is still on the page", () => {
-    expect(barPaths(bars, 0.8).flat).toContain("v0.8");
-  });
-});
-
-describe("barIndexAt", () => {
-  it("maps a position across the drawing to a bar", () => {
-    expect(barIndexAt(0, 1000, 250)).toBe(0);
-    expect(barIndexAt(500, 1000, 250)).toBe(125);
-    expect(barIndexAt(999, 1000, 250)).toBe(249);
-  });
-
-  it("clamps rather than running off either end", () => {
-    expect(barIndexAt(-40, 1000, 250)).toBe(0);
-    expect(barIndexAt(4000, 1000, 250)).toBe(249);
-  });
-
-  it("has no bar to point at when there are none", () => {
-    expect(barIndexAt(10, 1000, 0)).toBe(-1);
   });
 });
 
@@ -395,31 +234,6 @@ describe("matchQueries", () => {
   });
 });
 
-describe("headToHead", () => {
-  it("reads a pair the way the run wrote it", () => {
-    const d = headToHead(fixture, "cross-encoder", "jev-score")!;
-    expect(d.mean).toBe(-0.05);
-    expect([d.better, d.worse]).toEqual([1, 2]);
-  });
-
-  it("turns a pair round when asked the other way, so the first named is always the subject", () => {
-    const d = headToHead(fixture, "jev-score", "cross-encoder")!;
-    expect(d.mean).toBe(0.05);
-    expect(d.ci95).toEqual([0.02, 0.08]);
-    expect([d.better, d.worse, d.same]).toEqual([2, 1, 0]);
-  });
-
-  it("is missing rather than invented for a pair the run never compared", () => {
-    expect(headToHead(fixture, "jev-score", "laya-score")).toBeUndefined();
-  });
-
-  it("finds Jev ahead of the cross-encoder in the real run", () => {
-    const d = headToHead(run, "jev-score", "cross-encoder")!;
-    expect(d.mean).toBeGreaterThan(0);
-    expect(d.ci95![0]).toBeGreaterThan(0);
-  });
-});
-
 describe("verdict", () => {
   it("calls a method better only when its whole interval clears the floor", () => {
     expect(verdict(0.05, [0.03, 0.06])).toBe("better");
@@ -432,21 +246,6 @@ describe("verdict", () => {
   it("refuses to call an interval that crosses zero either way", () => {
     expect(verdict(0.01, [-0.01, 0.03])).toBe("no clear change");
     expect(verdict(0.01, null)).toBe("no clear change");
-  });
-});
-
-describe("rangeAxis", () => {
-  it("rounds the domain out to readable ticks and maps it onto the width", () => {
-    const a = rangeAxis([0.3028, 0.3785], 100, 0.02);
-    expect(a.lo).toBeCloseTo(0.3, 10);
-    expect(a.hi).toBeCloseTo(0.38, 10);
-    expect(a.x(a.lo)).toBe(0);
-    expect(a.x(a.hi)).toBe(100);
-  });
-
-  it("names a tick at every step from end to end", () => {
-    const a = rangeAxis([0.31, 0.35], 100, 0.02);
-    expect(a.ticks.map((t) => t.toFixed(2))).toEqual(["0.30", "0.32", "0.34", "0.36"]);
   });
 });
 
@@ -464,27 +263,3 @@ describe("openingQuery", () => {
     expect(query.ndcg["laya-score"]).toBeLessThan(0);
   });
 });
-
-describe("walkthroughFacts", () => {
-  const query = fixture.queries[0];
-  const q = detail.queries["Q-1"];
-
-  it("follows the passage people judged relevant from the search's order into the model's", () => {
-    const facts = walkthroughFacts(query, q, "jev-score", "cross-encoder", "hybrid");
-    expect(facts.answer).toBe("D-2");
-    expect(facts.from).toBe(2);
-    expect(facts.helpedTo).toBe(1);
-  });
-
-  it("reads each order's nDCG@10 as the floor plus that method's change", () => {
-    const facts = walkthroughFacts(query, q, "jev-score", "cross-encoder", "hybrid");
-    expect(facts.floorNdcg).toBeCloseTo(0.5, 10);
-    expect(facts.helpedNdcg).toBeCloseTo(0.75, 10);
-    expect(facts.hurtNdcg).toBeCloseTo(0.4, 10);
-  });
-
-  it("says nothing about a method whose order the run did not keep", () => {
-    expect(walkthroughFacts(query, q, "jev-score", "cross-encoder", "hybrid").hurtTo).toBeNull();
-  });
-});
-
