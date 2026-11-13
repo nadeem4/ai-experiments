@@ -88,6 +88,6 @@ def test_the_dirty_list_keeps_whole_paths():
     for path in git_state()["dirty"]:
         assert not path.startswith("/"), path
         head = path.split("/")[0]
-        assert head in {"cli", "rerank", "banking77", "typed_decisions", "site",
+        assert head in {"cli", "rerank", "site",
                         "tests", "pyproject.toml", "uv.lock", "README.md",
                         ".gitignore", ".env.example", "EXPERIMENT_TEMPLATE.md"}, path

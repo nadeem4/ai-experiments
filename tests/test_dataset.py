@@ -57,7 +57,7 @@ class TestRendering:
 
 
 class TestEveryExperimentCanDescribeItsData:
-    @pytest.mark.parametrize("name", ("rerank", "banking77", "typed_decisions"))
+    @pytest.mark.parametrize("name", ("rerank",))
     def test_it_exposes_a_dataset_function(self, name):
         import cli
 

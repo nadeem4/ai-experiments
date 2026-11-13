@@ -36,4 +36,4 @@ dev = [
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ["tests", "rerank/tests", "banking77/tests", "typed_decisions/tests"]
+testpaths = ["tests", "rerank/tests"]

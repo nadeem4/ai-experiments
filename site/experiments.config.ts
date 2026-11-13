@@ -16,6 +16,4 @@ export interface ExperimentEntry {
 
 export const EXPERIMENTS: ExperimentEntry[] = [
   { slug: "rerank", nav: "Re-ranker", published: true },
-  { slug: "typed-decisions", nav: "Typed decisions", published: false },
-  { slug: "banking77", nav: "Banking77", published: false },
 ];
