@@ -109,7 +109,8 @@ def problems_b(records, k):
     """Part B's pilot checks: complete records, recall 1.0 at nprobe = k (when
     `k` is given), and e-means and Lloyd-half actually trained (rows touched)."""
     out = []
-    for r in records:
+    last_hash = {}  # (arm, seed) -> the previous month's centroids_hash, for the monthly e-means arm
+    for r in sorted(records, key=lambda r: (r["seed"], r["setting"])):  # month order, whatever the file order
         unit = f"{r['dataset']} {r['arm']} {r['setting']} seed {r['seed']}"
         missing = [f for f in growing.REQUIRED if f not in r]
         if missing:
@@ -122,4 +123,11 @@ def problems_b(records, k):
             out.append(f"{unit}: recall at nprobe == k ({k}) is {search[str(k)]['recall10']}, not 1.0")
         if r["arm"] in ("emeans", "lloyd_half") and not r["rows"]:
             out.append(f"{unit}: {r['arm']} touched no rows (e-means was not run through begin)")
+        if r["arm"] == "stale" and r["maintenance_seconds"] != 0:
+            out.append(f"{unit}: stale maintenance_seconds is {r['maintenance_seconds']}, not 0")
+        if r["arm"] == "emeans":
+            key = (r["arm"], r["seed"])
+            if last_hash.get(key) == r["centroids_hash"]:
+                out.append(f"{unit}: centroids_hash equals the previous month's, so the warm start did not move")
+            last_hash[key] = r["centroids_hash"]
     return out

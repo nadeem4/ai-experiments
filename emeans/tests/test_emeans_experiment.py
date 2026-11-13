@@ -1,10 +1,11 @@
 """The emeans experiment's `cli` contract and its guard rails."""
 import argparse
+import json
 
 import pytest
 
 import cli
-from emeans import experiment
+from emeans import experiment, store
 
 
 def parser():
@@ -103,3 +104,108 @@ def test_a_missing_sift_file_says_where_to_get_it(tmp_path):
 def test_dataset_stub_does_not_overwrite_the_card():
     with pytest.raises(SystemExit):
         experiment.dataset()
+
+
+def test_write_results_builds_summary_csvs_and_figures_from_the_stores(tmp_path, fake_records):
+    args = parser().parse_args(["--tag", "full", "--out", str(tmp_path)])
+    for part in "abc":
+        for r in (r for r in fake_records if r["part"] == part):
+            store.append(tmp_path / "runs" / "full" / f"{part}.jsonl", r)
+    experiment.write_results(args)
+    results = tmp_path / "results" / "full"
+    summary = json.loads((results / "summary.json").read_text())
+    assert set(summary) == {"a", "b", "c"} and summary["a"]["sift"]["match"]["emeans"]["epochs_to_match"] == 3
+    assert (results / "a_match.csv").exists()
+    assert {p.name for p in (results / "figures").glob("*.png")} >= {"a-race.png", "b-end-state-gap.png", "c-dimension.png"}
+
+
+def test_write_results_refuses_an_incomplete_part_and_says_why(tmp_path, fake_records, capsys):
+    args = parser().parse_args(["--tag", "full", "--out", str(tmp_path)])
+    for r in (r for r in fake_records if r["part"] == "a" and not (r["arm"] == "emeans" and r["seed"] == 1)):
+        store.append(tmp_path / "runs" / "full" / "a.jsonl", r)
+    with pytest.raises(SystemExit, match="nothing to summarise"):
+        experiment.write_results(args)
+    assert "part a: not summarised:" in capsys.readouterr().out
+    assert not (tmp_path / "results" / "full" / "summary.json").exists()
+
+
+def test_write_results_keeps_the_complete_parts_and_names_the_incomplete_one(tmp_path, fake_records, capsys):
+    args = parser().parse_args(["--tag", "full", "--out", str(tmp_path)])
+    for r in fake_records:
+        if r["part"] == "c":
+            continue
+        if r["part"] == "b" and r["arm"] == "emeans" and r["seed"] == 1:
+            continue  # an interrupted B chain
+        store.append(tmp_path / "runs" / "full" / f"{r['part']}.jsonl", r)
+    experiment.write_results(args)  # does not exit
+    summary = json.loads((tmp_path / "results" / "full" / "summary.json").read_text())
+    assert set(summary) == {"a"}
+    out = capsys.readouterr().out
+    assert "part b: not summarised:" in out and "emeans" in out
+    assert (tmp_path / "results" / "full" / "figures" / "a-race.png").exists()
+
+
+def test_write_results_merges_with_a_summary_already_there(tmp_path, fake_records):
+    args = parser().parse_args(["--tag", "full", "--out", str(tmp_path)])
+    for r in fake_records:
+        if r["part"] != "c":
+            store.append(tmp_path / "runs" / "full" / f"{r['part']}.jsonl", r)
+    experiment.write_results(args)
+    (tmp_path / "runs" / "full" / "a.jsonl").unlink()
+    experiment.write_results(args)  # part a has no records now: its earlier summary stays
+    assert set(json.loads((tmp_path / "results" / "full" / "summary.json").read_text())) == {"a", "b"}
+
+
+# ---- part A on both datasets, and one environment record per part ----
+
+import numpy as np  # noqa: E402
+
+from emeans import data  # noqa: E402
+from emeans.experiment import Scale  # noqa: E402
+
+A_SCALE = Scale(n=300, n_test=200, n_queries=10, k=8, seeds_a=1, seeds_bc=1, b_months=3, nprobes=(1, 8))
+
+
+def test_dry_run_part_a_lists_sift_and_arxiv_units(tmp_path, capsys):
+    experiment.run(parser().parse_args(["--tag", "pilot", "--dry-run", "--out", str(tmp_path)]))
+    out = capsys.readouterr().out
+    assert "a sift lloyd calibration 0" in out and "a arxiv lloyd calibration 0" in out
+    assert "a arxiv minibatch epochs=5 0" in out
+
+
+@pytest.fixture
+def a_run(tmp_path, monkeypatch):
+    calls = []
+    tiny = data.Split(*(np.zeros((2, 2), np.float32),) * 3, np.zeros((1, 2), np.float32), np.zeros((1, 10), np.int64))
+    monkeypatch.setattr(experiment, "PILOT", A_SCALE)
+    monkeypatch.setattr(experiment, "load_split", lambda args, scale: tiny)
+    monkeypatch.setattr(experiment.race, "run",
+                        lambda units, split, scale, path, threads=None: calls.append((units, split)))
+    return calls
+
+
+def test_part_a_without_arxiv_vectors_runs_sift_and_says_it_skipped_arxiv(tmp_path, a_run, capsys):
+    experiment.run(parser().parse_args(["--tag", "pilot", "--out", str(tmp_path)]))
+    assert [{u[1] for u in units} for units, _ in a_run] == [{"sift"}]
+    assert "skipping arXiv" in capsys.readouterr().out
+
+
+def test_part_a_with_arxiv_vectors_also_runs_arxiv_on_its_own_split(tmp_path, a_run):
+    vec = tmp_path / "vec"
+    vec.mkdir()
+    rng = np.random.default_rng(0)
+    np.save(vec / "vectors.npy", rng.normal(size=(500, 8)).astype(np.float32))
+    np.save(vec / "months.npy", np.array(["2019-12"] * 500))
+    experiment.run(parser().parse_args(["--tag", "pilot", "--data-dir", str(vec), "--out", str(tmp_path)]))
+    assert [{u[1] for u in units} for units, _ in a_run] == [{"sift"}, {"arxiv"}]
+    arxiv = a_run[1][1]
+    assert len(arxiv.train) == 100 and len(arxiv.test) == 200 and len(arxiv.queries) == 10  # n=300 of 500 rows
+
+
+def test_each_run_writes_an_environment_record_per_part(tmp_path, a_run):
+    experiment.run(parser().parse_args(["--tag", "pilot", "--out", str(tmp_path)]))
+    path = tmp_path / "runs" / "pilot" / "environment-a.json"
+    assert json.loads(path.read_text())["date"]
+    path.write_text("{}")
+    experiment.run(parser().parse_args(["--tag", "pilot", "--out", str(tmp_path)]))
+    assert "date" in json.loads(path.read_text())  # overwritten by the later run

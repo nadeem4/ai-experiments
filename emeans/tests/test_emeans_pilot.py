@@ -148,6 +148,9 @@ def test_a_part_b_pilot_runs_checks_and_projects(tmp_path, monkeypatch):
     records = store.load(tmp_path / "runs" / "pilot" / "b.jsonl")
     assert len(records) == 12 and {len(r["search"]) for r in records} == {3}  # 16, 64 and nprobe = k
     experiment.report(args)  # no problems: does not exit
+    results = tmp_path / "results" / "pilot"
+    assert json.loads((results / "summary.json").read_text())["b"]["facts"]["months"] == 3
+    assert (results / "figures" / "b-recall-over-time.png").exists() and (results / "b_ledger.csv").exists()
     proj = json.loads((tmp_path / "results" / "pilot" / "projection.json").read_text())
     assert proj["b"]["hours"] > 0 and proj["b"]["months"] == 72
 
@@ -163,6 +166,7 @@ def test_a_part_c_pilot_runs_every_dimension_and_reports_the_match(tmp_path, mon
     experiment.report(args)
     out = capsys.readouterr().out
     assert "arxiv-d4" in out and "epochs to match" in out
+    assert set(json.loads((tmp_path / "results" / "pilot" / "summary.json").read_text())["c"]) == {"4", "8"}
 
 
 def test_problems_b_flags_missing_fields_recall_below_one_and_unrun_emeans():
@@ -173,3 +177,26 @@ def test_problems_b_flags_missing_fields_recall_below_one_and_unrun_emeans():
     assert "missing" in pilot.problems_b([{k: v for k, v in good.items() if k != "imbalance"}], 8)[0]
     assert "nprobe" in pilot.problems_b([dict(good, search={"8": {"recall10": 0.5}})], 8)[0]
     assert "begin" in pilot.problems_b([dict(good, rows=0)], 8)[0]
+
+
+def test_problems_b_flags_a_stale_arm_that_spent_time_and_an_emeans_warm_start_that_did_not_move():
+    base = {f: 1 for f in growing.REQUIRED}
+    base.update(part="b", dataset="arxiv", seed=0, search={"8": {"recall10": 1.0}}, rows=100)
+    stale = dict(base, arm="stale", setting="2020-01", maintenance_seconds=0.5)
+    assert "maintenance" in pilot.problems_b([stale], 8)[0]
+    ok = dict(stale, maintenance_seconds=0)
+    assert pilot.problems_b([ok], 8) == []
+    e1 = dict(base, arm="emeans", setting="2020-01", centroids_hash="a")
+    e2 = dict(base, arm="emeans", setting="2020-02", centroids_hash="a")
+    assert "did not move" in pilot.problems_b([e1, e2], 8)[0]
+    assert pilot.problems_b([e1, dict(e2, centroids_hash="b")], 8) == []
+    other_seed = dict(e2, seed=1)  # a different chain is not the previous month
+    assert pilot.problems_b([e1, other_seed], 8) == []
+
+
+def test_problems_b_checks_the_warm_start_in_month_order_not_file_order():
+    base = {f: 1 for f in growing.REQUIRED}
+    base.update(part="b", dataset="arxiv", seed=0, arm="emeans", search={"8": {"recall10": 1.0}}, rows=100)
+    m = lambda month, h: dict(base, setting=month, centroids_hash=h)  # noqa: E731
+    assert pilot.problems_b([m("2020-01", "a"), m("2020-03", "a"), m("2020-02", "b")], 8) == []
+    assert "did not move" in pilot.problems_b([m("2020-03", "a"), m("2020-02", "a"), m("2020-01", "b")], 8)[0]

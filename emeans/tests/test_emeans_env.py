@@ -46,3 +46,19 @@ def test_torch_faiss_and_sklearn_share_a_process():
 def test_environment_records_the_observed_thread_pools():
     pools = env.environment()["threadpools"]
     assert pools and all("num_threads" in p for p in pools)
+
+
+def test_environment_commit_and_dirty_flag_come_from_the_given_directory(tmp_path):
+    import subprocess
+
+    git = lambda *a: subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=tmp_path,  # noqa: E731
+                                    check=True, capture_output=True)
+    git("init", "-q")
+    (tmp_path / "f.txt").write_text("1")
+    git("add", ".")
+    git("commit", "-qm", "x")
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, capture_output=True, text=True).stdout.strip()
+    clean = env.environment(cwd=tmp_path)
+    assert clean["commit"] == head and clean["dirty"] is False
+    (tmp_path / "f.txt").write_text("2")
+    assert env.environment(cwd=tmp_path)["dirty"] is True

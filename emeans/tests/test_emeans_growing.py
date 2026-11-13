@@ -253,15 +253,16 @@ def test_ledger_counts_train_plus_assign_never_adding_and_stale_is_zero(gsplit, 
     records = run_b(gsplit, tmp_path / "b.jsonl")
     led = tables.ledger(records)
     assert set(led) == set(growing.ARMS_B)
-    assert all(m == 0 and c == 0 for _, m, c in led["stale"]) and len(led["stale"]) == 5
+    assert all(m == 0 and c == 0 for _, m, _lo, _hi, c in led["stale"]) and len(led["stale"]) == 5
     for arm, rows in led.items():
         assert [r[0] for r in rows] == MONTHS
         mine = [r for r in records if r["arm"] == arm]
-        for month, monthly, cumulative in rows:
+        for month, monthly, lo, hi, cumulative in rows:
             per_seed = [r["train_seconds"] + r["assign_seconds"] for r in mine if r["setting"] == month]
             assert monthly == pytest.approx(sum(per_seed) / len(per_seed))
-        assert [c for *_, c in rows] == pytest.approx(np.cumsum([m for _, m, _ in rows]).tolist())
-    assert led["emeans"][-1][2] > 0 and led["yearly"][0][1] > 0  # January rebuilds in 2020-01
+            assert (lo, hi) == pytest.approx((min(per_seed), max(per_seed)))
+        assert [r[-1] for r in rows] == pytest.approx(np.cumsum([r[1] for r in rows]).tolist())
+    assert led["emeans"][-1][-1] > 0 and led["yearly"][0][1] > 0  # January rebuilds in 2020-01
     assert led["yearly"][1][1] == 0  # no rebuild in February
     adding = tables.adding_seconds(records)
     assert set(adding) == set(growing.ARMS_B) and all(v > 0 for v in adding.values())

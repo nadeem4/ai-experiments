@@ -5,6 +5,8 @@ The contract `cli` needs, the two scales, `--dry-run`, and parts A, B and C.
 from pathlib import Path
 from typing import NamedTuple, Optional
 
+import numpy as np
+
 from . import race
 from .consts import B_NPROBES, DIMS
 
@@ -88,7 +90,27 @@ def part_a_units(args):
 
     scale = scale_for(args.tag)
     # Budgets need the full-scale calibration, so the pilot leaves them out.
-    return race.units("sift", ARMS, scale.seeds_a, with_budgets=args.tag == "full")
+    budgets = args.tag == "full"
+    return (race.units("sift", ARMS, scale.seeds_a, with_budgets=budgets)
+            + race.units("arxiv", ARMS, scale.seeds_a, with_budgets=budgets))
+
+
+def run_part_a(args, units, scale, threads):
+    """SIFT first, then arXiv-CS on its own split; without the arXiv vectors
+    (before the Kaggle step) only SIFT runs and the skip is said out loud."""
+    from . import data
+
+    race.run([u for u in units if u[1] == "sift"], load_split(args, scale), scale, store_path(args),
+             threads=threads)
+    path = data_dir(args) / "vectors.npy"
+    if not path.exists():
+        print(f"skipping arXiv for part A: {path} not found (run the Kaggle step, then rerun this command)")
+        return
+    x, _ = data.load_arxiv(path)
+    if scale.n:  # a seeded subset, so the pilot is not the first n months
+        x = x[np.random.default_rng(0).permutation(len(x))[:scale.n]]
+    split = data.make_split(x, n_test=scale.n_test, n_queries=scale.n_queries)
+    race.run([u for u in units if u[1] == "arxiv"], split, scale, store_path(args), threads=threads)
 
 
 def units_for(args):
@@ -177,20 +199,17 @@ def run(args):
 
     from . import env, growing
 
-    if args.part == "a":
-        split = load_split(args, scale)
-    elif args.part == "b":
+    if args.part == "b":
         split = load_growing(args, scale)
-    else:
+    elif args.part == "c":
         split = load_static(args, scale)
     threads = env.physical_cores()
     env.pin_threads(threads)
-    env_path = out_dir(args) / "runs" / args.tag / "environment.json"
-    if not env_path.exists():
-        env_path.parent.mkdir(parents=True, exist_ok=True)
-        env_path.write_text(json.dumps(env.environment(), indent=2), encoding="utf-8")
+    env_path = out_dir(args) / "runs" / args.tag / f"environment-{args.part}.json"  # one per run, per part
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    env_path.write_text(json.dumps(env.environment(cwd=EXPERIMENT_DIR), indent=2), encoding="utf-8")
     if args.part == "a":
-        race.run(units, split, scale, store_path(args), threads=threads)
+        run_part_a(args, units, scale, threads)
     elif args.part == "b":
         nprobes = B_NPROBES + ((scale.k,) if args.tag == "pilot" else ())  # the pilot checks nprobe = k
         growing.run(split, scale, store_path(args), nprobes=nprobes, threads=threads)
@@ -200,10 +219,36 @@ def run(args):
         write_projection(args)
 
 
+def write_results(args):
+    """Write `results/<tag>/`: summary.json, the CSVs and `figures/`, from every
+    part's records under `runs/<tag>/`. The figures then read summary.json alone."""
+    import json
+
+    from . import figures, store, tables
+
+    runs = out_dir(args) / "runs" / args.tag
+    results = out_dir(args) / "results" / args.tag
+    existing = results / "summary.json"
+    summary = json.loads(existing.read_text(encoding="utf-8")) if existing.exists() else {}
+    for part in "abc":  # each part on its own: an incomplete one never blocks a finished one
+        try:
+            summary.update(tables.summary(store.load(runs / f"{part}.jsonl")))
+        except ValueError as e:
+            print(f"part {part}: not summarised: {e}")
+    if not summary:
+        raise SystemExit(f"nothing to summarise for {args.tag}")
+    tables.write_summary(summary, results)
+    tables.write_csv(summary, results)
+    written = figures.write_all(json.loads((results / "summary.json").read_text(encoding="utf-8")),
+                                results / "figures")
+    for name, where in written.items():
+        print(f"figure {name}: {where}")
+
+
 def report(args):
     """Print the pilot's checks and exit non-zero if any fail; part C also
-    prints epochs to match and speedup per dimension. Tables and figures are
-    written from results/ in a later slice."""
+    prints epochs to match and speedup per dimension. Then write the summary,
+    CSVs and figures under `results/<tag>/` (see `write_results`)."""
     if args.dry_run or not store_path(args).exists():
         return
     from . import growing, pilot, store, tables
@@ -227,6 +272,7 @@ def report(args):
             e, s = tables.epochs_to_match(records, name, "emeans"), tables.speedup(records, name, "emeans")
             print(f"{name}: epochs to match {e if e else 'did not match within 5 epochs'}, "
                   f"speedup {f'{s:.2f}x' if s else 'none'}")
+    write_results(args)
 
 
 def dataset(directory=None):
