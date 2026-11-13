@@ -29,6 +29,9 @@ def build_ivf(centroids, x, labels):
     ivf = faiss.IndexIVFFlat(quantizer, d, k)
     ivf.is_trained = True  # the centroids are the training
     labels = np.ascontiguousarray(labels, dtype=np.int64)
+    if labels.shape != (len(x),) or labels.min() < 0 or labels.max() >= k:
+        raise ValueError(f"labels must be {len(x)} ints in [0, {k}); "
+                         f"got shape {labels.shape}, range {labels.min()}..{labels.max()}")
     ids = np.arange(len(x), dtype=np.int64)
     ivf.add_core(len(x), faiss.swig_ptr(x), faiss.swig_ptr(ids), faiss.swig_ptr(labels))
     return ivf

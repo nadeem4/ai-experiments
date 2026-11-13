@@ -19,13 +19,13 @@ An IVF index is only as good as its centroids. Documents change over time, so th
 
 Written before any run.
 
-- **A.** On SIFT1M, e-means matches Lloyd-25 within 3 epochs, 5-15x faster on CPU. On arXiv-CS-768 it matches within 5 epochs. MiniBatch matches on neither within 5 epochs. At the 10 s and 30 s budgets, e-means' index has higher recall@10 at nprobe 16 than Lloyd's; at 120 s the two are within 0.5 points. Wherever recall is equal, e-means scans fewer vectors at p95 (more even clusters).
+- **A.** On SIFT1M, e-means matches Lloyd-25 within 3 epochs, 5–15× faster on CPU. On arXiv-CS-768 it matches within 5 epochs. MiniBatch matches on neither within 5 epochs. At the 10 s and 30 s budgets, e-means' index has higher recall@10 at nprobe 16 than Lloyd's; at 120 s the two are within 0.5 points. Wherever recall is equal, e-means scans fewer vectors at p95 (more even clusters).
 - **B.**
   - Stale's 2025 recall@10 at nprobe 16 is at least 2 points below yearly rebuild's, with the gap opening fastest from 2023 (the LLM paper surge).
   - Yearly rebuild shows a sawtooth.
-  - Monthly e-means' 2025 recall is within 0.5 points of yearly rebuild's, at lower cumulative maintenance CPU (about 0.7x by the pass count in the method; measured).
+  - Monthly e-means' 2025 recall is within 0.5 points of yearly rebuild's, at lower cumulative maintenance CPU (about 0.7× by the pass count above; measured).
   - Monthly Lloyd with the same rows ends within 0.5 points of monthly e-means. In that case the win belongs to warm-starting, not to e-means, and the write-up says so.
-- **C.** Epochs-to-match is flat across dimension (within one budget step). Speedup at match varies by less than +-30% across dimension.
+- **C.** Epochs-to-match is flat across dimension (within one budget step). Speedup at match varies by less than ±30% across dimension.
 
 What would falsify it: e-means not matching Lloyd-25 within 5 epochs (A); monthly e-means more than 0.5 points below yearly rebuild at 2025, or costing more CPU than it (B); epochs-to-match moving by more than one budget step across dimension (C).
 

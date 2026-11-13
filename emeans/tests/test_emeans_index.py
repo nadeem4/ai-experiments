@@ -65,3 +65,25 @@ def test_summary_survives_json_with_string_keys(world):
     summary, _ = index.evaluate(ivf, queries, truth, (1, 4))
     back = json.loads(json.dumps({str(n): v for n, v in summary.items()}))
     assert back["4"]["recall10"] == summary[4]["recall10"]
+
+
+def test_build_ivf_refuses_a_label_of_minus_one(world):
+    x, centroids, labels, *_ = world
+    bad = labels.copy()
+    bad[:10] = -1
+    with pytest.raises(ValueError):
+        index.build_ivf(centroids, x, bad)
+
+
+def test_build_ivf_refuses_a_label_of_k(world):
+    x, centroids, labels, *_ = world
+    bad = labels.copy()
+    bad[0] = K
+    with pytest.raises(ValueError):
+        index.build_ivf(centroids, x, bad)
+
+
+def test_build_ivf_refuses_a_label_array_of_the_wrong_length(world):
+    x, centroids, labels, *_ = world
+    with pytest.raises(ValueError):
+        index.build_ivf(centroids, x, labels[:-1])
