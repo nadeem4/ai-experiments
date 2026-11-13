@@ -60,7 +60,7 @@ def tags():
 
 SIFT_FILE = "sift-128-euclidean.hdf5"
 SIFT_TRAIN = 900_000    # 1M base rows minus the 100k test set
-ARXIV_TRAIN = 860_000   # about 960k docs minus the 100k test set; a guess until E3 counts them
+ARXIV_TRAIN = 860_000   # about 960k docs minus the 100k test set; a guess until DATASET.md has the real count
 
 
 def data_dir(args):
