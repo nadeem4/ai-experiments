@@ -5,6 +5,7 @@ it finishes; a unit already in the file is not run again. Calibration units come
 first so budget units can read seconds-per-epoch back from the store.
 """
 import hashlib
+import time
 
 from threadpoolctl import threadpool_info
 
@@ -13,6 +14,7 @@ from . import budgets, index, metrics, store
 from .consts import ARMS, BUDGETS_S, EPOCHS, LLOYD_AT
 
 CORE = ("part", "dataset", "arm", "setting", "seed", "n", "k", "d", "threads", "observed_threads")
+EVAL = ("eval_seconds",)  # everything after training: untimed for comparisons, needed to project
 TRAINED = ("centroids_hash", "train_seconds", "epochs", "rows")
 QUALITY = ("test_mse", "imbalance", "dead_clusters")
 
@@ -35,10 +37,10 @@ def required_fields(setting, with_search=True):
     """The fields a record for `setting` must carry; `run_unit` writes them and
     the pilot checks them."""
     if setting == "snapshots":
-        return CORE + ("mse_by_iter", "train_mse_by_iter")
+        return CORE + EVAL + ("mse_by_iter", "train_mse_by_iter")
     if setting == "calibration":
         return CORE + TRAINED
-    fields = CORE + TRAINED + QUALITY
+    fields = CORE + EVAL + TRAINED + QUALITY
     if setting.startswith("budget="):
         fields += ("budget_s", "overshoot")
     if with_search and (setting.startswith("iters=") or setting.startswith("budget=")):
@@ -74,8 +76,10 @@ def run_unit(unit, split, scale, calibration, threads, with_search=True):
 
     if setting == "snapshots":
         snaps = arms_mod.lloyd_snapshots(x, k, init)
+        start = time.perf_counter()
         record["mse_by_iter"] = {str(i): metrics.mse(split.test, snaps[i]) for i in LLOYD_AT}
         record["train_mse_by_iter"] = {str(i): metrics.mse(x, snaps[i]) for i in LLOYD_AT}
+        record["eval_seconds"] = time.perf_counter() - start
         return record
 
     if setting == "calibration":
@@ -99,6 +103,7 @@ def run_unit(unit, split, scale, calibration, threads, with_search=True):
     if setting == "calibration":
         return record
 
+    start = time.perf_counter()
     labels, _ = index.reassign(split.index, trained.centroids)
     record.update(test_mse=metrics.mse(split.test, trained.centroids),
                   imbalance=metrics.imbalance(labels, k),
@@ -107,6 +112,7 @@ def run_unit(unit, split, scale, calibration, threads, with_search=True):
         ivf = index.build_ivf(trained.centroids, split.index, labels)
         summary, _ = index.evaluate(ivf, split.queries, split.truth, scale.nprobes, base=split.index)
         record["search"] = {str(p): v for p, v in summary.items()}
+    record["eval_seconds"] = time.perf_counter() - start
     return record
 
 

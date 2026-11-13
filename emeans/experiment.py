@@ -145,7 +145,8 @@ def report(args):
         return
     from . import pilot, store
 
-    found = pilot.problems(store.load(store_path(args)), scale_for(args.tag).k)
+    found = pilot.problems(store.load(store_path(args)),
+                           scale_for(args.tag).k if args.tag == "pilot" else None)
     for message in found:
         print(f"PROBLEM: {message}")
     if found:

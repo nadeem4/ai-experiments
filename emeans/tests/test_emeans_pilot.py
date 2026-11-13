@@ -71,6 +71,23 @@ def test_project_scales_seconds_per_epoch_by_n_k_d(good_records):
     assert big["budget_hours"] == one["budget_hours"] and one["hours"] > 0
 
 
+def test_project_grows_with_evaluation_time(good_records):
+    assert all(r["eval_seconds"] > 0 for r in good_records if r["setting"] != "calibration")
+    base = pilot.project(good_records, (3000, 16, 8))
+    slower = [dict(r, eval_seconds=r["eval_seconds"] + 100) if "eval_seconds" in r else r
+              for r in good_records]
+    more = pilot.project(slower, (3000, 16, 8))
+    assert more["scaled_hours"] > base["scaled_hours"] and more["eval_hours"] > base["eval_hours"]
+
+
+def test_a_search_without_nprobe_k_is_reported(good_records):
+    recs = [dict(r) for r in good_records]
+    r = next(r for r in recs if r["setting"] == "iters=25")
+    r["search"] = {p: v for p, v in r["search"].items() if p != "16"}
+    out = pilot.problems(recs, 16)
+    assert len(out) == 1 and "nprobe == k" in out[0]
+
+
 def test_project_without_budgets_adds_none(good_records):
     assert pilot.project(good_records, (3000, 16, 8), with_budgets=False)["budget_hours"] == 0
 
