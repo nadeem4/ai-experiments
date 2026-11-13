@@ -22,6 +22,8 @@ by a direct label rather than a legend. The constants are copied from `rerank`
 """
 from pathlib import Path
 
+from .consts import B_NPROBES
+
 DPI = 160
 FIGSIZE = (9.0, 5.0)
 SHADES = ("#111111", "#555555", "#888888", "#aaaaaa")
@@ -95,6 +97,8 @@ def b_cumulative_maintenance(s, out_dir):
     fig, ax = plt.subplots(figsize=FIGSIZE)
     for i, (arm, v) in enumerate(series.items()):
         x = range(len(v["months"]))
+        r = v["cumulative_range"]
+        ax.fill_between(x, r["min"], r["max"], color=SHADES[i], alpha=0.15, linewidth=0)
         ax.plot(x, v["cumulative_s"], **_style(i), markersize=3, linewidth=1.2)
         ax.annotate(arm, (x[-1], v["cumulative_s"][-1]), xytext=(4, 0), textcoords="offset points", fontsize=8,
                     va="center")
@@ -102,15 +106,15 @@ def b_cumulative_maintenance(s, out_dir):
     ticks = [i for i, m in enumerate(months) if m.endswith("-01")] or [0]
     ax.set_xticks(ticks, [months[i] for i in ticks], rotation=45, ha="right")
     return _finish(fig, ax, out_dir, "b-cumulative-maintenance",
-                   "Cumulative maintenance CPU time (training + re-assignment)", "month", "seconds (cumulative)")
+                   "Cumulative maintenance CPU time (band: min-max over seeds)", "month", "seconds (cumulative)")
 
 
 def b_end_state_gap(s, out_dir):
     rows = _need(s.get("b", {}).get("end_state"), "no 2025 records, so no end-state comparison")
     plt = _plt()
-    fig, axes = plt.subplots(1, 2, figsize=FIGSIZE, sharey=True)
+    fig, axes = plt.subplots(1, len(B_NPROBES), figsize=FIGSIZE, sharey=True, squeeze=False)
     labels = list(dict.fromkeys(f"{r['a']} - {r['b']}" for r in rows))
-    for ax, p in zip(axes, (16, 64)):
+    for ax, p in zip(axes[0], B_NPROBES):
         mine = {f"{r['a']} - {r['b']}": r for r in rows if r["nprobe"] == p}
         for y, label in enumerate(labels):
             r = mine[label]
@@ -123,6 +127,14 @@ def b_end_state_gap(s, out_dir):
         ax.grid(**GRID)
     fig.suptitle("2025 end state: recall gap between arms", fontsize=10)
     return _save(fig, out_dir, "b-end-state-gap")
+
+
+def error_bars(curve, keys):
+    """-> (below, above) distances from the mean; a missing interval (one seed)
+    is no bar, while a bound of 0.0 is kept."""
+    below = [curve[k]["mean"] - (curve[k]["lo"] if curve[k]["lo"] is not None else curve[k]["mean"]) for k in keys]
+    above = [(curve[k]["hi"] if curve[k]["hi"] is not None else curve[k]["mean"]) - curve[k]["mean"] for k in keys]
+    return below, above
 
 
 def _panels(datasets):
@@ -138,8 +150,7 @@ def a_race(s, out_dir):
         for i, (arm, curve) in enumerate(part["race"].items(), start=1):
             es = sorted(curve, key=int)
             ax.errorbar([int(e) for e in es], [curve[e]["mean"] for e in es],
-                        yerr=[[curve[e]["mean"] - (curve[e]["lo"] or curve[e]["mean"]) for e in es],
-                              [(curve[e]["hi"] or curve[e]["mean"]) - curve[e]["mean"] for e in es]],
+                        yerr=error_bars(curve, es),
                         label=arm, capsize=2, linewidth=1.2, markersize=4, **_style(i))
             ax.annotate(arm, (int(es[-1]), curve[es[-1]]["mean"]), xytext=(4, 0), textcoords="offset points",
                         fontsize=8, va="center")

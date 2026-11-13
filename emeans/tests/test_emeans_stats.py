@@ -155,3 +155,11 @@ def test_2025_pool_refuses_a_missing_month_or_a_short_query_set():
 
 def test_another_year_is_not_held_to_the_2025_shape():
     assert len(tables.pooled_recall(b_records(), "emeans", 16, year="2024")[0]) == 500
+
+
+def test_2025_pool_refuses_a_seed_the_arm_has_elsewhere_but_not_in_2025():
+    recs = [r for r in b_records() if not (r["arm"] == "emeans" and r["seed"] == 2)]
+    recs.append({"part": "b", "dataset": "arxiv", "arm": "emeans", "setting": "2024-12", "seed": 2,
+                 "recall_per_query": {"16": [0.0] * 500}})
+    with pytest.raises(ValueError, match="seed 2"):
+        tables.pooled_recall(recs, "emeans", 16)

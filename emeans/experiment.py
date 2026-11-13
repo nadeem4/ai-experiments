@@ -208,12 +208,16 @@ def write_results(args):
     from . import figures, store, tables
 
     runs = out_dir(args) / "runs" / args.tag
-    records = [r for part in "abc" for r in store.load(runs / f"{part}.jsonl")]
-    try:
-        summary = tables.summary(records)
-    except ValueError as e:
-        raise SystemExit(f"cannot summarise {args.tag}: {e}")
     results = out_dir(args) / "results" / args.tag
+    existing = results / "summary.json"
+    summary = json.loads(existing.read_text(encoding="utf-8")) if existing.exists() else {}
+    for part in "abc":  # each part on its own: an incomplete one never blocks a finished one
+        try:
+            summary.update(tables.summary(store.load(runs / f"{part}.jsonl")))
+        except ValueError as e:
+            print(f"part {part}: not summarised: {e}")
+    if not summary:
+        raise SystemExit(f"nothing to summarise for {args.tag}")
     tables.write_summary(summary, results)
     tables.write_csv(summary, results)
     written = figures.write_all(json.loads((results / "summary.json").read_text(encoding="utf-8")),

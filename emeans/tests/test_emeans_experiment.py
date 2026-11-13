@@ -119,9 +119,38 @@ def test_write_results_builds_summary_csvs_and_figures_from_the_stores(tmp_path,
     assert {p.name for p in (results / "figures").glob("*.png")} >= {"a-race.png", "b-end-state-gap.png", "c-dimension.png"}
 
 
-def test_write_results_names_incomplete_data_instead_of_a_traceback(tmp_path, fake_records):
+def test_write_results_refuses_an_incomplete_part_and_says_why(tmp_path, fake_records, capsys):
     args = parser().parse_args(["--tag", "full", "--out", str(tmp_path)])
     for r in (r for r in fake_records if r["part"] == "a" and not (r["arm"] == "emeans" and r["seed"] == 1)):
         store.append(tmp_path / "runs" / "full" / "a.jsonl", r)
-    with pytest.raises(SystemExit, match="incomplete"):
+    with pytest.raises(SystemExit, match="nothing to summarise"):
         experiment.write_results(args)
+    assert "part a: not summarised:" in capsys.readouterr().out
+    assert not (tmp_path / "results" / "full" / "summary.json").exists()
+
+
+def test_write_results_keeps_the_complete_parts_and_names_the_incomplete_one(tmp_path, fake_records, capsys):
+    args = parser().parse_args(["--tag", "full", "--out", str(tmp_path)])
+    for r in fake_records:
+        if r["part"] == "c":
+            continue
+        if r["part"] == "b" and r["arm"] == "emeans" and r["seed"] == 1:
+            continue  # an interrupted B chain
+        store.append(tmp_path / "runs" / "full" / f"{r['part']}.jsonl", r)
+    experiment.write_results(args)  # does not exit
+    summary = json.loads((tmp_path / "results" / "full" / "summary.json").read_text())
+    assert set(summary) == {"a"}
+    out = capsys.readouterr().out
+    assert "part b: not summarised:" in out and "emeans" in out
+    assert (tmp_path / "results" / "full" / "figures" / "a-race.png").exists()
+
+
+def test_write_results_merges_with_a_summary_already_there(tmp_path, fake_records):
+    args = parser().parse_args(["--tag", "full", "--out", str(tmp_path)])
+    for r in fake_records:
+        if r["part"] != "c":
+            store.append(tmp_path / "runs" / "full" / f"{r['part']}.jsonl", r)
+    experiment.write_results(args)
+    (tmp_path / "runs" / "full" / "a.jsonl").unlink()
+    experiment.write_results(args)  # part a has no records now: its earlier summary stays
+    assert set(json.loads((tmp_path / "results" / "full" / "summary.json").read_text())) == {"a", "b"}

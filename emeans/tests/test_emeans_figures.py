@@ -47,3 +47,20 @@ def test_a_part_a_without_budgets_skips_the_budget_figures(fake_records, tmp_pat
 def test_the_styling_is_greyscale():
     for c in figures.SHADES:
         assert len(c) == 7 and c[1:3] == c[3:5] == c[5:7]
+
+
+def test_a_zero_lower_bound_is_kept_not_replaced_by_the_mean():
+    curve = {"1": {"mean": 0.5, "lo": 0.0, "hi": 0.6}, "2": {"mean": 0.4, "lo": None, "hi": None}}
+    lower, upper = figures.error_bars(curve, ["1", "2"])
+    assert lower == [0.5, 0.0] and upper == pytest.approx([0.1, 0.0])
+
+
+def test_the_end_state_figure_follows_b_nprobes(summary, tmp_path, monkeypatch):
+    monkeypatch.setattr(figures, "B_NPROBES", (64,))
+    assert figures.write_all(summary, tmp_path)["b-end-state-gap"].endswith("b-end-state-gap.png")
+
+
+def test_the_cumulative_figure_needs_the_seed_range(summary, tmp_path):
+    del summary["b"]["series"]["emeans"]["cumulative_range"]
+    with pytest.raises(KeyError):
+        figures.b_cumulative_maintenance(summary, tmp_path)

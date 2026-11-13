@@ -110,7 +110,7 @@ def problems_b(records, k):
     `k` is given), and e-means and Lloyd-half actually trained (rows touched)."""
     out = []
     last_hash = {}  # (arm, seed) -> the previous month's centroids_hash, for the monthly e-means arm
-    for r in records:
+    for r in sorted(records, key=lambda r: (r["seed"], r["setting"])):  # month order, whatever the file order
         unit = f"{r['dataset']} {r['arm']} {r['setting']} seed {r['seed']}"
         missing = [f for f in growing.REQUIRED if f not in r]
         if missing:

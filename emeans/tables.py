@@ -105,6 +105,7 @@ def pooled_recall(records, arm, nprobe, year="2025"):
     For 2025 each seed must hold all 12 months of exactly 500 queries (6,000),
     or this raises: the bootstrap never runs over fewer queries silently."""
     out, months = {}, {}
+    arm_seeds = {r["seed"] for r in records if r["part"] == "b" and r["arm"] == arm}
     for r in sorted((r for r in records if r["part"] == "b" and r["arm"] == arm
                      and r["setting"].startswith(year)), key=lambda r: r["setting"]):
         queries = r["recall_per_query"][str(nprobe)]
@@ -114,9 +115,11 @@ def pooled_recall(records, arm, nprobe, year="2025"):
         out.setdefault(r["seed"], []).extend(queries)
         months.setdefault(r["seed"], []).append(r["setting"])
     expected = [f"2025-{m:02d}" for m in range(1, 13)]
-    for seed, got in months.items():
-        if year == "2025" and got != expected:
-            raise ValueError(f"{arm} seed {seed}: 2025 months {got} are not all of {expected[0]}..{expected[-1]}")
+    if year == "2025" and out:
+        for seed in sorted(arm_seeds):
+            got = months.get(seed, [])
+            if got != expected:
+                raise ValueError(f"{arm} seed {seed}: 2025 months {got} are not all of {expected[0]}..{expected[-1]}")
     return {seed: np.array(v) for seed, v in out.items()}
 
 
@@ -201,7 +204,14 @@ def _part_b(records, n_boot):
             if r["part"] == "b" and r["arm"] == arm:
                 by_month.setdefault(r["setting"], []).append(r)
         months = [row[0] for row in led[arm]]
+        per_seed = {}  # seed -> cumulative seconds after each month
+        for m in months:
+            for r in by_month[m]:
+                seq = per_seed.setdefault(r["seed"], [])
+                seq.append((seq[-1] if seq else 0.0) + r["train_seconds"] + r["assign_seconds"])
         s = {"months": months, "cumulative_s": [row[4] for row in led[arm]],
+             "cumulative_range": {"min": [min(v[i] for v in per_seed.values()) for i in range(len(months))],
+                                  "max": [max(v[i] for v in per_seed.values()) for i in range(len(months))]},
              "maintenance_s": {"mean": [row[1] for row in led[arm]], "min": [row[2] for row in led[arm]],
                                "max": [row[3] for row in led[arm]]},
              "imbalance": [statistics.fmean(r["imbalance"] for r in by_month[m]) for m in months],

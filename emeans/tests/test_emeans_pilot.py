@@ -192,3 +192,11 @@ def test_problems_b_flags_a_stale_arm_that_spent_time_and_an_emeans_warm_start_t
     assert pilot.problems_b([e1, dict(e2, centroids_hash="b")], 8) == []
     other_seed = dict(e2, seed=1)  # a different chain is not the previous month
     assert pilot.problems_b([e1, other_seed], 8) == []
+
+
+def test_problems_b_checks_the_warm_start_in_month_order_not_file_order():
+    base = {f: 1 for f in growing.REQUIRED}
+    base.update(part="b", dataset="arxiv", seed=0, arm="emeans", search={"8": {"recall10": 1.0}}, rows=100)
+    m = lambda month, h: dict(base, setting=month, centroids_hash=h)  # noqa: E731
+    assert pilot.problems_b([m("2020-01", "a"), m("2020-03", "a"), m("2020-02", "b")], 8) == []
+    assert "did not move" in pilot.problems_b([m("2020-03", "a"), m("2020-02", "a"), m("2020-01", "b")], 8)[0]

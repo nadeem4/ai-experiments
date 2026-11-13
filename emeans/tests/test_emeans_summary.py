@@ -94,3 +94,10 @@ def test_every_csv_number_comes_from_summary_json(summary, tmp_path):
                 except ValueError:
                     continue
                 assert any(v == pytest.approx(k) for k in known), f"{p.name}: {cell} is not in summary.json"
+
+
+def test_cumulative_maintenance_carries_the_per_seed_range(summary):
+    r = summary["b"]["series"]["emeans"]["cumulative_range"]
+    # seeds spend 1.5 s and 2.5 s a month, so after two months 3.0 and 5.0
+    assert (r["min"][1], r["max"][1]) == pytest.approx((3.0, 5.0))
+    assert r["min"][-1] <= summary["b"]["series"]["emeans"]["cumulative_s"][-1] <= r["max"][-1]
