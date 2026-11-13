@@ -49,14 +49,18 @@ def search(ivf, queries, nprobe, k=10):
     return ids, len(queries) / seconds
 
 
-def evaluate(ivf, queries, truth, nprobes):
+def evaluate(ivf, queries, truth, nprobes, base=None):
     """-> (summary, per_query): `summary[nprobe]` holds recall10, scanned_mean,
     scanned_p95 and qps; `per_query[nprobe]` is the per-query recall array.
-    Keys are ints here; a record stores them as strings."""
+    Keys are ints here; a record stores them as strings. With `base` (the
+    indexed vectors) recall is counted by distance so ties do not count as misses."""
     summary, per_query = {}, {}
     for nprobe in nprobes:
         ids, qps = search(ivf, queries, nprobe)
-        recall, per = metrics.recall_at_k(ids, truth)
+        if base is None:
+            recall, per = metrics.recall_at_k(ids, truth)
+        else:
+            recall, per = metrics.recall_at_k_ties(ids, truth, base, queries)
         mean, p95 = metrics.summarise_scanned(metrics.scanned(ivf, queries, nprobe))
         summary[nprobe] = {"recall10": recall, "scanned_mean": mean, "scanned_p95": p95, "qps": qps}
         per_query[nprobe] = per

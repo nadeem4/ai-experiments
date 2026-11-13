@@ -134,10 +134,17 @@ uv run cli run emeans --part a --tag pilot             # pilot scale (SIFT1M 100
 uv run cli run emeans --part a --tag full              # full scale; hours of machine time
 ```
 
-`--part` is `a`, `b` or `c` (default `a`). `--cache-dir` is where SIFT1M lives; `--data-dir` is where the arXiv vectors live (default `emeans/runs/data`). Runs append to `runs/<tag>/<part>.jsonl` and are resumable. In this first slice only `--dry-run` is implemented; the parts arrive in later slices.
+`--part` is `a`, `b` or `c` (default `a`); only part A exists so far. `--tag` is `pilot` or `full`, nothing else. `--cache-dir` is where `sift-128-euclidean.hdf5` (from ann-benchmarks.com) lives; `--data-dir` is where the arXiv vectors live (default `emeans/runs/data`). Part A appends one record per unit of work to `runs/<tag>/a.jsonl` and is resumable: a rerun skips every finished unit and redoes a half-written one. The environment, with the thread pools actually observed, goes to `runs/<tag>/environment.json`. `--dry-run` lists the units and which are done, and reads no data.
+
+The pilot is a human gate: run it on the laptop, read `results/pilot/projection.json` (hours per part, linear in n * k * d * epochs; `a_arxiv` is extrapolated from SIFT, `b` and `c` are null until those parts exist), and commit `results/pilot/`. The command exits non-zero and prints each failed check if the pilot's records are wrong. Do not start a `full` run before the projection is approved.
 
 This section is updated as parts land; the protocol sections above are not edited once a run has started.
 
 ## Protocol amendments
 
-None yet.
+**Amendment 2026-11-13 (E2, before any run).**
+
+- Recall@10 is counted by distance, not id: a returned neighbour counts when its distance is within float tolerance of the true 10th-neighbour distance. SIFT1M holds duplicate vectors, so exact and IVF search order tied neighbours differently and an id match would score correct answers as misses. This applies to every recall figure in every part.
+- The pilot also searches at `nprobe = k` (256), where recall must be 1.0; the full runs use the nprobe set above only.
+- The pilot runs the calibration, snapshot, Lloyd 25-iteration and epoch units, and leaves the fixed-budget units out: budgets are derived from a full-scale calibration, which a 100k, k = 256 pilot cannot give. The projection adds the budget units' fixed time.
+- Imbalance and dead clusters are measured on the labels of the indexed vectors, for every trained setting.

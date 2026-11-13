@@ -55,6 +55,25 @@ def recall_at_k(found, truth, k=10):
     return float(per_query.mean()), per_query
 
 
+def recall_at_k_ties(found, truth, base, queries, k=10, rtol=1e-9):
+    """-> (mean, per-query array), counting by distance rather than id.
+
+    A returned neighbour counts when its distance is no more than the true k-th
+    distance (computed in float64, relative tolerance 1e-9: identical
+    vectors give identical distances, and SIFT's integer squared distances,
+    up to about 8e6, are at least 1 apart otherwise; 1e-6 would be too loose). Needed on SIFT, where duplicate vectors
+    make exact and IVF search order tied neighbours differently; both are right."""
+    base = np.asarray(base, dtype=np.float64)
+    queries = np.asarray(queries, dtype=np.float64)
+    found, truth = np.asarray(found)[:, :k], np.asarray(truth)[:, :k]
+    kth = ((queries - base[truth[:, k - 1]]) ** 2).sum(axis=1)
+    valid = found >= 0
+    dist = ((queries[:, None, :] - base[np.where(valid, found, 0)]) ** 2).sum(axis=2)
+    ok = valid & (dist <= kth[:, None] * (1 + rtol))
+    per_query = ok.sum(axis=1) / k
+    return float(per_query.mean()), per_query
+
+
 def scanned(index, queries, nprobe):
     """Vectors scanned per query: the summed sizes of the `nprobe` lists probed."""
     queries = np.ascontiguousarray(queries, dtype=np.float32)

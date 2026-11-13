@@ -41,3 +41,8 @@ def test_torch_faiss_and_sklearn_share_a_process():
     km = faiss.Kmeans(4, 4, niter=2, seed=0)
     km.train(x)
     sklearn.cluster.MiniBatchKMeans(4, n_init=1, random_state=0).fit(x)
+
+
+def test_environment_records_the_observed_thread_pools():
+    pools = env.environment()["threadpools"]
+    assert pools and all("num_threads" in p for p in pools)

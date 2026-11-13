@@ -53,16 +53,39 @@ def test_any_other_tag_is_refused():
         experiment.scale_for("fulll")
 
 
-def test_dry_run_lists_units_and_runs_nothing(capsys):
-    args = parser().parse_args(["--tag", "pilot", "--dry-run", "--part", "b"])
-    experiment.run(args)
+def test_dry_run_part_b_says_it_is_not_built(capsys):
+    experiment.run(parser().parse_args(["--tag", "pilot", "--dry-run", "--part", "b"]))
     assert "part b" in capsys.readouterr().out
 
 
-def test_a_real_run_is_not_built_yet():
-    args = parser().parse_args(["--tag", "pilot"])
+def test_dry_run_lists_part_a_units_and_runs_nothing(tmp_path, capsys):
+    args = parser().parse_args(["--tag", "pilot", "--dry-run", "--out", str(tmp_path)])
+    experiment.run(args)
+    experiment.report(args)  # a dry run reports nothing
+    out = capsys.readouterr().out
+    assert "lloyd calibration" in out and "emeans epochs=3" in out and "lloyd iters=25" in out
+    assert "budget=" not in out  # the pilot leaves budgets out
+    assert not (tmp_path / "runs").exists()
+
+
+def test_full_dry_run_lists_budget_units(tmp_path, capsys):
+    experiment.run(parser().parse_args(["--tag", "full", "--dry-run", "--out", str(tmp_path)]))
+    assert "minibatch budget=120s" in capsys.readouterr().out
+
+
+def test_other_parts_are_not_built_yet():
     with pytest.raises(SystemExit):
-        experiment.run(args)
+        experiment.run(parser().parse_args(["--tag", "pilot", "--part", "b"]))
+
+
+def test_the_pilot_searches_at_nprobe_k():
+    assert experiment.PILOT.k in experiment.PILOT.nprobes
+
+
+def test_a_missing_sift_file_says_where_to_get_it(tmp_path):
+    args = parser().parse_args(["--cache-dir", str(tmp_path)])
+    with pytest.raises(SystemExit, match="ann-benchmarks"):
+        experiment.load_split(args, experiment.PILOT)
 
 
 def test_dataset_stub_does_not_overwrite_the_card():
