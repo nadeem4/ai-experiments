@@ -20,10 +20,13 @@ class Scale(NamedTuple):
     seeds_a: int
     seeds_bc: int
     b_months: int
+    nprobes: tuple  # search settings; the pilot adds k so nprobe = k must give recall 1.0
 
 
-PILOT = Scale(n=100_000, n_test=10_000, n_queries=1_000, k=256, seeds_a=1, seeds_bc=1, b_months=3)
-FULL = Scale(n=None, n_test=100_000, n_queries=10_000, k=4096, seeds_a=5, seeds_bc=3, b_months=72)
+PILOT = Scale(n=100_000, n_test=10_000, n_queries=1_000, k=256, seeds_a=1, seeds_bc=1, b_months=3,
+              nprobes=(1, 4, 16, 64, 256))
+FULL = Scale(n=None, n_test=100_000, n_queries=10_000, k=4096, seeds_a=5, seeds_bc=3, b_months=72,
+             nprobes=(1, 4, 16, 64))
 
 
 def scale_for(tag):

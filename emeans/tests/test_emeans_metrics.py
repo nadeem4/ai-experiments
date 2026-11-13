@@ -66,3 +66,25 @@ def test_mean_ci_has_an_interval_only_with_two_values():
     assert metrics.mean_ci([1.0]) == (1.0, None, None)
     m, lo, hi = metrics.mean_ci([1.0, 2.0, 3.0])
     assert m == 2.0 and lo < 2.0 < hi
+
+
+def test_recall_by_distance_counts_ties():
+    # 20 identical vectors: exact and IVF search may return different ids of
+    # the same distance, and each is a correct neighbour.
+    base = np.zeros((40, 4), dtype=np.float32)
+    base[20:] = 5.0
+    queries = np.zeros((1, 4), dtype=np.float32)
+    truth = np.arange(10)[None]
+    found = np.arange(10, 20)[None]
+    assert metrics.recall_at_k(found, truth)[0] == 0.0
+    mean, per = metrics.recall_at_k_ties(found, truth, base, queries)
+    assert mean == 1.0 and per.tolist() == [1.0]
+
+
+def test_recall_by_distance_rejects_farther_vectors_and_missing_ids():
+    base = np.zeros((40, 4), dtype=np.float32)
+    base[20:] = 5.0
+    queries = np.zeros((1, 4), dtype=np.float32)
+    truth = np.arange(10)[None]
+    found = np.array([[20, 21, 22, 23, 24, -1, -1, -1, 0, 1]])
+    assert metrics.recall_at_k_ties(found, truth, base, queries)[0] == 0.2

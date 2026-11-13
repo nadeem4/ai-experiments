@@ -87,3 +87,15 @@ def test_build_ivf_refuses_a_label_array_of_the_wrong_length(world):
     x, centroids, labels, *_ = world
     with pytest.raises(ValueError):
         index.build_ivf(centroids, x, labels[:-1])
+
+
+def test_evaluate_with_base_is_exact_at_nprobe_k_even_with_duplicate_vectors():
+    rng = np.random.default_rng(1)
+    x = np.repeat(rng.random((100, 4), dtype=np.float32), 20, axis=0)  # 20 copies each
+    centroids = x[rng.choice(len(x), 8, replace=False)].copy()
+    labels, _ = index.reassign(x, centroids)
+    ivf = index.build_ivf(centroids, x, labels)
+    queries = x[::97][:20].copy()
+    truth = data.exact_neighbours(x, queries, 10)
+    summary, per_query = index.evaluate(ivf, queries, truth, (8,), base=x)
+    assert summary[8]["recall10"] == 1.0 and (per_query[8] == 1.0).all()
