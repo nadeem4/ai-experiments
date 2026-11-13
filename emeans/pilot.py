@@ -99,3 +99,23 @@ def project_c(records, n, k, dims=DIMS, seeds=3):
     per_d = {d: project(records, (n, k, d), seeds, with_budgets=False, arms=("lloyd", "emeans"))["hours"]
              for d in dims}
     return {"per_d": per_d, "hours": sum(per_d.values())}
+
+
+def problems_b(records, k):
+    """Part B's pilot checks: complete records, recall 1.0 at nprobe = k (when
+    `k` is given), and e-means and Lloyd-half actually trained (rows touched)."""
+    out = []
+    for r in records:
+        unit = f"{r['dataset']} {r['arm']} {r['setting']} seed {r['seed']}"
+        missing = [f for f in growing.REQUIRED if f not in r]
+        if missing:
+            out.append(f"{unit}: missing fields {', '.join(missing)}")
+            continue
+        search = r["search"]
+        if k is not None and str(k) not in search:
+            out.append(f"{unit}: search has no nprobe == k ({k}) entry, so exactness is unchecked")
+        elif k is not None and search[str(k)]["recall10"] < 1.0 - 1e-9:
+            out.append(f"{unit}: recall at nprobe == k ({k}) is {search[str(k)]['recall10']}, not 1.0")
+        if r["arm"] in ("emeans", "lloyd_half") and not r["rows"]:
+            out.append(f"{unit}: {r['arm']} touched no rows (e-means was not run through begin)")
+    return out

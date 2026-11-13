@@ -1,10 +1,12 @@
 """How `cli` runs the emeans experiment.
 
-The contract `cli` needs, the two scales, `--dry-run`, and part A. Parts B and
-C arrive in later slices.
+The contract `cli` needs, the two scales, `--dry-run`, and parts A, B and C.
 """
 from pathlib import Path
 from typing import NamedTuple, Optional
+
+from . import race
+from .consts import B_NPROBES, DIMS
 
 NAME = "emeans"
 TITLE = "Does e-means keep a growing vector index fresh more cheaply than rebuilding it?"
@@ -82,7 +84,6 @@ def store_path(args):
 
 
 def part_a_units(args):
-    from . import race
     from .consts import ARMS
 
     scale = scale_for(args.tag)
@@ -90,68 +91,142 @@ def part_a_units(args):
     return race.units("sift", ARMS, scale.seeds_a, with_budgets=args.tag == "full")
 
 
-def projection(records):
+def units_for(args):
+    """Every unit of the chosen part at the chosen scale, in run order."""
+    from . import growing
+
+    scale = scale_for(args.tag)
+    if args.part == "b":
+        return growing.units(scale)
+    if args.part == "c":
+        return race.sweep_units(scale, DIMS)
+    return part_a_units(args)
+
+
+def _arxiv_vectors(args):
+    path = data_dir(args) / "vectors.npy"
+    if not path.exists():
+        raise SystemExit(f"{path} not found: run `uv run cli fetch emeans -p emeans/runs/data` "
+                         "(or point --data-dir at the Kaggle output) first")
+    return path
+
+
+def load_growing(args, scale):
+    from . import data, growing
+
+    x, months = data.load_arxiv(_arxiv_vectors(args))
+    return growing.make_split(x, months, scale.b_months)
+
+
+def load_static(args, scale):
+    from . import data
+
+    x, _ = data.load_arxiv(_arxiv_vectors(args))
+    return data.make_static_split(x, n_test=scale.n_test, n_train=scale.n)
+
+
+def projection(records, b_records=()):
+    """Hours per part from whatever pilot records exist; a part with no pilot
+    records yet is None. C is projected from A's per-epoch rate."""
     from . import pilot
 
     seeds = FULL.seeds_a
-    return {"a_sift": pilot.project(records, (SIFT_TRAIN, FULL.k, 128), seeds),
-            "a_arxiv": {**pilot.project(records, (ARXIV_TRAIN, FULL.k, 768), seeds),
-                        "extrapolated": True},  # no arXiv vectors exist at pilot time
-            "b": None, "c": None}  # filled in by the growing-index and sweep slices
+    out = {"a_sift": None, "a_arxiv": None, "b": None, "c": None}
+    if records:
+        out["a_sift"] = pilot.project(records, (SIFT_TRAIN, FULL.k, 128), seeds)
+        out["a_arxiv"] = {**pilot.project(records, (ARXIV_TRAIN, FULL.k, 768), seeds),
+                          "extrapolated": True}  # no arXiv vectors exist at the A pilot
+        out["c"] = {**pilot.project_c(records, ARXIV_TRAIN, FULL.k, DIMS, FULL.seeds_bc), "extrapolated": True}
+    if b_records:
+        sizes = {r["setting"]: r["n"] for r in b_records if r["part"] == "b"}
+        months = sorted(sizes)
+        per_month = (sizes[months[-1]] - sizes[months[0]]) / (len(months) - 1) if len(months) > 1 else 0
+        out["b"] = pilot.project_b(b_records, FULL.b_months, sizes[months[0]] - per_month, per_month,
+                                   FULL.k, 768, seeds=FULL.seeds_bc)
+    return out
+
+
+def write_projection(args):
+    import json
+
+    from . import store
+
+    runs = out_dir(args) / "runs" / args.tag
+    load = lambda part: store.load(runs / f"{part}.jsonl")  # noqa: E731
+    out = out_dir(args) / "results" / "pilot" / "projection.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    proj = projection(load("a"), load("b"))
+    out.write_text(json.dumps(proj, indent=2), encoding="utf-8")
+    print(json.dumps(proj, indent=2))
 
 
 def run(args):
     scale = scale_for(args.tag)
-    if args.part != "a":
-        if args.dry_run:
-            print(f"part {args.part}, tag {args.tag}: its units are listed once the part is built")
-            return
-        raise SystemExit(f"part {args.part} arrives in a later slice")
-    units = part_a_units(args)
+    units = units_for(args)
     if args.dry_run:
         from . import store
 
         done = store.done_keys(store_path(args))
-        print(f"part a, tag {args.tag}: k={scale.k}, {scale.seeds_a} seed(s), "
+        seeds = scale.seeds_a if args.part == "a" else scale.seeds_bc
+        print(f"part {args.part}, tag {args.tag}: k={scale.k}, {seeds} seed(s), "
               f"{len(units)} units, {len([u for u in units if u in done])} already done")
         for u in units:
             print(f"  {' '.join(map(str, u))}{'  (done)' if u in done else ''}")
         return
     import json
 
-    from . import env, race
+    from . import env, growing
 
+    if args.part == "a":
+        split = load_split(args, scale)
+    elif args.part == "b":
+        split = load_growing(args, scale)
+    else:
+        split = load_static(args, scale)
     threads = env.physical_cores()
     env.pin_threads(threads)
     env_path = out_dir(args) / "runs" / args.tag / "environment.json"
     if not env_path.exists():
         env_path.parent.mkdir(parents=True, exist_ok=True)
         env_path.write_text(json.dumps(env.environment(), indent=2), encoding="utf-8")
-    race.run(units, load_split(args, scale), scale, store_path(args), threads=threads)
+    if args.part == "a":
+        race.run(units, split, scale, store_path(args), threads=threads)
+    elif args.part == "b":
+        nprobes = B_NPROBES + ((scale.k,) if args.tag == "pilot" else ())  # the pilot checks nprobe = k
+        growing.run(split, scale, store_path(args), nprobes=nprobes, threads=threads)
+    else:
+        race.run_sweep(split, scale, store_path(args), DIMS, threads=threads)
     if args.tag == "pilot":
-        from . import store
-
-        out = out_dir(args) / "results" / "pilot" / "projection.json"
-        out.parent.mkdir(parents=True, exist_ok=True)
-        proj = projection(store.load(store_path(args)))
-        out.write_text(json.dumps(proj, indent=2), encoding="utf-8")
-        print(json.dumps(proj, indent=2))
+        write_projection(args)
 
 
 def report(args):
-    """Print the pilot's checks and exit non-zero if any fail. Tables and
-    figures are written from results/ in a later slice."""
-    if args.dry_run or args.part != "a" or not store_path(args).exists():
+    """Print the pilot's checks and exit non-zero if any fail; part C also
+    prints epochs to match and speedup per dimension. Tables and figures are
+    written from results/ in a later slice."""
+    if args.dry_run or not store_path(args).exists():
         return
-    from . import pilot, store
+    from . import growing, pilot, store, tables
 
-    found = pilot.problems(store.load(store_path(args)),
-                           scale_for(args.tag).k if args.tag == "pilot" else None)
+    records = store.load(store_path(args))
+    pilot_k = scale_for(args.tag).k if args.tag == "pilot" else None
+    if args.part == "b":
+        found = pilot.problems_b(records, pilot_k)
+    else:
+        found = pilot.problems(records, pilot_k if args.part == "a" else None)
     for message in found:
         print(f"PROBLEM: {message}")
     if found:
         raise SystemExit(1)
     print("pilot checks: no problems")
+    if args.part == "c":
+        for d in DIMS:
+            name = f"arxiv-d{d}"
+            if not any(r["dataset"] == name for r in records):
+                continue
+            e, s = tables.epochs_to_match(records, name, "emeans"), tables.speedup(records, name, "emeans")
+            print(f"{name}: epochs to match {e if e else 'did not match within 5 epochs'}, "
+                  f"speedup {f'{s:.2f}x' if s else 'none'}")
 
 
 def dataset(directory=None):

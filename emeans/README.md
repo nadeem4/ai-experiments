@@ -132,6 +132,11 @@ uv run cli list
 uv run cli run emeans --part a --tag pilot --dry-run   # list the units of work and stop
 uv run cli run emeans --part a --tag pilot             # pilot scale (SIFT1M 100k subset, k = 256)
 uv run cli run emeans --part a --tag full              # full scale; hours of machine time
+uv run cli run emeans --part b --tag pilot --dry-run   # growing index: 4 arms x 3 months, listed
+uv run cli run emeans --part b --tag pilot             # needs the Kaggle vectors (below); 3 months, k = 256
+uv run cli run emeans --part c --tag pilot             # dimension sweep smoke test, same vectors
+uv run cli run emeans --part b --tag full              # 72 months x 4 arms x 3 seeds; hours
+uv run cli run emeans --part c --tag full
 
 uv run cli submit emeans --dry-run                     # arXiv-CS embedding on a Kaggle GPU (after merge to main)
 uv run cli submit emeans
@@ -142,9 +147,11 @@ uv run cli dataset emeans                              # writes DATASET.md with 
 
 Submitting, fetching and committing `DATASET.md` are a human gate: the kernel clones `main`, so merge and push first, then read the per-month counts before going on.
 
-`--part` is `a`, `b` or `c` (default `a`); only part A exists so far. `--tag` is `pilot` or `full`, nothing else. `--cache-dir` is where `sift-128-euclidean.hdf5` (from ann-benchmarks.com) lives; `--data-dir` is where the arXiv vectors live (default `emeans/runs/data`). Part A appends one record per unit of work to `runs/<tag>/a.jsonl` and is resumable: a rerun skips every finished unit and redoes a half-written one. The environment, with the thread pools actually observed, goes to `runs/<tag>/environment.json`. `--dry-run` lists the units and which are done, and reads no data.
+`--part` is `a`, `b` or `c` (default `a`). `--tag` is `pilot` or `full`, nothing else. `--cache-dir` is where `sift-128-euclidean.hdf5` (from ann-benchmarks.com) lives; `--data-dir` is where the arXiv vectors live (default `emeans/runs/data`). Each part appends one record per unit of work to `runs/<tag>/<part>.jsonl` and is resumable: a rerun skips every finished unit and redoes a half-written one. The environment, with the thread pools actually observed, goes to `runs/<tag>/environment.json`. `--dry-run` lists the units and which are done, and reads no data.
 
-The pilot is a human gate: run it on the laptop, read `results/pilot/projection.json` (hours per part, linear in n * k * d * epochs; `a_arxiv` is extrapolated from SIFT, `b` and `c` are null until those parts exist), and commit `results/pilot/`. The command exits non-zero and prints each failed check if the pilot's records are wrong. Do not start a `full` run before the projection is approved.
+Parts B and C read `vectors.npy` and `months.npy` from `--data-dir`, so they need the Kaggle step above first. Part B (`growing.py`) runs each (seed, arm) chain month by month: stale, yearly, monthly e-means and monthly Lloyd-half. Each month it maintains the centroids, rebuilds the IVF over everything indexed so far, searches that month's 500 held-out queries at nprobe 16 and 64 (the pilot adds nprobe = k) and appends a record. The chain's centroids and labels are saved to `runs/<tag>/state/` after each month, exact truth is cached once per month in `runs/<tag>/truth/`, and a rerun continues each chain from its saved state or exits naming the chain if that state is unreadable or does not match the last record. The held-out queries depend only on the dataset seed, never on the run seed. Maintenance seconds are training plus re-assignment of every indexed doc (stale: zero); adding docs to the index is recorded separately as `adding_seconds` and left out of every comparison. Part C (`race.run_sweep`) is the part A race for Lloyd and e-means only, at each truncated dimension, with no budgets and no search; `report` prints epochs to match and speedup per dimension.
+
+The pilot is a human gate: run it on the laptop, read `results/pilot/projection.json` (hours per part, linear in n * k * d * epochs; `a_arxiv` and `c` are extrapolated from SIFT's per-epoch rate; `b` comes from the B pilot's maintenance rates and stays null until `--part b --tag pilot` has run), and commit `results/pilot/`. The command exits non-zero and prints each failed check if the pilot's records are wrong. Do not start a `full` run before the projection is approved.
 
 This section is updated as parts land; the protocol sections above are not edited once a run has started.
 
@@ -156,3 +163,10 @@ This section is updated as parts land; the protocol sections above are not edite
 - The pilot also searches at `nprobe = k` (256), where recall must be 1.0; the full runs use the nprobe set above only.
 - The pilot runs the calibration, snapshot, Lloyd 25-iteration and epoch units, and leaves the fixed-budget units out: budgets are derived from a full-scale calibration, which a 100k, k = 256 pilot cannot give. The projection adds the budget units' fixed time.
 - Imbalance and dead clusters are measured on the labels of the indexed vectors, for every trained setting.
+
+**Amendment 2026-11-13 (E4, before any run).**
+
+- Maintenance is training plus re-assignment of every indexed doc, which necessarily includes that month's new docs; "adding docs" means only the index-build add step, recorded apart as `adding_seconds`. Stale, and yearly outside January, assign the new docs untimed and cost 0.
+- Monthly e-means never overrides `max_points_per_centroid`. A half-epoch run leaves some of its own assignments at -1 by design, so labels for the index, imbalance and dead clusters always come from our own nearest-centroid re-assignment of all indexed docs.
+- Lloyd-half's seeded random-half gather is inside its timer, as e-means' shuffle is inside its own.
+- B's k comes from the centroids' shape (the pilot uses 256), and the shared starting centroids are computed once per seed and cached for every arm.

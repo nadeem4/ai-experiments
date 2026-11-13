@@ -100,7 +100,7 @@ def test_a_pilot_run_writes_the_projection_with_all_four_keys(tmp_path, monkeypa
     args = experiment_args(tmp_path, ["--tag", "pilot"])
     experiment.run(args)
     proj = json.loads((tmp_path / "results" / "pilot" / "projection.json").read_text())
-    assert set(proj) == {"a_sift", "a_arxiv", "b", "c"} and proj["b"] is None and proj["c"] is None
+    assert set(proj) == {"a_sift", "a_arxiv", "b", "c"} and proj["b"] is None and proj["c"]["hours"] > 0
     assert proj["a_sift"]["hours"] > 0 and proj["a_arxiv"]["extrapolated"] is True
 
 
@@ -122,3 +122,54 @@ def test_report_exits_non_zero_on_problems(tmp_path):
     with pytest.raises(SystemExit) as e:
         experiment.report(args)
     assert e.value.code != 0
+
+
+# ---- parts B and C through the cli ----
+
+from emeans import growing  # noqa: E402
+
+B_SCALE = Scale(n=300, n_test=200, n_queries=10, k=8, seeds_a=1, seeds_bc=1, b_months=3, nprobes=(1, 8))
+
+
+def synthetic_vectors(path):
+    rng = np.random.default_rng(0)
+    months = np.array(["2019-12"] * 400 + [m for m in growing.timeline(3) for _ in range(600)])
+    x = rng.normal(size=(len(months), 8)).astype(np.float32)
+    path.mkdir(parents=True, exist_ok=True)
+    np.save(path / "vectors.npy", x)
+    np.save(path / "months.npy", months)
+
+
+def test_a_part_b_pilot_runs_checks_and_projects(tmp_path, monkeypatch):
+    synthetic_vectors(tmp_path / "vec")
+    monkeypatch.setattr(experiment, "PILOT", B_SCALE)
+    args = experiment_args(tmp_path, ["--tag", "pilot", "--part", "b", "--data-dir", str(tmp_path / "vec")])
+    experiment.run(args)
+    records = store.load(tmp_path / "runs" / "pilot" / "b.jsonl")
+    assert len(records) == 12 and {len(r["search"]) for r in records} == {3}  # 16, 64 and nprobe = k
+    experiment.report(args)  # no problems: does not exit
+    proj = json.loads((tmp_path / "results" / "pilot" / "projection.json").read_text())
+    assert proj["b"]["hours"] > 0 and proj["b"]["months"] == 72
+
+
+def test_a_part_c_pilot_runs_every_dimension_and_reports_the_match(tmp_path, monkeypatch, capsys):
+    synthetic_vectors(tmp_path / "vec")
+    monkeypatch.setattr(experiment, "PILOT", B_SCALE)
+    monkeypatch.setattr(experiment, "DIMS", (4, 8))
+    args = experiment_args(tmp_path, ["--tag", "pilot", "--part", "c", "--data-dir", str(tmp_path / "vec")])
+    experiment.run(args)
+    records = store.load(tmp_path / "runs" / "pilot" / "c.jsonl")
+    assert {r["dataset"] for r in records} == {"arxiv-d4", "arxiv-d8"}
+    experiment.report(args)
+    out = capsys.readouterr().out
+    assert "arxiv-d4" in out and "epochs to match" in out
+
+
+def test_problems_b_flags_missing_fields_recall_below_one_and_unrun_emeans():
+    good = {f: 1 for f in growing.REQUIRED}
+    good.update(arm="emeans", setting="2020-01", seed=0, search={"8": {"recall10": 1.0}}, rows=100,
+                part="b", dataset="arxiv")
+    assert pilot.problems_b([good], 8) == []
+    assert "missing" in pilot.problems_b([{k: v for k, v in good.items() if k != "imbalance"}], 8)[0]
+    assert "nprobe" in pilot.problems_b([dict(good, search={"8": {"recall10": 0.5}})], 8)[0]
+    assert "begin" in pilot.problems_b([dict(good, rows=0)], 8)[0]
