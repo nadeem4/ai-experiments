@@ -3,7 +3,7 @@ period, then five arrival months of 40 docs with 5 held out as queries."""
 import numpy as np
 import pytest
 
-from emeans import growing
+from emeans import growing, index
 
 MONTHS = [f"2020-{m:02d}" for m in range(1, 6)]
 N_Q = 5
@@ -63,3 +63,88 @@ def test_a_month_with_too_few_docs_is_named():
     ids = np.array(["2019-12"] * 10 + ["2020-01"] * 3 + ["2020-02"] * 40)
     with pytest.raises(ValueError, match="2020-01"):
         growing.hold_out(ids, n=N_Q)
+
+
+# ---- the four maintenance policies (3 drifting blobs, k = 6) ----
+
+K = 6
+
+
+@pytest.fixture(autouse=True)
+def one_thread():
+    from emeans import env
+    before = env.faiss.omp_get_max_threads()
+    env.pin_threads(1)
+    yield
+    env.pin_threads(before)
+
+
+def blobs(n, drift=0.0, seed=0):
+    rng = np.random.default_rng(seed)
+    centres = np.array([[0, 0, 0, 0], [10, 0, 0, 0], [0, 10, 0, 0]], dtype=np.float32) + drift
+    return (centres[rng.integers(0, 3, n)] + rng.normal(0, 1, (n, 4))).astype(np.float32)
+
+
+@pytest.fixture(scope="module")
+def start():
+    x0 = blobs(900)
+    return x0, growing.initial_centroids(x0, K, seed=0)
+
+
+def step(arm, start, month="2020-02", seed=0, centroids=None):
+    x0, c0 = start
+    x = np.concatenate([x0, blobs(300, drift=1.0, seed=1)])
+    labels_prev = index.reassign(x0, c0)[0]
+    return growing.maintain(arm, c0 if centroids is None else centroids, x, month, seed, labels_prev)
+
+
+def test_stale_keeps_the_centroids_and_costs_nothing(start):
+    m = step("stale", start)
+    assert np.array_equal(m.centroids, start[1])
+    assert m.train_seconds == 0 and m.assign_seconds == 0 and m.rows == 0
+    assert len(m.labels) == 1200 and m.labels.min() >= 0
+
+
+def test_yearly_changes_centroids_only_in_january_and_ignores_the_old_ones(start):
+    assert np.array_equal(step("yearly", start, "2020-02").centroids, start[1])
+    jan = step("yearly", start, "2021-01")
+    assert not np.array_equal(jan.centroids, start[1])
+    other = step("yearly", start, "2021-01", centroids=start[1] + 5)
+    assert np.array_equal(jan.centroids, other.centroids)  # a rebuild, not a warm start
+    assert jan.train_seconds > 0 and jan.assign_seconds > 0
+
+
+def test_emeans_is_warm_started_not_cold(start):
+    a = step("emeans", start)
+    b = step("emeans", start, centroids=start[1] + 3)
+    assert not np.array_equal(a.centroids, b.centroids)  # the given centroids matter
+    x0 = start[0]
+    x = np.concatenate([x0, blobs(300, drift=1.0, seed=1)])
+    from emeans import arms
+    cold = arms.train_emeans(x, K, 0.5, arms.random_init(x, K, 0), seed=growing.seed_for(0, "2020-02"))
+    assert not np.array_equal(a.centroids, cold.centroids)
+
+
+def test_emeans_and_lloyd_half_touch_the_same_rows_within_one_batch(start):
+    """Review Focus 3."""
+    e, h = step("emeans", start), step("lloyd_half", start)
+    assert e.rows == pytest.approx(1200 / 2, abs=4) and h.rows == 600
+    assert abs(e.rows - h.rows) <= 4  # one e-means batch at this size
+
+
+def test_no_label_is_minus_one_after_a_half_epoch_of_emeans(start):
+    """Review Focus 3: labels come from our own re-assignment, not em.assignments."""
+    for arm in growing.ARMS_B:
+        m = step(arm, start, "2021-01")
+        assert m.labels.min() >= 0 and m.labels.max() < K and len(m.labels) == 1200
+
+
+def test_policies_are_deterministic_for_a_seed(start):
+    for arm in ("yearly", "emeans", "lloyd_half"):
+        a, b = step(arm, start, "2021-01"), step(arm, start, "2021-01")
+        assert np.array_equal(a.centroids, b.centroids), arm
+
+
+def test_arms_start_from_identical_initial_centroids(start):
+    again = growing.initial_centroids(start[0], K, seed=0)
+    assert np.array_equal(again, start[1])

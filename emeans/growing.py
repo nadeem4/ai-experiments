@@ -1,8 +1,12 @@
 """Part B: a vector index that grows month by month, and four ways to keep its
 coarse quantiser fresh. Timeline and held-out queries first."""
+import time
+import zlib
 from typing import NamedTuple
 
 import numpy as np
+
+from . import arms, index
 
 INITIAL = ("2018-01", "2019-12")  # the initial index: these months, all docs
 FIRST_ARRIVAL = 2020
@@ -62,3 +66,56 @@ def make_split(vectors, months, n_months, n_queries=500, dataset_seed=0):
     q_idx, idx = hold_out(months, n_queries, dataset_seed)
     queries = {m: np.ascontiguousarray(vectors[q_idx[months[q_idx] == m]], dtype=np.float32) for m in tl}
     return GrowingSplit(np.ascontiguousarray(vectors[idx], dtype=np.float32), months[idx], queries, tl)
+
+
+ARMS_B = ("stale", "yearly", "emeans", "lloyd_half")
+
+
+def seed_for(seed, key):
+    """A stable integer seed from the run seed and a month or year label."""
+    return zlib.crc32(f"{seed}:{key}".encode()) % 2**31
+
+
+def initial_centroids(x_init, k, seed):
+    """Lloyd-25 from a seeded random init on the initial index's docs."""
+    return arms.train_lloyd(x_init, k, 25, arms.random_init(x_init, k, seed)).centroids
+
+
+class Maintained(NamedTuple):
+    centroids: np.ndarray
+    train_seconds: float
+    assign_seconds: float
+    labels: np.ndarray   # nearest-centroid label of every indexed doc (our own, never em.assignments)
+    rows: int            # rows the training touched
+
+
+def maintain(arm, centroids, x_indexed, month, seed, labels_prev):
+    """One month's maintenance of the quantiser; k comes from `centroids`.
+
+    Stale (and yearly outside January) trains nothing: the new docs are assigned
+    untimed and maintenance is 0. Otherwise maintenance is training plus
+    re-assignment of every indexed doc, both timed; adding docs to the index is
+    not part of it. Labels always come from our re-assignment: a half-epoch
+    e-means run leaves some of its own assignments at -1 by design."""
+    k = len(centroids)
+    trained = None
+    if arm == "yearly" and month.endswith("-01"):
+        year = month[:4]
+        trained = arms.train_lloyd(x_indexed, k, 25, arms.random_init(x_indexed, k, seed_for(seed, year)))
+    elif arm == "emeans":
+        trained = arms.train_emeans(x_indexed, k, 0.5, centroids, seed_for(seed, month))
+    elif arm == "lloyd_half":
+        rng = np.random.default_rng(seed_for(seed, month))
+        start = time.perf_counter()
+        half = x_indexed[rng.choice(len(x_indexed), len(x_indexed) // 2, replace=False)]
+        gather = time.perf_counter() - start  # e-means shuffles inside its timer, so this is timed too
+        one = arms.train_lloyd(half, k, 1, centroids)
+        trained = arms.Trained(one.centroids, one.seconds + gather, len(half))
+    elif arm not in ARMS_B:
+        raise ValueError(f"unknown arm {arm!r}")
+    if trained is None:  # stale
+        new = x_indexed[len(labels_prev):]
+        fresh = index.reassign(new, centroids)[0] if len(new) else np.array([], dtype=np.int64)
+        return Maintained(centroids, 0.0, 0.0, np.concatenate([labels_prev, fresh]), 0)
+    labels, assign_seconds = index.reassign(x_indexed, trained.centroids)
+    return Maintained(trained.centroids, trained.seconds, assign_seconds, labels, trained.rows)
