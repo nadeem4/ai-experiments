@@ -132,7 +132,15 @@ uv run cli list
 uv run cli run emeans --part a --tag pilot --dry-run   # list the units of work and stop
 uv run cli run emeans --part a --tag pilot             # pilot scale (SIFT1M 100k subset, k = 256)
 uv run cli run emeans --part a --tag full              # full scale; hours of machine time
+
+uv run cli submit emeans --dry-run                     # arXiv-CS embedding on a Kaggle GPU (after merge to main)
+uv run cli submit emeans
+uv run cli status emeans
+uv run cli fetch emeans -p emeans/runs/data            # vectors.npy, months.npy, ids.txt, meta.json
+uv run cli dataset emeans                              # writes DATASET.md with the real counts and versions
 ```
+
+Submitting, fetching and committing `DATASET.md` are a human gate: the kernel clones `main`, so merge and push first, then read the per-month counts before going on.
 
 `--part` is `a`, `b` or `c` (default `a`); only part A exists so far. `--tag` is `pilot` or `full`, nothing else. `--cache-dir` is where `sift-128-euclidean.hdf5` (from ann-benchmarks.com) lives; `--data-dir` is where the arXiv vectors live (default `emeans/runs/data`). Part A appends one record per unit of work to `runs/<tag>/a.jsonl` and is resumable: a rerun skips every finished unit and redoes a half-written one. The environment, with the thread pools actually observed, goes to `runs/<tag>/environment.json`. `--dry-run` lists the units and which are done, and reads no data.
 

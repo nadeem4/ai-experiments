@@ -68,6 +68,41 @@ class TestManualPrerequisites:
         assert any("accelerator" in n.lower() or "gpu" in n.lower() for n in notes)
 
 
+class TestSecretIsOnlyForKernelsThatReadOne:
+    def test_a_kernel_without_a_secret_gets_no_secret_line_but_keeps_the_gpu_line(self):
+        notes = kaggle.manual_steps("nadeem4nk/emeans-arxiv-embed", needs_secret=False)
+        joined = "\n".join(notes)
+        assert "OPENROUTER_API_KEY" not in joined
+        assert "accelerator" in joined.lower()
+
+    def test_the_default_keeps_the_secret_line(self):
+        assert "OPENROUTER_API_KEY" in "\n".join(kaggle.manual_steps("x/y"))
+        assert "OPENROUTER_API_KEY" in "\n".join(kaggle.manual_steps("x/y", needs_secret=True))
+
+    def test_the_kernel_text_decides(self):
+        assert kaggle.reads_secret("rerank") is True
+        assert kaggle.reads_secret("emeans") is False
+
+    def test_emeans_has_its_own_notebook(self):
+        assert kaggle.slug(kaggle.kernel_dir("emeans")) == "nadeem4nk/emeans-arxiv-embed"
+
+
+class TestFetchHint:
+    def test_emeans_output_goes_where_the_loader_reads(self):
+        assert kaggle.fetch_command("emeans") == "uv run cli fetch emeans -p emeans/runs/data"
+
+    def test_rerank_is_unchanged(self):
+        assert kaggle.fetch_command("rerank") == "uv run cli fetch rerank"
+
+
+def test_readme_how_to_run_has_the_kaggle_steps():
+    text = (Path(__file__).resolve().parent.parent / "emeans" / "README.md").read_text(encoding="utf-8")
+    how = text[text.index("## How to run it"):text.index("## Protocol amendments")]
+    for cmd in ("uv run cli submit emeans", "uv run cli fetch emeans -p emeans/runs/data",
+                "uv run cli dataset emeans"):
+        assert cmd in how
+
+
 class TestWhereTheKernelLives:
     def test_it_is_found_beside_the_experiment(self):
         assert kaggle.kernel_dir("rerank").name == "kaggle"

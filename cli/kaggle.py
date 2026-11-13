@@ -74,13 +74,26 @@ def problems(git, metadata, authenticated):
     return found
 
 
-def manual_steps(notebook):
+def reads_secret(name):
+    """Whether the experiment's kernel reads a Kaggle secret."""
+    return "UserSecretsClient" in (kernel_dir(name) / "kernel.py").read_text(encoding="utf-8")
+
+
+def manual_steps(notebook, needs_secret=True):
     """What has to be true on Kaggle's side, which no API here can confirm."""
     url = f"https://www.kaggle.com/code/{notebook}/edit"
-    return [
-        f"the notebook's accelerator is a GPU: {url} -> Session options",
-        f"OPENROUTER_API_KEY is attached: {url} -> Add-ons -> Secrets",
-    ]
+    steps = [f"the notebook's accelerator is a GPU: {url} -> Session options"]
+    if needs_secret:
+        steps.append(f"OPENROUTER_API_KEY is attached: {url} -> Add-ons -> Secrets")
+    return steps
+
+
+FETCH_INTO = {"emeans": "emeans/runs/data"}  # where that experiment's loader reads
+
+
+def fetch_command(name):
+    into = FETCH_INTO.get(name)
+    return f"uv run cli fetch {name}" + (f" -p {into}" if into else "")
 
 
 def submit(name, dry_run=False):
@@ -96,7 +109,7 @@ def submit(name, dry_run=False):
 
     print(f"{name} -> {notebook}")
     print("check on Kaggle, which cannot be checked from here:")
-    for step in manual_steps(notebook):
+    for step in manual_steps(notebook, reads_secret(name)):
         print(f"  - {step}")
     if dry_run:
         print("\ndry run: not pushed.")
@@ -105,7 +118,7 @@ def submit(name, dry_run=False):
     subprocess.run(["uv", "run", "kaggle", "kernels", "push", "-p", str(directory)],
                    cwd=REPO_ROOT, check=True)
     print(f"\nwatch:  uv run cli status {name}")
-    print(f"fetch:  uv run cli fetch {name}")
+    print(f"fetch:  {fetch_command(name)}")
     return 0
 
 
@@ -116,7 +129,8 @@ def status(name):
 
 
 def fetch(name, into):
-    into = Path(into or REPO_ROOT / name / "runs" / "kaggle")
+    into = Path(into or (REPO_ROOT / FETCH_INTO[name] if name in FETCH_INTO
+                         else REPO_ROOT / name / "runs" / "kaggle"))
     into.mkdir(parents=True, exist_ok=True)
     subprocess.run(["uv", "run", "kaggle", "kernels", "output",
                     slug(kernel_dir(name)), "-p", str(into)], cwd=REPO_ROOT, check=True)
