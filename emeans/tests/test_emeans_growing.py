@@ -148,3 +148,120 @@ def test_policies_are_deterministic_for_a_seed(start):
 def test_arms_start_from_identical_initial_centroids(start):
     again = growing.initial_centroids(start[0], K, seed=0)
     assert np.array_equal(again, start[1])
+
+
+# ---- the month loop, records and ledger (5 months, k = 8, 2 seeds) ----
+
+import json  # noqa: E402
+
+from emeans import store, tables  # noqa: E402
+from emeans.experiment import Scale  # noqa: E402
+
+SCALE = Scale(n=None, n_test=0, n_queries=10, k=8, seeds_a=1, seeds_bc=2, b_months=5, nprobes=(2, 8))
+VOLATILE = {"train_seconds", "assign_seconds", "maintenance_seconds", "adding_seconds", "eval_seconds",
+            "search", "observed_threads"}
+
+
+@pytest.fixture(scope="module")
+def gsplit():
+    rng = np.random.default_rng(3)
+    vectors = np.concatenate([blobs(400, seed=10)] + [blobs(100, drift=i * 0.5, seed=11 + i) for i in range(5)])
+    ids = np.array(["2019-12"] * 400 + [m for m in MONTHS for _ in range(100)])
+    return growing.make_split(vectors, ids, 5, n_queries=10)
+
+
+def run_b(gs, path, scale=SCALE):
+    growing.run(gs, scale, path, seeds=range(2), nprobes=(2, 8), threads=1, log=lambda *_: None)
+    return store.load(path)
+
+
+def stable(records):
+    return [{k: v for k, v in r.items() if k not in VOLATILE} for r in records]
+
+
+def test_units_are_chains_of_months_arm_by_arm_seed_by_seed():
+    us = growing.units(SCALE)
+    assert len(us) == 4 * 2 * 5 and len(set(us)) == len(us)
+    assert us[0] == ("b", "arxiv", "stale", "2020-01", 0) and us[5] == ("b", "arxiv", "yearly", "2020-01", 0)
+
+
+def test_one_complete_record_per_arm_seed_month(gsplit, tmp_path):
+    records = run_b(gsplit, tmp_path / "b.jsonl")
+    assert sorted(map(store.key, records)) == sorted(growing.units(SCALE))
+    for r in records:
+        assert not [f for f in growing.REQUIRED if f not in r], r["arm"]
+        assert r["maintenance_seconds"] == r["train_seconds"] + r["assign_seconds"]
+        assert set(r["search"]) == {"2", "8"} and len(r["recall_per_query"]["8"]) == 10
+        assert r["search"]["8"]["recall10"] == 1.0  # nprobe == k scans everything
+    json.dumps(records)
+
+
+def test_rerunning_appends_nothing(gsplit, tmp_path):
+    path = tmp_path / "b.jsonl"
+    run_b(gsplit, path)
+    before = path.read_bytes()
+    run_b(gsplit, path)
+    assert path.read_bytes() == before
+
+
+def test_interrupting_after_month_3_gives_the_same_records_as_an_uninterrupted_run(gsplit, tmp_path):
+    whole = run_b(gsplit, tmp_path / "whole" / "b.jsonl")
+    part = tmp_path / "part" / "b.jsonl"
+    run_b(gsplit, part, SCALE._replace(b_months=3))
+    assert len(store.load(part)) == 4 * 2 * 3
+    resumed = run_b(gsplit, part)
+    key = lambda r: store.key(r)  # noqa: E731
+    assert stable(sorted(resumed, key=key)) == stable(sorted(whole, key=key))
+
+
+def test_a_crash_between_state_and_record_replays_that_month(gsplit, tmp_path):
+    whole = run_b(gsplit, tmp_path / "whole" / "b.jsonl")
+    path = tmp_path / "crash" / "b.jsonl"
+    run_b(gsplit, path)
+    lines = path.read_bytes().splitlines(keepends=True)
+    path.write_bytes(b"".join(lines[:-1]))  # the last record never landed, its state did
+    key = lambda r: store.key(r)  # noqa: E731
+    assert stable(sorted(run_b(gsplit, path), key=key)) == stable(sorted(whole, key=key))
+
+
+def test_a_corrupt_state_file_exits_naming_the_arm_and_seed(gsplit, tmp_path):
+    path = tmp_path / "b.jsonl"
+    run_b(gsplit, path, SCALE._replace(b_months=3))
+    (tmp_path / "state" / "emeans-1-2020-03.npz").write_bytes(b"garbage")
+    with pytest.raises(SystemExit, match="emeans.*seed 1"):
+        run_b(gsplit, path)
+
+
+def test_a_state_that_does_not_match_the_last_record_exits(gsplit, tmp_path):
+    path = tmp_path / "b.jsonl"
+    run_b(gsplit, path, SCALE._replace(b_months=3))
+    f = tmp_path / "state" / "yearly-0-2020-03.npz"
+    z = dict(np.load(f))
+    z["centroids"] = z["centroids"] + 1
+    np.savez(f, **z)
+    with pytest.raises(SystemExit, match="yearly.*seed 0"):
+        run_b(gsplit, path)
+
+
+def test_every_arm_and_seed_shares_one_truth_file_per_month(gsplit, tmp_path):
+    run_b(gsplit, tmp_path / "b.jsonl")
+    assert sorted(p.stem for p in (tmp_path / "truth").glob("*.npy")) == MONTHS
+
+
+def test_ledger_counts_train_plus_assign_never_adding_and_stale_is_zero(gsplit, tmp_path):
+    """Review Focus 4."""
+    records = run_b(gsplit, tmp_path / "b.jsonl")
+    led = tables.ledger(records)
+    assert set(led) == set(growing.ARMS_B)
+    assert all(m == 0 and c == 0 for _, m, c in led["stale"]) and len(led["stale"]) == 5
+    for arm, rows in led.items():
+        assert [r[0] for r in rows] == MONTHS
+        mine = [r for r in records if r["arm"] == arm]
+        for month, monthly, cumulative in rows:
+            per_seed = [r["train_seconds"] + r["assign_seconds"] for r in mine if r["setting"] == month]
+            assert monthly == pytest.approx(sum(per_seed) / len(per_seed))
+        assert [c for *_, c in rows] == pytest.approx(np.cumsum([m for _, m, _ in rows]).tolist())
+    assert led["emeans"][-1][2] > 0 and led["yearly"][0][1] > 0  # January rebuilds in 2020-01
+    assert led["yearly"][1][1] == 0  # no rebuild in February
+    adding = tables.adding_seconds(records)
+    assert set(adding) == set(growing.ARMS_B) and all(v > 0 for v in adding.values())

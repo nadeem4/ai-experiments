@@ -1,12 +1,15 @@
 """Part B: a vector index that grows month by month, and four ways to keep its
 coarse quantiser fresh. Timeline and held-out queries first."""
+import os
 import time
 import zlib
+from pathlib import Path
 from typing import NamedTuple
 
 import numpy as np
 
-from . import arms, index
+from . import arms, data, index, metrics, race, store
+from .consts import B_NPROBES
 
 INITIAL = ("2018-01", "2019-12")  # the initial index: these months, all docs
 FIRST_ARRIVAL = 2020
@@ -119,3 +122,123 @@ def maintain(arm, centroids, x_indexed, month, seed, labels_prev):
         return Maintained(centroids, 0.0, 0.0, np.concatenate([labels_prev, fresh]), 0)
     labels, assign_seconds = index.reassign(x_indexed, trained.centroids)
     return Maintained(trained.centroids, trained.seconds, assign_seconds, labels, trained.rows)
+
+
+REQUIRED = race.CORE + ("n_queries", "centroids_hash", "train_seconds", "assign_seconds", "maintenance_seconds",
+                        "adding_seconds", "eval_seconds", "rows", "imbalance", "dead_clusters", "search",
+                        "recall_per_query")
+
+
+def units(scale, seeds=None, arm_names=ARMS_B, tl=None):
+    """Every unit in run order: chains (seed, arm) outer, months inner."""
+    tl = (tl or timeline(scale.b_months))[:scale.b_months]
+    return [("b", "arxiv", arm, month, seed)
+            for seed in (range(scale.seeds_bc) if seeds is None else seeds)
+            for arm in arm_names for month in tl]
+
+
+def _save_atomic(path, **arrays):
+    tmp = path.with_name(path.stem + ".tmp.npz")
+    np.savez(tmp, **arrays)
+    os.replace(tmp, path)
+
+
+def _truth(gs, run_dir, month, n):
+    """Exact top-10 ids into the indexed prefix, cached once per month for every arm and seed."""
+    path = run_dir / "truth" / f"{month}.npy"
+    if path.exists():
+        return np.load(path)
+    truth = data.exact_neighbours(gs.vectors[:n], gs.queries[month], 10)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(month + ".tmp.npy")
+    np.save(tmp, truth)
+    os.replace(tmp, path)
+    return truth
+
+
+def _initial(gs, run_dir, k, seed):
+    """The shared starting centroids for a seed, computed once and cached."""
+    path = run_dir / "state" / f"init-{seed}.npy"
+    n0 = n_through(gs.months, INITIAL[1])
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(f"init-{seed}.tmp.npy")
+        np.save(tmp, initial_centroids(gs.vectors[:n0], k, seed))
+        os.replace(tmp, path)
+    centroids = np.load(path)
+    return centroids, index.reassign(gs.vectors[:n0], centroids)[0]
+
+
+def _resume(run_dir, arm, seed, last):
+    """-> (centroids, labels) from the saved state of the chain's last record."""
+    path = run_dir / "state" / f"{arm}-{seed}-{last['setting']}.npz"
+    try:
+        with np.load(path) as z:
+            centroids, labels = z["centroids"], z["labels"]
+    except (OSError, ValueError, KeyError) as e:
+        raise SystemExit(f"cannot resume chain {arm} seed {seed}: state {path} is unreadable ({e})")
+    if race._hash(centroids) != last["centroids_hash"]:
+        raise SystemExit(f"cannot resume chain {arm} seed {seed}: state {path} does not match "
+                         f"the last record ({last['setting']})")
+    return centroids, labels
+
+
+def run(gs, scale, store_path, seeds=None, arm_names=ARMS_B, nprobes=B_NPROBES, threads=None, log=print):
+    """Run every month of every (seed, arm) chain not already recorded.
+
+    Per month: maintain, build the IVF over the indexed prefix (the add step,
+    timed apart), evaluate the month's queries against cached exact truth, then
+    save the chain state (atomically) and append the record. A crash between the
+    two leaves the state a month ahead; the previous month's state is kept, so
+    that month is simply replayed."""
+    from . import env
+
+    threads = threads or env.physical_cores()
+    env.pin_threads(threads)
+    store_path = Path(store_path)
+    run_dir = store_path.parent
+    tl = gs.timeline[:scale.b_months]
+    for seed in range(scale.seeds_bc) if seeds is None else seeds:
+        for arm in arm_names:
+            records = [r for r in store.load(store_path)
+                       if r["part"] == "b" and r["arm"] == arm and r["seed"] == seed]
+            done = {r["setting"]: r for r in records}
+            if set(done) != set(tl[:len(done)]):
+                raise SystemExit(f"chain {arm} seed {seed}: recorded months are not a prefix of the timeline")
+            if len(done) == len(tl):
+                continue
+            if done:
+                centroids, labels = _resume(run_dir, arm, seed, done[tl[len(done) - 1]])
+            else:
+                centroids, labels = _initial(gs, run_dir, scale.k, seed)
+            for i in range(len(done), len(tl)):
+                month = tl[i]
+                n = n_through(gs.months, month)
+                x = gs.vectors[:n]
+                m = maintain(arm, centroids, x, month, seed, labels)
+                centroids, labels = m.centroids, m.labels
+                k = len(centroids)
+                start = time.perf_counter()
+                ivf = index.build_ivf(centroids, x, labels)
+                adding = time.perf_counter() - start
+                start = time.perf_counter()
+                queries = gs.queries[month]
+                summary, per_query = index.evaluate(ivf, queries, _truth(gs, run_dir, month, n), nprobes, base=x)
+                evaluation = time.perf_counter() - start
+                record = {"part": "b", "dataset": "arxiv", "arm": arm, "setting": month, "seed": seed,
+                          "n": n, "k": k, "d": x.shape[1], "threads": threads,
+                          "observed_threads": race._observed_threads(threads), "n_queries": len(queries),
+                          "centroids_hash": race._hash(centroids), "train_seconds": m.train_seconds,
+                          "assign_seconds": m.assign_seconds,
+                          "maintenance_seconds": m.train_seconds + m.assign_seconds,
+                          "adding_seconds": adding, "eval_seconds": evaluation, "rows": m.rows,
+                          "imbalance": metrics.imbalance(labels, k),
+                          "dead_clusters": metrics.dead_clusters(labels, k),
+                          "search": {str(p): v for p, v in summary.items()},
+                          "recall_per_query": {str(p): v.tolist() for p, v in per_query.items()}}
+                (run_dir / "state").mkdir(parents=True, exist_ok=True)
+                _save_atomic(run_dir / "state" / f"{arm}-{seed}-{month}.npz", centroids=centroids, labels=labels)
+                store.append(store_path, record)
+                if i >= 2:  # keep the previous month's state for a replay
+                    (run_dir / "state" / f"{arm}-{seed}-{tl[i - 2]}.npz").unlink(missing_ok=True)
+                log(f"b {arm} seed {seed} {month}")

@@ -48,3 +48,36 @@ def speedup(records, dataset, arm):
     base = _by_seed(records, dataset, "lloyd", "iters=25")
     pairs = [base[s]["train_seconds"] / mine[s]["train_seconds"] for s in mine]
     return statistics.fmean(pairs)
+
+
+def ledger(records):
+    """-> {arm: [(month, maintenance_s, cumulative_s)]} from part B's per-month
+    records. Maintenance is training plus re-assignment, never the add step;
+    with several seeds the month's value is their mean. Cumulative is the
+    running sum of those monthly values, nothing else."""
+    out = {}
+    for arm in sorted({r["arm"] for r in records if r["part"] == "b"}):
+        by_month = {}
+        for r in records:
+            if r["part"] == "b" and r["arm"] == arm:
+                by_month.setdefault(r["setting"], []).append(r["train_seconds"] + r["assign_seconds"])
+        total, rows = 0.0, []
+        for month in sorted(by_month):
+            monthly = statistics.fmean(by_month[month])
+            total += monthly
+            rows.append((month, monthly, total))
+        out[arm] = rows
+    return out
+
+
+def adding_seconds(records):
+    """-> {arm: mean over seeds of the total seconds spent adding docs to the
+    index}. Reported apart from the ledger and excluded from every comparison."""
+    out = {}
+    for arm in sorted({r["arm"] for r in records if r["part"] == "b"}):
+        per_seed = {}
+        for r in records:
+            if r["part"] == "b" and r["arm"] == arm:
+                per_seed[r["seed"]] = per_seed.get(r["seed"], 0.0) + r["adding_seconds"]
+        out[arm] = statistics.fmean(per_seed.values())
+    return out
