@@ -121,3 +121,37 @@ def test_project_b_includes_the_add_step_scaled_by_n_and_d():
                                           + base["adding_hours"])
     big = pilot.project_b(recs, months=12, n0=2000, per_month=0, k=8, d=4, queries=10, seeds=1)
     assert big["adding_hours"] == pytest.approx(2 * base["adding_hours"] * 1.0, rel=0.05)
+
+
+# ---- E5 carry-overs: the ledger range, and the 2025 pool is never short ----
+
+def ledger_records():
+    return [{"part": "b", "arm": "emeans", "setting": month, "seed": seed,
+             "train_seconds": 1.0 + seed, "assign_seconds": 0.5}
+            for month in ("2020-01", "2020-02") for seed in (0, 1, 2)]
+
+
+def test_ledger_returns_the_range_across_seeds_next_to_the_mean():
+    (month, mean, lo, hi, cum), _ = tables.ledger(ledger_records())["emeans"]
+    assert (month, lo, hi) == ("2020-01", 1.5, 3.5) and mean == pytest.approx(2.5) and cum == pytest.approx(2.5)
+
+
+def test_ledger_refuses_a_month_whose_seeds_differ_from_the_arms():
+    recs = [r for r in ledger_records() if not (r["setting"] == "2020-02" and r["seed"] == 2)]
+    with pytest.raises(ValueError, match="2020-02"):
+        tables.ledger(recs)
+
+
+def test_2025_pool_refuses_a_missing_month_or_a_short_query_set():
+    with pytest.raises(ValueError, match="2025"):
+        tables.pooled_recall([r for r in b_records() if r["setting"] != "2025-07"], "emeans", 16)
+    short = b_records()
+    short[0]["recall_per_query"]["16"] = short[0]["recall_per_query"]["16"][:499]
+    with pytest.raises(ValueError, match="500"):
+        tables.pooled_recall(short, "stale", 16)
+    with pytest.raises(ValueError):
+        tables.end_state([r for r in b_records() if r["setting"] != "2025-07"], "emeans", "stale")
+
+
+def test_another_year_is_not_held_to_the_2025_shape():
+    assert len(tables.pooled_recall(b_records(), "emeans", 16, year="2024")[0]) == 500

@@ -54,21 +54,28 @@ def speedup(records, dataset, arm):
 
 
 def ledger(records):
-    """-> {arm: [(month, maintenance_s, cumulative_s)]} from part B's per-month
-    records. Maintenance is training plus re-assignment, never the add step;
-    with several seeds the month's value is their mean. Cumulative is the
-    running sum of those monthly values, nothing else."""
+    """-> {arm: [(month, mean_s, min_s, max_s, cumulative_s)]} from part B's
+    per-month records. Maintenance is training plus re-assignment, never the add
+    step. The month's value is the mean over seeds, with the min and max beside
+    it for the month curves; cumulative is the running sum of the means, nothing
+    else. A month whose seeds differ from the arm's full seed set raises: a mean
+    over fewer seeds is not comparable with its neighbours."""
     out = {}
     for arm in sorted({r["arm"] for r in records if r["part"] == "b"}):
         by_month = {}
         for r in records:
             if r["part"] == "b" and r["arm"] == arm:
-                by_month.setdefault(r["setting"], []).append(r["train_seconds"] + r["assign_seconds"])
+                by_month.setdefault(r["setting"], {})[r["seed"]] = r["train_seconds"] + r["assign_seconds"]
+        seeds = set().union(*(set(v) for v in by_month.values()))
         total, rows = 0.0, []
         for month in sorted(by_month):
-            monthly = statistics.fmean(by_month[month])
+            if set(by_month[month]) != seeds:
+                raise ValueError(f"{arm} {month}: seeds {sorted(by_month[month])} differ from the arm's "
+                                 f"seeds {sorted(seeds)}; the data is incomplete")
+            values = list(by_month[month].values())
+            monthly = statistics.fmean(values)
             total += monthly
-            rows.append((month, monthly, total))
+            rows.append((month, monthly, min(values), max(values), total))
         out[arm] = rows
     return out
 
@@ -86,13 +93,26 @@ def adding_seconds(records):
     return out
 
 
+QUERIES_PER_MONTH = 500
+
+
 def pooled_recall(records, arm, nprobe, year="2025"):
-    """-> {seed: per-query recall of every query in `year`}, months in order
-    (12 months x 500 = 6,000 queries for 2025)."""
-    out = {}
+    """-> {seed: per-query recall of every query in `year`}, months in order.
+    For 2025 each seed must hold all 12 months of exactly 500 queries (6,000),
+    or this raises: the bootstrap never runs over fewer queries silently."""
+    out, months = {}, {}
     for r in sorted((r for r in records if r["part"] == "b" and r["arm"] == arm
                      and r["setting"].startswith(year)), key=lambda r: r["setting"]):
-        out.setdefault(r["seed"], []).extend(r["recall_per_query"][str(nprobe)])
+        queries = r["recall_per_query"][str(nprobe)]
+        if year == "2025" and len(queries) != QUERIES_PER_MONTH:
+            raise ValueError(f"{arm} {r['setting']} seed {r['seed']}: {len(queries)} queries, "
+                             f"not {QUERIES_PER_MONTH}")
+        out.setdefault(r["seed"], []).extend(queries)
+        months.setdefault(r["seed"], []).append(r["setting"])
+    expected = [f"2025-{m:02d}" for m in range(1, 13)]
+    for seed, got in months.items():
+        if year == "2025" and got != expected:
+            raise ValueError(f"{arm} seed {seed}: 2025 months {got} are not all of {expected[0]}..{expected[-1]}")
     return {seed: np.array(v) for seed, v in out.items()}
 
 

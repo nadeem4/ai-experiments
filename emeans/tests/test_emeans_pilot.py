@@ -173,3 +173,18 @@ def test_problems_b_flags_missing_fields_recall_below_one_and_unrun_emeans():
     assert "missing" in pilot.problems_b([{k: v for k, v in good.items() if k != "imbalance"}], 8)[0]
     assert "nprobe" in pilot.problems_b([dict(good, search={"8": {"recall10": 0.5}})], 8)[0]
     assert "begin" in pilot.problems_b([dict(good, rows=0)], 8)[0]
+
+
+def test_problems_b_flags_a_stale_arm_that_spent_time_and_an_emeans_warm_start_that_did_not_move():
+    base = {f: 1 for f in growing.REQUIRED}
+    base.update(part="b", dataset="arxiv", seed=0, search={"8": {"recall10": 1.0}}, rows=100)
+    stale = dict(base, arm="stale", setting="2020-01", maintenance_seconds=0.5)
+    assert "maintenance" in pilot.problems_b([stale], 8)[0]
+    ok = dict(stale, maintenance_seconds=0)
+    assert pilot.problems_b([ok], 8) == []
+    e1 = dict(base, arm="emeans", setting="2020-01", centroids_hash="a")
+    e2 = dict(base, arm="emeans", setting="2020-02", centroids_hash="a")
+    assert "did not move" in pilot.problems_b([e1, e2], 8)[0]
+    assert pilot.problems_b([e1, dict(e2, centroids_hash="b")], 8) == []
+    other_seed = dict(e2, seed=1)  # a different chain is not the previous month
+    assert pilot.problems_b([e1, other_seed], 8) == []
