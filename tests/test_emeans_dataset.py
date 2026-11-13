@@ -22,3 +22,13 @@ def test_dataset_card_without_vectors_is_a_clear_exit(tmp_path):
 
     with pytest.raises(SystemExit):
         experiment.dataset(tmp_path)
+
+
+def test_card_shows_versions_and_remote_code_revision(tmp_path):
+    from emeans import experiment
+
+    embed.run(Stub(), sample(), tmp_path, revision="abc",
+              versions={"sentence_transformers": "5.1.0", "remote_code_revision": "deadbeef"})
+    extra = experiment.dataset(tmp_path)[0]["extra"]
+    assert "sentence_transformers 5.1.0" in extra["Versions"]
+    assert extra["Remote code revision"] == "deadbeef"

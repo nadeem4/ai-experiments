@@ -57,3 +57,11 @@ def test_truncate_shapes_and_norm():
 def test_month_order_is_stable():
     months = np.array(["2018-02", "2018-01", "2018-02", "2018-01"])
     assert list(data.month_order(months)) == [1, 3, 0, 2]
+
+
+def test_meta_records_versions_and_remote_code_revision(tmp_path):
+    versions = {"sentence_transformers": "5.1.0", "torch": "2.8", "gpu": "T4",
+                "remote_code_revision": "deadbeef"}
+    embed.run(Stub(), sample(), tmp_path, revision="abc", versions=versions)
+    meta = json.loads((tmp_path / "meta.json").read_text())
+    assert meta["versions"] == versions

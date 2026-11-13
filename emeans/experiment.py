@@ -166,6 +166,7 @@ def dataset(directory=None):
                          "and `uv run cli fetch emeans -p emeans/runs/data` first")
     _, months = data.load_arxiv(directory / "vectors.npy")
     meta = json.loads((directory / "meta.json").read_text(encoding="utf-8"))
+    versions = meta.get("versions", {})
     counts = {m: int((months == m).sum()) for m in sorted(set(months.tolist()))}
     return [{
         "name": "arXiv-CS abstracts",
@@ -184,6 +185,9 @@ def dataset(directory=None):
         "extra": {"Model": meta["model"],
                   "Model revision": f"{meta['revision']} (prefix `search_document: `)",
                   "Dimensions": meta["dimensions"],
+                  "Versions": ", ".join(f"{k} {v}" for k, v in versions.items()
+                                        if k != "remote_code_revision"),
+                  "Remote code revision": versions.get("remote_code_revision"),
                   "Sampling seed": 0,
                   "Per-month counts": ", ".join(f"{m}: {n}" for m, n in counts.items())},
     }]

@@ -53,7 +53,15 @@ def main():
                                 device="cuda" if torch.cuda.is_available() else "cpu")
     if torch.cuda.is_available():
         model.half()
-    embed.run(model, sample, OUT, revision=revision)
+    import transformers
+
+    versions = {"sentence_transformers": sys.modules["sentence_transformers"].__version__,
+                "transformers": transformers.__version__, "torch": torch.__version__,
+                "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
+                # trust_remote_code runs this repo's code; the pin above does not cover it
+                "remote_code_revision": model_info("nomic-ai/nomic-bert-2048").sha}
+    print(versions, flush=True)
+    embed.run(model, sample, OUT, revision=revision, versions=versions)
     shutil.rmtree(OUT / "shards", ignore_errors=True)  # shards only matter for resuming
 
     for path in sorted(OUT.iterdir()):

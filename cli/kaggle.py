@@ -88,6 +88,14 @@ def manual_steps(notebook, needs_secret=True):
     return steps
 
 
+FETCH_INTO = {"emeans": "emeans/runs/data"}  # where that experiment's loader reads
+
+
+def fetch_command(name):
+    into = FETCH_INTO.get(name)
+    return f"uv run cli fetch {name}" + (f" -p {into}" if into else "")
+
+
 def submit(name, dry_run=False):
     directory = kernel_dir(name)
     notebook = slug(directory)
@@ -110,7 +118,7 @@ def submit(name, dry_run=False):
     subprocess.run(["uv", "run", "kaggle", "kernels", "push", "-p", str(directory)],
                    cwd=REPO_ROOT, check=True)
     print(f"\nwatch:  uv run cli status {name}")
-    print(f"fetch:  uv run cli fetch {name}")
+    print(f"fetch:  {fetch_command(name)}")
     return 0
 
 
@@ -121,7 +129,8 @@ def status(name):
 
 
 def fetch(name, into):
-    into = Path(into or REPO_ROOT / name / "runs" / "kaggle")
+    into = Path(into or (REPO_ROOT / FETCH_INTO[name] if name in FETCH_INTO
+                         else REPO_ROOT / name / "runs" / "kaggle"))
     into.mkdir(parents=True, exist_ok=True)
     subprocess.run(["uv", "run", "kaggle", "kernels", "output",
                     slug(kernel_dir(name)), "-p", str(into)], cwd=REPO_ROOT, check=True)

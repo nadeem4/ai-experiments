@@ -87,6 +87,22 @@ class TestSecretIsOnlyForKernelsThatReadOne:
         assert kaggle.slug(kaggle.kernel_dir("emeans")) == "nadeem4nk/emeans-arxiv-embed"
 
 
+class TestFetchHint:
+    def test_emeans_output_goes_where_the_loader_reads(self):
+        assert kaggle.fetch_command("emeans") == "uv run cli fetch emeans -p emeans/runs/data"
+
+    def test_rerank_is_unchanged(self):
+        assert kaggle.fetch_command("rerank") == "uv run cli fetch rerank"
+
+
+def test_readme_how_to_run_has_the_kaggle_steps():
+    text = (Path(__file__).resolve().parent.parent / "emeans" / "README.md").read_text(encoding="utf-8")
+    how = text[text.index("## How to run it"):text.index("## Protocol amendments")]
+    for cmd in ("uv run cli submit emeans", "uv run cli fetch emeans -p emeans/runs/data",
+                "uv run cli dataset emeans"):
+        assert cmd in how
+
+
 class TestWhereTheKernelLives:
     def test_it_is_found_beside_the_experiment(self):
         assert kaggle.kernel_dir("rerank").name == "kaggle"

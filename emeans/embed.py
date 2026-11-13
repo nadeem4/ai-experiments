@@ -26,7 +26,7 @@ def embed_month(model, texts, batch_size=64):
     return x / np.linalg.norm(x, axis=1, keepdims=True)
 
 
-def run(model, sample, out_dir, batch_size=64, revision=REVISION):
+def run(model, sample, out_dir, batch_size=64, revision=REVISION, versions=None):
     """Embed `sample` (sorted by month) one month at a time; a month whose shard
     exists is skipped, so an interrupted run resumes. Writes vectors.npy,
     months.npy, ids.txt and meta.json."""
@@ -52,5 +52,6 @@ def run(model, sample, out_dir, batch_size=64, revision=REVISION):
     np.save(out / "months.npy", np.array(months))
     (out / "ids.txt").write_text("\n".join(ids) + "\n", encoding="utf-8")
     (out / "meta.json").write_text(json.dumps({"model": MODEL, "revision": revision,
-                                               "dimensions": int(vectors[0].shape[1])}),
+                                               "dimensions": int(vectors[0].shape[1]),
+                                               "versions": versions or {}}),
                                    encoding="utf-8")
