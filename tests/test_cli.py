@@ -11,7 +11,7 @@ import cli
 
 class TestTheRegistry:
     def test_it_names_every_experiment_in_the_repository(self):
-        assert set(cli.EXPERIMENTS) == {"rerank"}
+        assert set(cli.EXPERIMENTS) == {"rerank", "emeans"}
 
     def test_an_unknown_name_says_what_does_exist(self):
         """Better than a traceback: the answer to 'what can I run' is the error."""

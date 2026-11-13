@@ -29,7 +29,7 @@ import sys
 
 # Explicit, because a directory listing is not a decision. An experiment appears
 # here when it is ready to be run by name, and adding one changes nothing else.
-EXPERIMENTS = ("rerank",)
+EXPERIMENTS = ("rerank", "emeans")
 
 
 def status_from_tags(tags):

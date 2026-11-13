@@ -11,6 +11,7 @@ An experiment with no result link has not produced one yet.
 | Experiment | Dataset | What it is trying to find out | Result | |
 |---|---|---|---|---|
 | `rerank` | [BEIR NFCorpus](https://huggingface.co/datasets/BeIR/nfcorpus) test<br><sub>3,633 docs, 323 queries, top-20</sub><br>[what it holds](rerank/DATASET.md) | Whether a decision model re-ranks retrieval better than hybrid search, and what that costs | [RESULTS](rerank/RESULTS.md)<br>[page](https://lab.codewithnk.com/rerank/) | [README](rerank/README.md) |
+| `emeans` | SIFT1M and arXiv-CS abstracts (`nomic-embed-text-v1.5`)<br><sub>built in the experiment</sub><br>[what it holds](emeans/DATASET.md) | Whether warm-started e-means keeps a growing vector index fresh more cheaply than rebuilding it, and whether its speed claim holds on a laptop CPU | | [README](emeans/README.md) |
 
 ## Running one
 
