@@ -74,13 +74,18 @@ def problems(git, metadata, authenticated):
     return found
 
 
-def manual_steps(notebook):
+def reads_secret(name):
+    """Whether the experiment's kernel reads a Kaggle secret."""
+    return "UserSecretsClient" in (kernel_dir(name) / "kernel.py").read_text(encoding="utf-8")
+
+
+def manual_steps(notebook, needs_secret=True):
     """What has to be true on Kaggle's side, which no API here can confirm."""
     url = f"https://www.kaggle.com/code/{notebook}/edit"
-    return [
-        f"the notebook's accelerator is a GPU: {url} -> Session options",
-        f"OPENROUTER_API_KEY is attached: {url} -> Add-ons -> Secrets",
-    ]
+    steps = [f"the notebook's accelerator is a GPU: {url} -> Session options"]
+    if needs_secret:
+        steps.append(f"OPENROUTER_API_KEY is attached: {url} -> Add-ons -> Secrets")
+    return steps
 
 
 def submit(name, dry_run=False):
@@ -96,7 +101,7 @@ def submit(name, dry_run=False):
 
     print(f"{name} -> {notebook}")
     print("check on Kaggle, which cannot be checked from here:")
-    for step in manual_steps(notebook):
+    for step in manual_steps(notebook, reads_secret(name)):
         print(f"  - {step}")
     if dry_run:
         print("\ndry run: not pushed.")

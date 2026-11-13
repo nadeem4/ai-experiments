@@ -154,5 +154,36 @@ def report(args):
     print("pilot checks: no problems")
 
 
-def dataset():
-    raise SystemExit("emeans/DATASET.md is filled once the arXiv-CS vectors exist")
+def dataset(directory=None):
+    """The card `uv run cli dataset emeans` renders, from the fetched Kaggle output."""
+    import json
+
+    from . import data
+
+    directory = Path(directory) if directory else EXPERIMENT_DIR / "runs" / "data"
+    if not (directory / "vectors.npy").exists():
+        raise SystemExit(f"no vectors.npy in {directory}: run `uv run cli submit emeans` "
+                         "and `uv run cli fetch emeans -p emeans/runs/data` first")
+    _, months = data.load_arxiv(directory / "vectors.npy")
+    meta = json.loads((directory / "meta.json").read_text(encoding="utf-8"))
+    counts = {m: int((months == m).sum()) for m in sorted(set(months.tolist()))}
+    return [{
+        "name": "arXiv-CS abstracts",
+        "what_it_is": "Computer-science arXiv abstracts, embedded once on a Kaggle GPU "
+                      "(not timed), float32 and unit-normalised, with the publish month "
+                      "stored. Truncation to smaller dimensions is plain truncation then "
+                      "re-normalisation, not the model card's layer-norm recipe.",
+        "source": "Cornell University arXiv metadata (Kaggle)",
+        "url": "https://www.kaggle.com/datasets/Cornell-University/arxiv",
+        "licence": "CC0",
+        "splits": {"docs": len(months)},
+        "used": "cs.* primary category, 2018-01 to 2025-12, uniform sample of up to "
+                "10,000 abstracts per month (seed 0); fixed seed-0 split: 100k held-out "
+                "test set, 10k queries drawn from it and never indexed or trained on",
+        "rows": [{"id": "see ids.txt", "month": next(iter(counts)), "vector": "768 floats"}],
+        "extra": {"Model": meta["model"],
+                  "Model revision": f"{meta['revision']} (prefix `search_document: `)",
+                  "Dimensions": meta["dimensions"],
+                  "Sampling seed": 0,
+                  "Per-month counts": ", ".join(f"{m}: {n}" for m, n in counts.items())},
+    }]
