@@ -1,10 +1,11 @@
 """The emeans experiment's `cli` contract and its guard rails."""
 import argparse
+import json
 
 import pytest
 
 import cli
-from emeans import experiment
+from emeans import experiment, store
 
 
 def parser():
@@ -103,3 +104,24 @@ def test_a_missing_sift_file_says_where_to_get_it(tmp_path):
 def test_dataset_stub_does_not_overwrite_the_card():
     with pytest.raises(SystemExit):
         experiment.dataset()
+
+
+def test_write_results_builds_summary_csvs_and_figures_from_the_stores(tmp_path, fake_records):
+    args = parser().parse_args(["--tag", "full", "--out", str(tmp_path)])
+    for part in "abc":
+        for r in (r for r in fake_records if r["part"] == part):
+            store.append(tmp_path / "runs" / "full" / f"{part}.jsonl", r)
+    experiment.write_results(args)
+    results = tmp_path / "results" / "full"
+    summary = json.loads((results / "summary.json").read_text())
+    assert set(summary) == {"a", "b", "c"} and summary["a"]["sift"]["match"]["emeans"]["epochs_to_match"] == 3
+    assert (results / "a_match.csv").exists()
+    assert {p.name for p in (results / "figures").glob("*.png")} >= {"a-race.png", "b-end-state-gap.png", "c-dimension.png"}
+
+
+def test_write_results_names_incomplete_data_instead_of_a_traceback(tmp_path, fake_records):
+    args = parser().parse_args(["--tag", "full", "--out", str(tmp_path)])
+    for r in (r for r in fake_records if r["part"] == "a" and not (r["arm"] == "emeans" and r["seed"] == 1)):
+        store.append(tmp_path / "runs" / "full" / "a.jsonl", r)
+    with pytest.raises(SystemExit, match="incomplete"):
+        experiment.write_results(args)

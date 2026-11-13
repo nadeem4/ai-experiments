@@ -148,6 +148,9 @@ def test_a_part_b_pilot_runs_checks_and_projects(tmp_path, monkeypatch):
     records = store.load(tmp_path / "runs" / "pilot" / "b.jsonl")
     assert len(records) == 12 and {len(r["search"]) for r in records} == {3}  # 16, 64 and nprobe = k
     experiment.report(args)  # no problems: does not exit
+    results = tmp_path / "results" / "pilot"
+    assert json.loads((results / "summary.json").read_text())["b"]["facts"]["months"] == 3
+    assert (results / "figures" / "b-recall-over-time.png").exists() and (results / "b_ledger.csv").exists()
     proj = json.loads((tmp_path / "results" / "pilot" / "projection.json").read_text())
     assert proj["b"]["hours"] > 0 and proj["b"]["months"] == 72
 
@@ -163,6 +166,7 @@ def test_a_part_c_pilot_runs_every_dimension_and_reports_the_match(tmp_path, mon
     experiment.report(args)
     out = capsys.readouterr().out
     assert "arxiv-d4" in out and "epochs to match" in out
+    assert set(json.loads((tmp_path / "results" / "pilot" / "summary.json").read_text())["c"]) == {"4", "8"}
 
 
 def test_problems_b_flags_missing_fields_recall_below_one_and_unrun_emeans():

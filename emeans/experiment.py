@@ -200,10 +200,32 @@ def run(args):
         write_projection(args)
 
 
+def write_results(args):
+    """Write `results/<tag>/`: summary.json, the CSVs and `figures/`, from every
+    part's records under `runs/<tag>/`. The figures then read summary.json alone."""
+    import json
+
+    from . import figures, store, tables
+
+    runs = out_dir(args) / "runs" / args.tag
+    records = [r for part in "abc" for r in store.load(runs / f"{part}.jsonl")]
+    try:
+        summary = tables.summary(records)
+    except ValueError as e:
+        raise SystemExit(f"cannot summarise {args.tag}: {e}")
+    results = out_dir(args) / "results" / args.tag
+    tables.write_summary(summary, results)
+    tables.write_csv(summary, results)
+    written = figures.write_all(json.loads((results / "summary.json").read_text(encoding="utf-8")),
+                                results / "figures")
+    for name, where in written.items():
+        print(f"figure {name}: {where}")
+
+
 def report(args):
     """Print the pilot's checks and exit non-zero if any fail; part C also
-    prints epochs to match and speedup per dimension. Tables and figures are
-    written from results/ in a later slice."""
+    prints epochs to match and speedup per dimension. Then write the summary,
+    CSVs and figures under `results/<tag>/` (see `write_results`)."""
     if args.dry_run or not store_path(args).exists():
         return
     from . import growing, pilot, store, tables
@@ -227,6 +249,7 @@ def report(args):
             e, s = tables.epochs_to_match(records, name, "emeans"), tables.speedup(records, name, "emeans")
             print(f"{name}: epochs to match {e if e else 'did not match within 5 epochs'}, "
                   f"speedup {f'{s:.2f}x' if s else 'none'}")
+    write_results(args)
 
 
 def dataset(directory=None):

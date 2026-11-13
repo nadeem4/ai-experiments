@@ -53,6 +53,10 @@ def _finish(fig, ax, out_dir, name, title, xlabel, ylabel):
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.grid(**GRID)
+    return _save(fig, out_dir, name)
+
+
+def _save(fig, out_dir, name):
     fig.tight_layout()
     path = Path(out_dir) / f"{name}.png"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -118,11 +122,7 @@ def b_end_state_gap(s, out_dir):
         ax.set_xlabel("recall@10 difference (95% paired bootstrap)")
         ax.grid(**GRID)
     fig.suptitle("2025 end state: recall gap between arms", fontsize=10)
-    fig.tight_layout()
-    path = Path(out_dir) / "b-end-state-gap.png"
-    fig.savefig(path, dpi=DPI)
-    plt.close(fig)
-    return str(path)
+    return _save(fig, out_dir, "b-end-state-gap")
 
 
 def _panels(datasets):
@@ -156,11 +156,7 @@ def a_race(s, out_dir):
         ax.set_ylabel("test MSE / Lloyd 25-iteration MSE")
         ax.grid(**GRID)
     fig.suptitle("Part A: quality against training effort (below 1.0 matches Lloyd)", fontsize=10)
-    fig.tight_layout()
-    path = Path(out_dir) / "a-race.png"
-    fig.savefig(path, dpi=DPI)
-    _plt().close(fig)
-    return str(path)
+    return _save(fig, out_dir, "a-race")
 
 
 def _budget_metric(s, out_dir, name, field, title, ylabel):
@@ -181,11 +177,7 @@ def _budget_metric(s, out_dir, name, field, title, ylabel):
         ax.set_ylabel(ylabel)
         ax.grid(**GRID)
     fig.suptitle(title, fontsize=10)
-    fig.tight_layout()
-    path = Path(out_dir) / f"{name}.png"
-    fig.savefig(path, dpi=DPI)
-    _plt().close(fig)
-    return str(path)
+    return _save(fig, out_dir, name)
 
 
 def a_budget_recall(s, out_dir):
@@ -223,11 +215,7 @@ def c_dimension(s, out_dir):
         ax.set_xlabel("embedding dimension d")
         ax.grid(**GRID)
     fig.suptitle("Part C: does e-means' advantage change with dimension?", fontsize=10)
-    fig.tight_layout()
-    path = Path(out_dir) / "c-dimension.png"
-    fig.savefig(path, dpi=DPI)
-    plt.close(fig)
-    return str(path)
+    return _save(fig, out_dir, "c-dimension")
 
 
 PLOTS = {"b-recall-over-time": b_recall_over_time, "b-cumulative-maintenance": b_cumulative_maintenance,
