@@ -63,12 +63,12 @@ def recall_at_k_ties(found, truth, base, queries, k=10, rtol=1e-9):
     vectors give identical distances, and SIFT's integer squared distances,
     up to about 8e6, are at least 1 apart otherwise; 1e-6 would be too loose). Needed on SIFT, where duplicate vectors
     make exact and IVF search order tied neighbours differently; both are right."""
-    base = np.asarray(base, dtype=np.float64)
+    base = np.asarray(base)  # gathered rows are cast below; never copy a 1M x 768 base to float64
     queries = np.asarray(queries, dtype=np.float64)
     found, truth = np.asarray(found)[:, :k], np.asarray(truth)[:, :k]
-    kth = ((queries - base[truth[:, k - 1]]) ** 2).sum(axis=1)
+    kth = ((queries - base[truth[:, k - 1]].astype(np.float64)) ** 2).sum(axis=1)
     valid = found >= 0
-    dist = ((queries[:, None, :] - base[np.where(valid, found, 0)]) ** 2).sum(axis=2)
+    dist = ((queries[:, None, :] - base[np.where(valid, found, 0)].astype(np.float64)) ** 2).sum(axis=2)
     ok = valid & (dist <= kth[:, None] * (1 + rtol))
     per_query = ok.sum(axis=1) / k
     return float(per_query.mean()), per_query

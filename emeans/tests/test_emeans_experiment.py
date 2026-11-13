@@ -53,9 +53,19 @@ def test_any_other_tag_is_refused():
         experiment.scale_for("fulll")
 
 
-def test_dry_run_part_b_says_it_is_not_built(capsys):
-    experiment.run(parser().parse_args(["--tag", "pilot", "--dry-run", "--part", "b"]))
-    assert "part b" in capsys.readouterr().out
+def test_dry_run_part_b_lists_the_pilot_chains_and_reads_no_data(tmp_path, capsys):
+    experiment.run(parser().parse_args(["--tag", "pilot", "--dry-run", "--part", "b", "--out", str(tmp_path)]))
+    out = capsys.readouterr().out
+    assert "part b" in out and "12 units" in out
+    assert "stale 2020-01" in out and "lloyd_half 2020-03" in out and "2020-04" not in out
+    assert not (tmp_path / "runs").exists()
+
+
+def test_dry_run_part_c_lists_every_dimension(tmp_path, capsys):
+    experiment.run(parser().parse_args(["--tag", "pilot", "--dry-run", "--part", "c", "--out", str(tmp_path)]))
+    out = capsys.readouterr().out
+    assert "arxiv-d64 lloyd calibration" in out and "arxiv-d768 emeans epochs=3" in out
+    assert "minibatch" not in out and "budget=" not in out
 
 
 def test_dry_run_lists_part_a_units_and_runs_nothing(tmp_path, capsys):
@@ -73,9 +83,11 @@ def test_full_dry_run_lists_budget_units(tmp_path, capsys):
     assert "minibatch budget=120s" in capsys.readouterr().out
 
 
-def test_other_parts_are_not_built_yet():
-    with pytest.raises(SystemExit):
-        experiment.run(parser().parse_args(["--tag", "pilot", "--part", "b"]))
+@pytest.mark.parametrize("part", ["b", "c"])
+def test_parts_b_and_c_without_vectors_say_how_to_fetch_them(part, tmp_path):
+    args = parser().parse_args(["--tag", "pilot", "--part", part, "--out", str(tmp_path)])
+    with pytest.raises(SystemExit, match="vectors.npy"):
+        experiment.run(args)
 
 
 def test_the_pilot_searches_at_nprobe_k():
