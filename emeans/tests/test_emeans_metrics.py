@@ -88,3 +88,14 @@ def test_recall_by_distance_rejects_farther_vectors_and_missing_ids():
     truth = np.arange(10)[None]
     found = np.array([[20, 21, 22, 23, 24, -1, -1, -1, 0, 1]])
     assert metrics.recall_at_k_ties(found, truth, base, queries)[0] == 0.2
+
+
+def test_recall_by_distance_does_not_count_the_next_integer_distance():
+    # SIFT-like integer squared distances near 8e6: kth + 1 is a different vector.
+    base = np.zeros((12, 1), dtype=np.float32)
+    base[:10, 0] = 2000.0       # squared distance 4,000,000 from the query at 0
+    base[10, 0] = 2000.00025    # squared distance 4,000,001 (just beyond)
+    queries = np.zeros((1, 1), dtype=np.float32)
+    truth = np.arange(10)[None]
+    found = np.array([[10, 1, 2, 3, 4, 5, 6, 7, 8, 9]])
+    assert metrics.recall_at_k_ties(found, truth, base, queries)[0] == 0.9
