@@ -66,3 +66,24 @@ def load_sift(path, limit=None, seed=0, n_test=100_000, n_queries=10_000):
         truth = shipped[:, :10].astype(np.int64)
     return make_split(base, seed=seed, n_test=n_test, queries=queries, truth=truth,
                       n_queries=n_queries)
+
+
+def load_arxiv(path):
+    """`vectors.npy` from the Kaggle run (months.npy beside it) -> (vectors, months)."""
+    path = Path(path)
+    return (np.load(path).astype(np.float32, copy=False),
+            np.load(path.with_name("months.npy")))
+
+
+def truncate(x, d):
+    """First `d` columns, re-normalised (plain truncation, not the model card's
+    layer-norm recipe)."""
+    if d >= x.shape[1]:
+        return x
+    t = np.ascontiguousarray(x[:, :d], dtype=np.float32)
+    return t / np.linalg.norm(t, axis=1, keepdims=True)
+
+
+def month_order(months):
+    """Stable argsort: documents arrive month by month, ties in file order."""
+    return np.argsort(months, kind="stable")
