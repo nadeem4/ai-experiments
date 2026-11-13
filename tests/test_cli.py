@@ -85,6 +85,21 @@ def test_the_cli_runs_as_a_module_without_being_installed():
     assert "rerank" in out.stdout
 
 
+class TestAnExperimentThatIsNotCheckedOut:
+    """A Kaggle kernel clones only the experiment it runs, so the others are
+    genuinely absent. Listing has to survive that."""
+
+    def test_list_skips_what_is_not_present_instead_of_crashing(self, monkeypatch, capsys):
+        def absent(name):
+            raise ModuleNotFoundError(f"No module named {name!r}")
+
+        monkeypatch.setattr(cli, "load", absent)
+        assert cli.main(["list"]) == 0
+        out = capsys.readouterr().out
+        assert "rerank" in out
+        assert "not checked out" in out, "an absent experiment is stated, not hidden"
+
+
 class TestStatusIsDerivedNotDeclared:
     """A hand-set status field went stale three times in one file. The results
     on disk cannot: an experiment with no results has not been run, whatever a

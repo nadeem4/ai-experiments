@@ -20,7 +20,6 @@ __pycache__/
 .playwright-mcp/
 .remember/
 AGENTS.md
-CLAUDE.md
 
 # Node / Next.js (site/)
 node_modules/
