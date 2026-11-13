@@ -31,7 +31,7 @@ def main():
 
     run("git", "clone", "--depth", "1", "--filter=blob:none", "--sparse", REPO, CHECKOUT)
     run("git", "-C", CHECKOUT, "sparse-checkout", "set", "emeans")
-    run(sys.executable, "-m", "pip", "install", "-q", "sentence-transformers", "einops")
+    run(sys.executable, "-m", "pip", "install", "-q", "transformers<5", "sentence-transformers<5", "einops")
     sys.path.insert(0, str(CHECKOUT))
 
     from huggingface_hub import model_info
