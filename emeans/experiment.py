@@ -5,6 +5,8 @@ The contract `cli` needs, the two scales, `--dry-run`, and parts A, B and C.
 from pathlib import Path
 from typing import NamedTuple, Optional
 
+import numpy as np
+
 from . import race
 from .consts import B_NPROBES, DIMS
 
@@ -88,7 +90,27 @@ def part_a_units(args):
 
     scale = scale_for(args.tag)
     # Budgets need the full-scale calibration, so the pilot leaves them out.
-    return race.units("sift", ARMS, scale.seeds_a, with_budgets=args.tag == "full")
+    budgets = args.tag == "full"
+    return (race.units("sift", ARMS, scale.seeds_a, with_budgets=budgets)
+            + race.units("arxiv", ARMS, scale.seeds_a, with_budgets=budgets))
+
+
+def run_part_a(args, units, scale, threads):
+    """SIFT first, then arXiv-CS on its own split; without the arXiv vectors
+    (before the Kaggle step) only SIFT runs and the skip is said out loud."""
+    from . import data
+
+    race.run([u for u in units if u[1] == "sift"], load_split(args, scale), scale, store_path(args),
+             threads=threads)
+    path = data_dir(args) / "vectors.npy"
+    if not path.exists():
+        print(f"skipping arXiv for part A: {path} not found (run the Kaggle step, then rerun this command)")
+        return
+    x, _ = data.load_arxiv(path)
+    if scale.n:  # a seeded subset, so the pilot is not the first n months
+        x = x[np.random.default_rng(0).permutation(len(x))[:scale.n]]
+    split = data.make_split(x, n_test=scale.n_test, n_queries=scale.n_queries)
+    race.run([u for u in units if u[1] == "arxiv"], split, scale, store_path(args), threads=threads)
 
 
 def units_for(args):
@@ -177,20 +199,17 @@ def run(args):
 
     from . import env, growing
 
-    if args.part == "a":
-        split = load_split(args, scale)
-    elif args.part == "b":
+    if args.part == "b":
         split = load_growing(args, scale)
-    else:
+    elif args.part == "c":
         split = load_static(args, scale)
     threads = env.physical_cores()
     env.pin_threads(threads)
-    env_path = out_dir(args) / "runs" / args.tag / "environment.json"
-    if not env_path.exists():
-        env_path.parent.mkdir(parents=True, exist_ok=True)
-        env_path.write_text(json.dumps(env.environment(), indent=2), encoding="utf-8")
+    env_path = out_dir(args) / "runs" / args.tag / f"environment-{args.part}.json"  # one per run, per part
+    env_path.parent.mkdir(parents=True, exist_ok=True)
+    env_path.write_text(json.dumps(env.environment(cwd=EXPERIMENT_DIR), indent=2), encoding="utf-8")
     if args.part == "a":
-        race.run(units, split, scale, store_path(args), threads=threads)
+        run_part_a(args, units, scale, threads)
     elif args.part == "b":
         nprobes = B_NPROBES + ((scale.k,) if args.tag == "pilot" else ())  # the pilot checks nprobe = k
         growing.run(split, scale, store_path(args), nprobes=nprobes, threads=threads)

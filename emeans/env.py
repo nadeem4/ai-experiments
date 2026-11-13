@@ -44,15 +44,24 @@ def _cpu():
     return platform.processor() or platform.machine()
 
 
-def _commit():
+def _git(args, cwd):
     try:
-        return subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True,
-                              timeout=20).stdout.strip() or None
+        return subprocess.run(["git", *args], capture_output=True, text=True, timeout=20, cwd=cwd).stdout
     except (OSError, subprocess.SubprocessError):
         return None
 
 
-def environment():
+def _commit(cwd):
+    return (_git(["rev-parse", "HEAD"], cwd) or "").strip() or None
+
+
+def _dirty(cwd):
+    """True when the working tree has uncommitted changes, None when git cannot say."""
+    out = _git(["status", "--porcelain"], cwd)
+    return None if out is None else bool(out.strip())
+
+
+def environment(cwd=None):
     return {
         "faiss": _version("faiss-cpu"),
         "scikit-learn": _version("scikit-learn"),
@@ -61,6 +70,7 @@ def environment():
         "cpu": _cpu(),
         "threads": faiss.omp_get_max_threads(),
         "threadpools": threadpool_info(),  # what the pools actually run
-        "commit": _commit(),
+        "commit": _commit(cwd),
+        "dirty": _dirty(cwd),
         "date": datetime.date.today().isoformat(),
     }

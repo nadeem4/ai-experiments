@@ -22,9 +22,7 @@ def exact_neighbours(index, queries, k=10):
     """Exact top-k by L2, as int64 ids into `index`."""
     index = np.ascontiguousarray(index, dtype=np.float32)
     queries = np.ascontiguousarray(queries, dtype=np.float32)
-    flat = faiss.IndexFlatL2(index.shape[1])
-    flat.add(index)
-    return flat.search(queries, k)[1].astype(np.int64)
+    return faiss.knn(queries, index, k)[1].astype(np.int64)  # no copy of the base into an index
 
 
 def make_split(x, seed=0, n_test=100_000, queries=None, truth=None, n_queries=10_000):

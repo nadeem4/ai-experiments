@@ -109,3 +109,13 @@ def test_load_sift_with_a_limit_recomputes_the_truth(tmp_path):
 def test_the_split_needs_enough_rows():
     with pytest.raises(ValueError):
         data.make_split(make_x(n=100), n_test=100, n_queries=10)
+
+
+def test_exact_neighbours_equal_a_flat_index_without_copying_the_base_into_one():
+    import faiss
+
+    rng = np.random.default_rng(3)
+    x, q = rng.random((500, 16), dtype=np.float32), rng.random((20, 16), dtype=np.float32)
+    flat = faiss.IndexFlatL2(16)
+    flat.add(x)
+    assert np.array_equal(data.exact_neighbours(x, q, 10), flat.search(q, 10)[1])

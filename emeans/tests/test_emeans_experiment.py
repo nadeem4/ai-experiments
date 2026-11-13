@@ -154,3 +154,58 @@ def test_write_results_merges_with_a_summary_already_there(tmp_path, fake_record
     (tmp_path / "runs" / "full" / "a.jsonl").unlink()
     experiment.write_results(args)  # part a has no records now: its earlier summary stays
     assert set(json.loads((tmp_path / "results" / "full" / "summary.json").read_text())) == {"a", "b"}
+
+
+# ---- part A on both datasets, and one environment record per part ----
+
+import numpy as np  # noqa: E402
+
+from emeans import data  # noqa: E402
+from emeans.experiment import Scale  # noqa: E402
+
+A_SCALE = Scale(n=300, n_test=200, n_queries=10, k=8, seeds_a=1, seeds_bc=1, b_months=3, nprobes=(1, 8))
+
+
+def test_dry_run_part_a_lists_sift_and_arxiv_units(tmp_path, capsys):
+    experiment.run(parser().parse_args(["--tag", "pilot", "--dry-run", "--out", str(tmp_path)]))
+    out = capsys.readouterr().out
+    assert "a sift lloyd calibration 0" in out and "a arxiv lloyd calibration 0" in out
+    assert "a arxiv minibatch epochs=5 0" in out
+
+
+@pytest.fixture
+def a_run(tmp_path, monkeypatch):
+    calls = []
+    tiny = data.Split(*(np.zeros((2, 2), np.float32),) * 3, np.zeros((1, 2), np.float32), np.zeros((1, 10), np.int64))
+    monkeypatch.setattr(experiment, "PILOT", A_SCALE)
+    monkeypatch.setattr(experiment, "load_split", lambda args, scale: tiny)
+    monkeypatch.setattr(experiment.race, "run",
+                        lambda units, split, scale, path, threads=None: calls.append((units, split)))
+    return calls
+
+
+def test_part_a_without_arxiv_vectors_runs_sift_and_says_it_skipped_arxiv(tmp_path, a_run, capsys):
+    experiment.run(parser().parse_args(["--tag", "pilot", "--out", str(tmp_path)]))
+    assert [{u[1] for u in units} for units, _ in a_run] == [{"sift"}]
+    assert "skipping arXiv" in capsys.readouterr().out
+
+
+def test_part_a_with_arxiv_vectors_also_runs_arxiv_on_its_own_split(tmp_path, a_run):
+    vec = tmp_path / "vec"
+    vec.mkdir()
+    rng = np.random.default_rng(0)
+    np.save(vec / "vectors.npy", rng.normal(size=(500, 8)).astype(np.float32))
+    np.save(vec / "months.npy", np.array(["2019-12"] * 500))
+    experiment.run(parser().parse_args(["--tag", "pilot", "--data-dir", str(vec), "--out", str(tmp_path)]))
+    assert [{u[1] for u in units} for units, _ in a_run] == [{"sift"}, {"arxiv"}]
+    arxiv = a_run[1][1]
+    assert len(arxiv.train) == 100 and len(arxiv.test) == 200 and len(arxiv.queries) == 10  # n=300 of 500 rows
+
+
+def test_each_run_writes_an_environment_record_per_part(tmp_path, a_run):
+    experiment.run(parser().parse_args(["--tag", "pilot", "--out", str(tmp_path)]))
+    path = tmp_path / "runs" / "pilot" / "environment-a.json"
+    assert json.loads(path.read_text())["date"]
+    path.write_text("{}")
+    experiment.run(parser().parse_args(["--tag", "pilot", "--out", str(tmp_path)]))
+    assert "date" in json.loads(path.read_text())  # overwritten by the later run
