@@ -71,8 +71,9 @@ def project_b(records, months, n0, per_month, k, d, queries=500, seeds=3):
     Maintenance seconds are turned into a rate per (n * k * d * pass) per arm,
     where a pass is one sweep over the indexed docs, then applied to every
     month's pass count at the index size that month (`n0` docs plus `per_month`
-    each month). Evaluation (IVF build, truth, search) is a rate per
-    (n * d * query) over all pilot records. Truth is cached across arms and
+    each month). Evaluation (truth and search) is a rate per
+    (n * d * query) and the add step (IVF build, `adding_seconds`) a rate per
+    (n * d), both over all pilot records. Truth is cached across arms and
     seeds in the real run, so the evaluation share is an upper bound."""
     b = [r for r in records if r["part"] == "b"]
     rate = {"stale": 0.0}
@@ -88,9 +89,12 @@ def project_b(records, months, n0, per_month, k, d, queries=500, seeds=3):
         maint[arm] = seeds * sum(rate[arm] * passes * n * k * d for n in sizes) / 3600
     maint["yearly"] = seeds * sum(rate["yearly"] * YEARLY_PASSES * n * k * d
                                   for n, month in zip(sizes, labels) if month.endswith("-01")) / 3600
+    add_rate = sum(r["adding_seconds"] for r in b) / sum(r["n"] * r["d"] for r in b)
+    adding_h = seeds * len(growing.ARMS_B) * sum(add_rate * n * d for n in sizes) / 3600
     eval_h = seeds * len(growing.ARMS_B) * sum(eval_rate * n * d * queries for n in sizes) / 3600
     return {"months": months, "seeds": seeds, "rate_per_pass": rate, "maintenance_hours": maint,
-            "eval_hours": eval_h, "hours": sum(maint.values()) + eval_h}
+            "eval_hours": eval_h, "adding_hours": adding_h,
+            "hours": sum(maint.values()) + eval_h + adding_h}
 
 
 def project_c(records, n, k, dims=DIMS, seeds=3):

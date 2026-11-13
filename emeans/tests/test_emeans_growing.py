@@ -245,7 +245,7 @@ def test_a_state_that_does_not_match_the_last_record_exits(gsplit, tmp_path):
 
 def test_every_arm_and_seed_shares_one_truth_file_per_month(gsplit, tmp_path):
     run_b(gsplit, tmp_path / "b.jsonl")
-    assert sorted(p.stem for p in (tmp_path / "truth").glob("*.npy")) == MONTHS
+    assert sorted(p.stem.split("-n")[0] for p in (tmp_path / "truth").glob("*.npy")) == MONTHS
 
 
 def test_ledger_counts_train_plus_assign_never_adding_and_stale_is_zero(gsplit, tmp_path):
@@ -265,3 +265,21 @@ def test_ledger_counts_train_plus_assign_never_adding_and_stale_is_zero(gsplit, 
     assert led["yearly"][1][1] == 0  # no rebuild in February
     adding = tables.adding_seconds(records)
     assert set(adding) == set(growing.ARMS_B) and all(v > 0 for v in adding.values())
+
+
+def test_caches_are_not_reused_after_k_or_the_vectors_change(gsplit, tmp_path):
+    a = growing._initial(gsplit, tmp_path, 8, 0)[0]
+    b = growing._initial(gsplit, tmp_path, 6, 0)[0]
+    assert a.shape == (8, 4) and b.shape == (6, 4)
+    month = MONTHS[0]
+    n = growing.n_through(gsplit.months, month)
+    full = growing._truth(gsplit, tmp_path, month, n)
+    fewer = growing._truth(gsplit, tmp_path, month, n - 50)
+    assert full.max() < n and fewer.max() < n - 50
+    assert len(list((tmp_path / "truth").glob("*.npy"))) == 2
+
+
+def test_lloyd_half_is_warm_started_too(start):
+    a = step("lloyd_half", start)
+    b = step("lloyd_half", start, centroids=start[1] + 3)
+    assert not np.array_equal(a.centroids, b.centroids)

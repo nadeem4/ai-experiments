@@ -10,7 +10,7 @@ Measured experiments on AI models, each keeping the exact request and response o
 
 ## Layout
 - `rerank/`: the re-ranking experiment. README.md is the protocol, RESULTS.md the findings, `experiment.py` and `evaluate.py` the harness, `results/` committed metrics, `runs/` raw records (gitignored)
-- `emeans/`: the e-means vs k-means experiment (README is the protocol). `experiment.py` the `cli` entry, `store.py` resumable JSONL, `data.py` splits, `metrics.py`, `index.py` IVF search, `env.py` threads and versions, `arxiv.py`/`embed.py` arXiv-CS sampling and embedding, `kaggle/` the embedding notebook, `DATASET.md` generated data card
+- `emeans/`: the e-means vs k-means experiment (README is the protocol). `experiment.py` the `cli` entry, `race.py` parts A and C, `growing.py` part B, `stats.py`, `tables.py`, `pilot.py`, plus `store.py`, `data.py`, `metrics.py`, `index.py`, `env.py`, `arxiv.py`/`embed.py`, `kaggle/` the embedding notebook, `DATASET.md` the data card
 - `cli/`: `uv run cli` entry. `__init__.py` holds the experiment registry, `kaggle.py` the Kaggle submit/fetch
 - `site/`: Next.js site for lab.codewithnk.com. `experiments.config.ts` sets what is published, `app/<name>/` holds the pages, `data/` their JSON
 - `tests/`: tests for the shared CLI and helpers

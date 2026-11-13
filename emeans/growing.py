@@ -145,12 +145,12 @@ def _save_atomic(path, **arrays):
 
 def _truth(gs, run_dir, month, n):
     """Exact top-10 ids into the indexed prefix, cached once per month for every arm and seed."""
-    path = run_dir / "truth" / f"{month}.npy"
+    path = run_dir / "truth" / f"{month}-n{n}.npy"  # n in the name: new vectors never reuse old truth
     if path.exists():
         return np.load(path)
     truth = data.exact_neighbours(gs.vectors[:n], gs.queries[month], 10)
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(month + ".tmp.npy")
+    tmp = path.with_name(path.stem + ".tmp.npy")
     np.save(tmp, truth)
     os.replace(tmp, path)
     return truth
@@ -158,11 +158,11 @@ def _truth(gs, run_dir, month, n):
 
 def _initial(gs, run_dir, k, seed):
     """The shared starting centroids for a seed, computed once and cached."""
-    path = run_dir / "state" / f"init-{seed}.npy"
     n0 = n_through(gs.months, INITIAL[1])
+    path = run_dir / "state" / f"init-{seed}-k{k}-n{n0}.npy"  # k and n in the name: no stale reuse
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_name(f"init-{seed}.tmp.npy")
+        tmp = path.with_name(path.stem + ".tmp.npy")
         np.save(tmp, initial_centroids(gs.vectors[:n0], k, seed))
         os.replace(tmp, path)
     centroids = np.load(path)

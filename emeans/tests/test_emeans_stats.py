@@ -75,7 +75,8 @@ def pilot_b_records():
             seconds = maint if (arm != "yearly" or month.endswith("-01")) else 0.0
             out.append({"part": "b", "dataset": "arxiv", "arm": arm, "setting": month, "seed": 0,
                         "n": 1000 + 10 * m, "k": 8, "d": 4, "n_queries": 10,
-                        "train_seconds": seconds * 0.8, "assign_seconds": seconds * 0.2, "eval_seconds": 0.5})
+                        "train_seconds": seconds * 0.8, "assign_seconds": seconds * 0.2, "eval_seconds": 0.5,
+                        "adding_seconds": 0.25})
     return out
 
 
@@ -108,3 +109,15 @@ def test_project_c_covers_lloyd_and_emeans_only_and_grows_with_d():
     assert wide["hours"] > narrow["hours"] > 0 and set(wide["per_d"]) == set(DIMS)
     no_mb = [r for r in recs if r["arm"] != "minibatch"]
     assert pilot.project_c(no_mb, n=1000, k=8, dims=DIMS, seeds=3)["hours"] == pytest.approx(wide["hours"])
+
+
+def test_project_b_includes_the_add_step_scaled_by_n_and_d():
+    recs = pilot_b_records()
+    base = pilot.project_b(recs, months=12, n0=1000, per_month=0, k=8, d=4, queries=10, seeds=1)
+    slow = pilot.project_b([dict(r, adding_seconds=r["adding_seconds"] * 3) for r in recs],
+                           months=12, n0=1000, per_month=0, k=8, d=4, queries=10, seeds=1)
+    assert slow["adding_hours"] == pytest.approx(3 * base["adding_hours"]) and base["adding_hours"] > 0
+    assert base["hours"] == pytest.approx(sum(base["maintenance_hours"].values()) + base["eval_hours"]
+                                          + base["adding_hours"])
+    big = pilot.project_b(recs, months=12, n0=2000, per_month=0, k=8, d=4, queries=10, seeds=1)
+    assert big["adding_hours"] == pytest.approx(2 * base["adding_hours"] * 1.0, rel=0.05)
