@@ -17,8 +17,3 @@ def overshoot(actual_s, budget_s, tolerance=0.10):
     Reported next to the budget, never silently clipped."""
     return actual_s > budget_s * (1 + tolerance)
 
-
-def calibrate(arm_fns, x, k, init):
-    """-> {arm: seconds per epoch}, from one timed epoch (iteration for Lloyd)
-    per arm, seed 0. `arm_fns[arm](x, k, epochs, init, seed) -> Trained`."""
-    return {arm: fn(x, k, 1, init, 0).seconds for arm, fn in arm_fns.items()}
