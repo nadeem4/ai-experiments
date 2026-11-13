@@ -34,7 +34,6 @@ def test_matches_is_mean_ratio_at_most_one():
     assert tables.matches({0: 1.0, 1: 1.0}) is True
     assert tables.matches({0: 0.9, 1: 1.1}) is True
     assert tables.matches({0: 1.0, 1: 1.0002}) is False
-    assert tables.matches({}) is False
 
 
 def worked():
@@ -58,3 +57,22 @@ def test_unmatched_has_no_epochs_and_no_speedup():
                          for e in (1, 2, 3, 5) for s in (0, 1)]
     assert tables.epochs_to_match(records, "sift", "minibatch") is None
     assert tables.speedup(records, "sift", "minibatch") is None
+
+
+def test_a_seed_missing_from_the_arm_raises():
+    records = lloyd() + [rec("sift", "emeans", "epochs=3", 0, 9.0)]
+    with pytest.raises(ValueError, match="seeds"):
+        tables.mse_ratios(records, "sift", "emeans", "epochs=3")
+
+
+def test_a_seed_missing_from_lloyd_raises():
+    records = lloyd(mse=(10.0,), seconds=(1.0,)) + [rec("sift", "emeans", "epochs=3", s, 9.0) for s in (0, 1)]
+    with pytest.raises(ValueError, match="seeds"):
+        tables.mse_ratios(records, "sift", "emeans", "epochs=3")
+
+
+def test_no_records_at_all_raises_rather_than_not_matching():
+    with pytest.raises(ValueError, match="seeds"):
+        tables.mse_ratios([], "sift", "emeans", "epochs=3")
+    with pytest.raises(ValueError):
+        tables.matches({})

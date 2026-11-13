@@ -18,11 +18,16 @@ def mse_ratios(records, dataset, arm, setting):
     """-> {seed: arm test MSE / that seed's Lloyd iters=25 test MSE}."""
     mine = _by_seed(records, dataset, arm, setting)
     base = _by_seed(records, dataset, "lloyd", "iters=25")
-    return {s: mine[s]["test_mse"] / base[s]["test_mse"] for s in mine if s in base}
+    if not mine or set(mine) != set(base):
+        raise ValueError(f"{dataset} {arm} {setting}: seeds {sorted(mine)} do not match "
+                         f"Lloyd iters=25 seeds {sorted(base)}; the data is incomplete")
+    return {s: mine[s]["test_mse"] / base[s]["test_mse"] for s in mine}
 
 
 def matches(ratios):
-    return bool(ratios) and statistics.fmean(ratios.values()) <= 1.000
+    if not ratios:
+        raise ValueError("no paired ratios: missing data is not a mismatch")
+    return statistics.fmean(ratios.values()) <= 1.000
 
 
 def epochs_to_match(records, dataset, arm):
@@ -41,5 +46,5 @@ def speedup(records, dataset, arm):
         return None
     mine = _by_seed(records, dataset, arm, f"epochs={e}")
     base = _by_seed(records, dataset, "lloyd", "iters=25")
-    pairs = [base[s]["train_seconds"] / mine[s]["train_seconds"] for s in mine if s in base]
+    pairs = [base[s]["train_seconds"] / mine[s]["train_seconds"] for s in mine]
     return statistics.fmean(pairs)
