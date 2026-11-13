@@ -11,13 +11,13 @@ import cli
 
 class TestTheRegistry:
     def test_it_names_every_experiment_in_the_repository(self):
-        assert set(cli.EXPERIMENTS) == {"rerank", "banking77", "typed_decisions"}
+        assert set(cli.EXPERIMENTS) == {"rerank"}
 
     def test_an_unknown_name_says_what_does_exist(self):
         """Better than a traceback: the answer to 'what can I run' is the error."""
         with pytest.raises(SystemExit) as e:
-            cli.load("banking-77")
-        assert "banking77" in str(e.value) and "rerank" in str(e.value)
+            cli.load("rerank-x")
+        assert "rerank" in str(e.value)
 
 
 @pytest.mark.parametrize("name", cli.EXPERIMENTS)
@@ -71,40 +71,7 @@ class TestRunDispatch:
             cli.main(["run", "rerank", "--help"])
         out = capsys.readouterr().out
         assert "--top-k" in out and "--tag" in out
-        assert "--arms" not in out, "that is banking77's flag, not rerank's"
-
-
-class TestAFullyScoredRunNeedsNothing:
-    """The property that lets one verb replace two.
-
-    Re-running an experiment whose calls are all in the wire log must not reach
-    for a key, the network or a model. If it did, recomputing a number would cost
-    what measuring it costs, and there would have to be a separate report command.
-    """
-
-    def test_typed_decisions_decides_what_is_pending_from_names_alone(self):
-        """Resolving a model id needs the account; knowing whether a call is
-        already recorded does not. The pending check must use only the second."""
-        from typed_decisions import catalog, run
-
-        names = catalog.select("all")
-        assert all(isinstance(n, str) for n in names), "select() is keyed by name"
-        # arms_to_run only iterates the names and asks the static catalogue which
-        # of them return a probability, so it never needs a resolved model.
-        task = {"spec": {"hash": "h", "payload": {"position_bias": {"orders": []}}},
-                "validation": [1]}
-        planned = run.arms_to_run(task, {"main", "validation"}, names)
-        assert planned, "main and validation should both be planned"
-        assert all(isinstance(m, str) for _, who in planned for m in who)
-
-    def test_it_refuses_to_ask_for_a_key_before_it_knows_there_is_work(self):
-        """`main` must compute outstanding work before demanding OPENROUTER_API_KEY."""
-        import inspect
-        from typed_decisions import run
-        source = inspect.getsource(run.main)
-        assert source.index("outstanding") < source.index("no OPENROUTER_API_KEY"), (
-            "the key is demanded before the pending check, so a re-run of a "
-            "finished experiment would fail without one")
+        assert "--arms" not in out
 
 
 def test_the_cli_runs_as_a_module_without_being_installed():
@@ -115,23 +82,18 @@ def test_the_cli_runs_as_a_module_without_being_installed():
     out = subprocess.run([sys.executable, "-m", "cli", "list"],
                          capture_output=True, text=True, cwd=".")
     assert out.returncode == 0, out.stderr
-    assert "rerank" in out.stdout and "banking77" in out.stdout
+    assert "rerank" in out.stdout
 
 
 class TestAnExperimentThatIsNotCheckedOut:
-    """A Kaggle kernel clones only the experiment it runs, so the other two are
-    genuinely absent. Listing has to survive that; running the one that is there
-    must still work."""
+    """A Kaggle kernel clones only the experiment it runs, so the others are
+    genuinely absent. Listing has to survive that."""
 
     def test_list_skips_what_is_not_present_instead_of_crashing(self, monkeypatch, capsys):
-        real = cli.load
+        def absent(name):
+            raise ModuleNotFoundError(f"No module named {name!r}")
 
-        def only_rerank(name):
-            if name != "rerank":
-                raise ModuleNotFoundError(f"No module named {name!r}")
-            return real(name)
-
-        monkeypatch.setattr(cli, "load", only_rerank)
+        monkeypatch.setattr(cli, "load", absent)
         assert cli.main(["list"]) == 0
         out = capsys.readouterr().out
         assert "rerank" in out

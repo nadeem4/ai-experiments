@@ -5,6 +5,8 @@ one sentence has consequences: work that is uncommitted, or committed but not
 pushed, is simply not what runs, and the run looks completely normal while
 measuring the wrong code.
 """
+from pathlib import Path
+
 import pytest
 
 from cli import kaggle
@@ -84,10 +86,14 @@ class TestWhereTheKernelLives:
 def test_the_dirty_list_keeps_whole_paths():
     """A fixed-width slice ate the first character of a modified path, so the
     message named a file that does not exist."""
+    import subprocess
     from cli.kaggle import git_state
+    # Real top-level names, on disk or in HEAD (a deleted file is only in HEAD),
+    # so the test holds whatever happens to be uncommitted in the working tree.
+    root = Path(__file__).resolve().parent.parent
+    in_head = subprocess.run(["git", "ls-tree", "--name-only", "HEAD"], cwd=root,
+                             capture_output=True, text=True, check=True).stdout.split()
+    top_level = {p.name for p in root.iterdir()} | set(in_head)
     for path in git_state()["dirty"]:
         assert not path.startswith("/"), path
-        head = path.split("/")[0]
-        assert head in {"cli", "rerank", "banking77", "typed_decisions", "site",
-                        "tests", "pyproject.toml", "uv.lock", "README.md",
-                        ".gitignore", ".env.example", "EXPERIMENT_TEMPLATE.md"}, path
+        assert path.split("/")[0] in top_level, path

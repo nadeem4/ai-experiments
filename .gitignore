@@ -10,10 +10,6 @@ __pycache__/
 .env
 /models/
 /rerank/runs/
-/banking77/runs/
-/banking77/.cache/
-/typed_decisions/runs/
-/typed_decisions/.cache/
 *.log
 
 # AI tooling and skill output: critique snapshots, browser screenshots,
@@ -24,7 +20,6 @@ __pycache__/
 .playwright-mcp/
 .remember/
 AGENTS.md
-CLAUDE.md
 
 # Node / Next.js (site/)
 node_modules/
