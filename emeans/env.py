@@ -6,7 +6,7 @@ import platform
 import subprocess
 
 import faiss
-from threadpoolctl import threadpool_limits
+from threadpoolctl import threadpool_info, threadpool_limits
 
 _limits = None  # held so the limit stays in force for the life of the process
 
@@ -60,6 +60,7 @@ def environment():
         "sentence-transformers": _version("sentence-transformers"),
         "cpu": _cpu(),
         "threads": faiss.omp_get_max_threads(),
+        "threadpools": threadpool_info(),  # what the pools actually run
         "commit": _commit(),
         "date": datetime.date.today().isoformat(),
     }
