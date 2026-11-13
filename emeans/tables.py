@@ -6,6 +6,9 @@ not match within the largest epoch count has no speedup, never a number.
 """
 import statistics
 
+import numpy as np
+
+from . import stats
 from .consts import EPOCHS
 
 
@@ -81,3 +84,33 @@ def adding_seconds(records):
                 per_seed[r["seed"]] = per_seed.get(r["seed"], 0.0) + r["adding_seconds"]
         out[arm] = statistics.fmean(per_seed.values())
     return out
+
+
+def pooled_recall(records, arm, nprobe, year="2025"):
+    """-> {seed: per-query recall of every query in `year`}, months in order
+    (12 months x 500 = 6,000 queries for 2025)."""
+    out = {}
+    for r in sorted((r for r in records if r["part"] == "b" and r["arm"] == arm
+                     and r["setting"].startswith(year)), key=lambda r: r["setting"]):
+        out.setdefault(r["seed"], []).extend(r["recall_per_query"][str(nprobe)])
+    return {seed: np.array(v) for seed, v in out.items()}
+
+
+def _paired(records, arm_a, arm_b, nprobe, year):
+    a, b = pooled_recall(records, arm_a, nprobe, year), pooled_recall(records, arm_b, nprobe, year)
+    if not a or set(a) != set(b):
+        raise ValueError(f"{arm_a} seeds {sorted(a)} do not match {arm_b} seeds {sorted(b)}; the data is incomplete")
+    return a, b
+
+
+def end_state(records, arm_a, arm_b, nprobe=16, year="2025"):
+    """-> (mean_diff, lo, hi): recall of `arm_a` minus `arm_b`, the per-query
+    difference averaged over seeds, then a paired bootstrap over the queries."""
+    a, b = _paired(records, arm_a, arm_b, nprobe, year)
+    return stats.paired_bootstrap(np.mean(list(a.values()), axis=0), np.mean(list(b.values()), axis=0))
+
+
+def end_state_per_seed(records, arm_a, arm_b, nprobe=16, year="2025"):
+    """-> {seed: mean recall difference}, reported next to the pooled interval."""
+    a, b = _paired(records, arm_a, arm_b, nprobe, year)
+    return {seed: float((a[seed] - b[seed]).mean()) for seed in a}
