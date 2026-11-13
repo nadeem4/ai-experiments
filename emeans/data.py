@@ -87,3 +87,13 @@ def truncate(x, d):
 def month_order(months):
     """Stable argsort: documents arrive month by month, ties in file order."""
     return np.argsort(months, kind="stable")
+
+
+def make_static_split(x, seed=0, n_test=100_000, n_train=None):
+    """The shuffled train/test split with no queries (part C needs none): the
+    same permutation as `make_split`, and the index is the training set."""
+    x = np.ascontiguousarray(x, dtype=np.float32)
+    perm = np.random.default_rng(seed).permutation(len(x))
+    train = x[perm[n_test:][:n_train]]
+    d = x.shape[1]
+    return Split(train, x[perm[:n_test]], train, np.zeros((0, d), np.float32), np.zeros((0, 10), np.int64))

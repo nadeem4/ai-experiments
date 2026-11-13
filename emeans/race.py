@@ -131,3 +131,23 @@ def run(unit_list, split, scale, store_path, threads=None, with_search=True, log
         record = run_unit(unit, split, scale, calibration, threads, with_search)
         store.append(store_path, record)
         log(f"[{i}/{len(todo)}] {' '.join(map(str, unit))}")
+
+
+def truncated_split(split, d):
+    """The split cut to its first `d` dimensions, re-normalised (part C)."""
+    from . import data
+
+    return split._replace(train=data.truncate(split.train, d), test=data.truncate(split.test, d),
+                          index=data.truncate(split.index, d), queries=data.truncate(split.queries, d))
+
+
+def sweep_units(scale, dims, dataset="arxiv"):
+    """Part C's units: Lloyd and e-means only, no budgets, one dataset name per dimension."""
+    return [u for d in dims for u in units(f"{dataset}-d{d}", ("lloyd", "emeans"), scale.seeds_bc, part="c")]
+
+
+def run_sweep(split, scale, store_path, dims, threads=None, log=print):
+    """Part C: the race at each truncated dimension, with no search evaluation."""
+    for d in dims:
+        us = sweep_units(scale, (d,))
+        run(us, truncated_split(split, d), scale, store_path, threads=threads, with_search=False, log=log)
