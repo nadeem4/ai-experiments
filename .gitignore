@@ -10,6 +10,7 @@ __pycache__/
 .env
 /models/
 /rerank/runs/
+/emeans/runs/
 *.log
 
 # AI tooling and skill output: critique snapshots, browser screenshots,
